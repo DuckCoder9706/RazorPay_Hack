@@ -1,0 +1,38 @@
+[project]
+name = "tijori"
+version = "0.1.0"
+description = "A closed loop that finds missing money, recovers it, proves it settled, and corrects its own recovery model. Razorpay AI Buildathon — Track 3 (Revenue Recovery)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "razorpay>=1.4",
+    "anthropic>=0.34",
+    "pydantic>=2.6",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+tijori = "tijori.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["tijori*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

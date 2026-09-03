@@ -1,0 +1,58 @@
+# Tijori
+
+**A closed loop that finds missing money, recovers it, proves it settled — and corrects its own recovery model.**
+Razorpay AI Buildathon · **Track 3 — Revenue Recovery**.
+
+> Razorpay already retries (Optimizer) and reconciles (settlement reports) — *separately*.
+> Tijori closes the loop: **W** senses money that failed to arrive, **R** acts to recover it,
+> every recovered rupee re-reconciles to *prove* it landed, and that proof recalibrates R's
+> beliefs. It also reports how close it gets to the theoretical maximum.
+
+- Full design: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Differentiation + Razorpay overlap + feature stress-tests: [docs/differentiation.md](docs/differentiation.md)
+- Cited outcome model (reason taxonomy, distribution, WORLD/BELIEF): [docs/outcome-model.md](docs/outcome-model.md)
+
+## Stack
+Python 3.11 · FastAPI · SQLite · Razorpay SDK (test-mode) · Claude (temp 0 + cache, **never in the scored path**) · React + Tailwind.
+
+## Repo layout
+```
+tijori/
+  config/constants.py     # T1 · frozen enum, distribution, WORLD/BELIEF, gates, costs
+  ledger/                 # the one SQLite ledger: schema.sql, db, models, append-only audit
+  simulator/              # seeded: clock, WORLD (truth) vs BELIEF (R's view), generators
+  recover/                # R · diagnose → net-value policy → executor
+  where/                  # W · 3-way matcher → exceptions → F1 calibration
+  eval/                   # baseline · smart · oracle · metrics (regret, net value, Brier)
+  llm/                    # narration + dunning copy — OUTSIDE the scored path
+  razorpay_client/        # the one live test-mode Payment Link path
+  api/app.py              # FastAPI for the dashboard
+  cli.py                  # tijori init-db | validate | run
+dashboard/                # React + Tailwind (Vite) — panels land Week 3
+track1_teaser/            # isolated ≤90s agent-buyable teaser (conditional)
+tests/                    # T1 acceptance tests
+docs/                     # differentiation + outcome model
+```
+
+## Quickstart
+```bash
+python -m venv .venv && .venv\Scripts\activate      # Windows
+pip install -e ".[dev]"
+cp .env.example .env                                 # add your rzp_test_ keys
+
+tijori validate            # check the frozen constants (T1)
+tijori init-db --fresh     # build the SQLite ledger from schema.sql
+pytest -q                  # run T1 acceptance tests
+```
+
+## Build status
+| Task | State |
+|---|---|
+| **T0.5** cited reason-code distribution | ✅ done — [docs/outcome-model.md](docs/outcome-model.md) |
+| **T1** repo scaffold + frozen constants + ledger DDL | ✅ done |
+| Week 1 · generators + audit + batch runner | scaffolded (interfaces fixed) |
+| Week 2 · R executor + gates + live Payment Link + measured batch | scaffolded |
+| Week 3 · W matcher + F1/F2 + loop wiring + video | scaffolded |
+
+## Honesty
+The reason **taxonomy** is cited (Razorpay's 109-value error enum); the reason **distribution** is anchored to cited card/UPI decline data with a modeled blend; the **WORLD/BELIEF** success tables are modeled and declared. Same seed → byte-identical scored output. Honest simulation, never claimed production. Full provenance in [docs/outcome-model.md](docs/outcome-model.md).
