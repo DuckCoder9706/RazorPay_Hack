@@ -13,6 +13,7 @@ Three populations:
 
 from __future__ import annotations
 
+import math
 import random
 from datetime import datetime, timedelta
 
@@ -27,12 +28,13 @@ from tijori.simulator.clock import EPOCH
 _CAUSES: list[Cause] = list(REASON_CODE_DISTRIBUTION.keys())
 _WEIGHTS: list[float] = [REASON_CODE_DISTRIBUTION[c] for c in _CAUSES]
 
-# Realistic INR order-value tiers (rupees) and customer-value tiers.
-_AMOUNT_TIERS: list[tuple[tuple[int, int], float]] = [
-    ((50, 500), 0.50),
-    ((500, 2000), 0.35),
-    ((2000, 10000), 0.15),
-]
+# Order value: lognormal (reproducibility improvement #5) — a realistic long tail,
+# most orders small with occasional large ones. Median ≈ ₹600, clamped to [₹50, ₹1L].
+_AMOUNT_MU: float = math.log(600)
+_AMOUNT_SIGMA: float = 0.9
+_AMOUNT_MIN_RUPEES: int = 50
+_AMOUNT_MAX_RUPEES: int = 100_000
+
 _VALUE_TIERS: list[tuple[str, float]] = [("low", 0.50), ("mid", 0.35), ("high", 0.15)]
 
 # Causes that plausibly hit a UPI-Autopay mandate renewal (DEMO population).
@@ -59,8 +61,9 @@ def sample_reason(cause: Cause) -> str:
 
 
 def _draw_amount_paise(rng: random.Random) -> int:
-    (lo, hi) = rng.choices([t[0] for t in _AMOUNT_TIERS], weights=[t[1] for t in _AMOUNT_TIERS])[0]
-    return rng.randint(lo, hi) * PAISE_PER_RUPEE
+    rupees = round(rng.lognormvariate(_AMOUNT_MU, _AMOUNT_SIGMA))
+    rupees = min(max(rupees, _AMOUNT_MIN_RUPEES), _AMOUNT_MAX_RUPEES)
+    return rupees * PAISE_PER_RUPEE
 
 
 def _draw_value(rng: random.Random) -> str:

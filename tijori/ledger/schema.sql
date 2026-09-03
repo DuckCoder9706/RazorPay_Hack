@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS exceptions (
     status        TEXT NOT NULL DEFAULT 'open',     -- open | closed
     settlement_id TEXT REFERENCES settlements(id),
     bank_row_id   TEXT REFERENCES bank_rows(id),
+    seed          INTEGER,                          -- provenance (#4)
     created_at    TEXT NOT NULL
 );
 
@@ -79,6 +80,7 @@ CREATE TABLE IF NOT EXISTS recovery_actions (
     amount_recovered INTEGER NOT NULL DEFAULT 0,
     net_value        INTEGER NOT NULL DEFAULT 0,    -- recovered - costs (F3)
     policy           TEXT NOT NULL,                 -- baseline | smart | oracle
+    seed             INTEGER,                       -- provenance (#4)
     created_at       TEXT NOT NULL
 );
 
@@ -86,6 +88,7 @@ CREATE TABLE IF NOT EXISTS recovery_actions (
 CREATE TABLE IF NOT EXISTS calibration_report (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     batch_id TEXT NOT NULL,
+    seed     INTEGER,                               -- provenance (#4)
     cause    TEXT NOT NULL,
     timing   TEXT NOT NULL,
     n        INTEGER NOT NULL,
