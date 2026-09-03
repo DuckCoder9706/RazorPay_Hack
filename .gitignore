@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# SQLite ledger (regenerated from schema)
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+
+# Env / secrets  (Razorpay TEST keys live here — never commit)
+.env
+.env.local
+
+# LLM response cache
+.llm_cache/
+
+# Node / dashboard
+node_modules/
+dashboard/dist/
+dashboard/.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
