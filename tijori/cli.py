@@ -35,6 +35,31 @@ def _cmd_validate(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _fmt_rupees(paise: int) -> str:
+    return f"₹{paise / 100:,.2f}"
+
+
+def _cmd_generate(args: argparse.Namespace) -> int:
+    from tijori.simulator.seed import seed_ledger
+
+    init_db(args.path, fresh=True)
+    conn = get_conn(args.path)
+    try:
+        s = seed_ledger(conn, seed=args.seed, n=args.n)
+    finally:
+        conn.close()
+    print(f"seeded ledger at {args.path}  (seed={s['seed']})")
+    print(f"  one-time failures : {s['n_onetime_failures']}  "
+          f"(at risk {_fmt_rupees(s['total_at_risk_paise'])})")
+    print(f"  mandate failures  : {s['n_mandate_failures']}")
+    print(f"  settlements       : {s['n_settlements']}   bank rows: {s['n_bank_rows']}")
+    print(f"  injected exceptions: {s['injected_exceptions']}")
+    print("  cause mix:")
+    for cause, cnt in s["cause_mix"].items():
+        print(f"    {cause:<22} {cnt:>4}  ({cnt / s['n_onetime_failures']:.0%})")
+    return 0
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     from tijori.eval.harness import run_batch  # imported lazily; body lands W2-3
 
@@ -47,6 +72,13 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Windows consoles default to cp1252; force UTF-8 so ₹ and friends print.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+        except (AttributeError, ValueError):
+            pass
+
     parser = argparse.ArgumentParser(prog="tijori", description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -57,6 +89,12 @@ def main(argv: list[str] | None = None) -> int:
 
     p_val = sub.add_parser("validate", help="validate frozen constants")
     p_val.set_defaults(func=_cmd_validate)
+
+    p_gen = sub.add_parser("generate", help="seed the ledger with a reproducible batch (W1)")
+    p_gen.add_argument("--path", default=str(DEFAULT_DB_PATH))
+    p_gen.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
+    p_gen.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
+    p_gen.set_defaults(func=_cmd_generate)
 
     p_run = sub.add_parser("run", help="run a scored batch (W2-3)")
     p_run.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
