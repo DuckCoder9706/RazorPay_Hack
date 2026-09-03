@@ -1,0 +1,5 @@
+# Dev/test deps (reproducibility #3). Install: pip install -r requirements-dev.txt
+-r requirements.txt
+pytest==8.1.1
+ruff==0.4.4
+mypy==1.10.0

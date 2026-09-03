@@ -19,6 +19,13 @@ def get_conn(db_path: str | Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
     return conn
 
 
+def init_schema(conn: sqlite3.Connection) -> sqlite3.Connection:
+    """Apply the DDL to an already-open connection (used for in-memory sweep DBs)."""
+    conn.executescript(_SCHEMA_PATH.read_text(encoding="utf-8"))
+    conn.commit()
+    return conn
+
+
 def init_db(db_path: str | Path = DEFAULT_DB_PATH, *, fresh: bool = False) -> Path:
     """Create the ledger from schema.sql. With fresh=True, delete any existing file first.
 
@@ -28,14 +35,20 @@ def init_db(db_path: str | Path = DEFAULT_DB_PATH, *, fresh: bool = False) -> Pa
     path = Path(db_path)
     if fresh and path.exists():
         path.unlink()
-    ddl = _SCHEMA_PATH.read_text(encoding="utf-8")
     conn = get_conn(path)
     try:
-        conn.executescript(ddl)
-        conn.commit()
+        init_schema(conn)
     finally:
         conn.close()
     return path
+
+
+def memory_db() -> sqlite3.Connection:
+    """An in-memory ledger with the schema applied (fast, for sweeps/tests)."""
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return init_schema(conn)
 
 
 def table_names(conn: sqlite3.Connection) -> list[str]:

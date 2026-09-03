@@ -58,6 +58,7 @@ class Exception_:
     status: str = "open"
     settlement_id: str | None = None
     bank_row_id: str | None = None
+    seed: int | None = None
 
 
 @dataclass(slots=True)
@@ -74,6 +75,7 @@ class RecoveryAction:
     reconciled: bool = False
     amount_recovered: int = 0
     net_value: int = 0
+    seed: int | None = None
 
 
 @dataclass(slots=True)
@@ -86,3 +88,4 @@ class CalibrationCell:
     realized: float
     brier: float | None = None
     drift: float | None = None
+    seed: int | None = None

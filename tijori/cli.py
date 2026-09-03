@@ -60,6 +60,28 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_sweep(args: argparse.Namespace) -> int:
+    from tijori.eval.sweep import default_seeds, run_sweep
+
+    seeds = default_seeds(args.batches)
+    r = run_sweep(seeds, n=args.n)
+    ar = r["at_risk_rupees"]
+    print(f"sweep: {r['n_batches']} batches x n={r['n_per_batch']}  "
+          f"(seeds {seeds[0]}..{seeds[-1]}) = {r['total_failures']} failures")
+    print(f"  ₹ at risk / batch : mean ₹{ar['mean']:,.0f}  std ₹{ar['std']:,.0f}  "
+          f"[₹{ar['min']:,.0f} – ₹{ar['max']:,.0f}]")
+    print(f"  ₹ at risk total   : ₹{ar['total']:,.0f}")
+    print(f"  retryable / terminal (pooled): {r['retryable_pooled']} / {r['terminal_pooled']} "
+          f"({r['retryable_pooled'] / r['total_failures']:.0%} recoverable)")
+    print(f"  injected exceptions / batch  : {r['injected_per_batch']}")
+    print("  cause-mix stability (mean share ± std, pooled count):")
+    for cause, st in sorted(r["cause_share_stats"].items(), key=lambda kv: -kv[1]["mean_share"]):
+        flag = "" if st["retryable"] else "  [terminal]"
+        print(f"    {cause:<22} {st['mean_share']:6.1%} ± {st['std_share']:4.1%}"
+              f"   pooled {st['pooled_count']:>5}{flag}")
+    return 0
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     from tijori.eval.harness import run_batch  # imported lazily; body lands W2-3
 
@@ -95,6 +117,11 @@ def main(argv: list[str] | None = None) -> int:
     p_gen.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
     p_gen.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
     p_gen.set_defaults(func=_cmd_generate)
+
+    p_sweep = sub.add_parser("sweep", help="build many seeded batches and report data metrics (W1)")
+    p_sweep.add_argument("--batches", type=int, default=20)
+    p_sweep.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
+    p_sweep.set_defaults(func=_cmd_sweep)
 
     p_run = sub.add_parser("run", help="run a scored batch (W2-3)")
     p_run.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
