@@ -1,10 +1,37 @@
+import type { ReactNode } from "react";
 import { rupees, pct, signed, useApi, useCountUp } from "./lib";
+import type {
+  BatchResponse,
+  ChurnResponse,
+  ExceptionsResponse,
+  ExceptionType,
+  LearnResponse,
+  OutcomeModelResponse,
+  AuditResponse,
+  PolicyName,
+} from "./types";
+
+interface SeedProps {
+  seed: number;
+  n: number;
+  delay?: number;
+}
 
 // --------------------------------------------------------------------------- //
 // Shared primitives — hairline panels, terminal "field label" kickers, no
 // nested cards. Elevation comes from borders, not shadows (the hero excepted).
 // --------------------------------------------------------------------------- //
-export function Panel({ children, className = "", delay = 0, hero = false }) {
+export function Panel({
+  children,
+  className = "",
+  delay = 0,
+  hero = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  hero?: boolean;
+}) {
   return (
     <section
       className={`animate-fade-up rounded-xl border border-line bg-surface ${
@@ -17,7 +44,7 @@ export function Panel({ children, className = "", delay = 0, hero = false }) {
   );
 }
 
-function Kicker({ children, className = "" }) {
+function Kicker({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <p className={`font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-faint ${className}`}>
       {children}
@@ -25,9 +52,23 @@ function Kicker({ children, className = "" }) {
   );
 }
 
-function Head({ kicker, title, note, tag, tagTone = "muted" }) {
-  const tones = {
-    muted: "border-line text-muted",
+type TagTone = "muted" | "money" | "azure";
+
+function Head({
+  kicker,
+  title,
+  note,
+  tag,
+  tagTone = "muted",
+}: {
+  kicker?: ReactNode;
+  title: ReactNode;
+  note?: ReactNode;
+  tag?: ReactNode;
+  tagTone?: TagTone;
+}) {
+  const tones: Record<TagTone, string> = {
+    muted: "border-line text-dim",
     money: "border-money/30 text-money bg-money/10",
     azure: "border-azure/30 text-azure bg-azure/10",
   };
@@ -47,7 +88,7 @@ function Head({ kicker, title, note, tag, tagTone = "muted" }) {
   );
 }
 
-function Loading({ error, label = "computing…" }) {
+function Loading({ error, label = "computing…" }: { error: string | null; label?: string }) {
   if (error)
     return (
       <p className="px-5 py-8 text-sm text-rose">
@@ -68,13 +109,20 @@ function Loading({ error, label = "computing…" }) {
 // HERO — the persuade moment: one enormous recovered figure, the three-way
 // gauge (baseline · smart · oracle ceiling), and the metrics that frame it.
 // --------------------------------------------------------------------------- //
-export function BatchPanel({ seed, n }) {
-  const { data, error } = useApi(`/batch?seed=${seed}&n=${n}`, [seed, n]);
-  const by = data ? Object.fromEntries(data.policies.map((p) => [p.policy, p])) : null;
+export function BatchPanel({ seed, n }: SeedProps) {
+  const { data, error } = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
+  const by = data
+    ? (Object.fromEntries(data.policies.map((p) => [p.policy, p])) as Record<PolicyName, BatchResponse["policies"][number]>)
+    : null;
   const smartPaise = by ? by.smart.gross_recovered_paise : 0;
   const counted = useCountUp(smartPaise);
 
-  if (!data) return <Panel hero><Loading error={error} /></Panel>;
+  if (!data || !by)
+    return (
+      <Panel hero>
+        <Loading error={error} />
+      </Panel>
+    );
   const base = by.baseline, smart = by.smart, oracle = data.oracle_paise;
 
   const gauge = [
@@ -95,7 +143,7 @@ export function BatchPanel({ seed, n }) {
             <span className="rounded-md bg-money/10 px-2 py-1 font-mono font-semibold text-money">
               {signed(data.delta.gross_pct)}
             </span>
-            <span className="text-muted">
+            <span className="text-dim">
               vs Razorpay's cited baseline — <span className="font-mono text-ink">{rupees(data.delta.gross_paise)}</span> more recovered
             </span>
           </div>
@@ -122,14 +170,11 @@ export function BatchPanel({ seed, n }) {
                     style={{ width: `${(g.paise / oracle) * 100}%`, animationDelay: `${0.2 + i * 0.15}s` }}
                   />
                 </div>
-                <div className="mt-1 text-right font-mono text-[11px] text-faint">
-                  {pct(g.eff)} of ceiling
-                </div>
+                <div className="mt-1 text-right font-mono text-[11px] text-faint">{pct(g.eff)} of ceiling</div>
               </div>
             ))}
-            {/* Oracle ceiling reference line */}
             <div className="flex items-center justify-between border-t border-dashed border-line pt-2.5 text-xs">
-              <span className="flex items-center gap-2 text-muted">
+              <span className="flex items-center gap-2 text-dim">
                 <span className="inline-block h-2 w-2 rounded-full bg-azure" />
                 Oracle ceiling — knows the true WORLD probabilities
               </span>
@@ -148,7 +193,7 @@ export function BatchPanel({ seed, n }) {
   );
 }
 
-function MiniStat({ label, value, foot, tone = "text-ink" }) {
+function MiniStat({ label, value, foot, tone = "text-ink" }: { label: string; value: string; foot?: string; tone?: string }) {
   return (
     <div className="bg-surface px-3 py-2.5">
       <p className="text-[11px] text-faint">{label}</p>
@@ -161,16 +206,22 @@ function MiniStat({ label, value, foot, tone = "text-ink" }) {
 // --------------------------------------------------------------------------- //
 // F1 — reconciliation as ground truth. The novel core → given prominence.
 // --------------------------------------------------------------------------- //
-export function LearnPanel({ seed, n, delay }) {
-  const { data, error } = useApi(`/learn?seed=${seed}&n=${n}&batches=5`, [seed, n]);
-  if (!data) return <Panel delay={delay}><Head kicker="F1 · closed learning loop" title="Reconciliation as ground truth" tag="novel core" tagTone="money" /><Loading error={error} /></Panel>;
+export function LearnPanel({ seed, n, delay }: SeedProps) {
+  const { data, error } = useApi<LearnResponse>(`/learn?seed=${seed}&n=${n}&batches=5`, [seed, n]);
+  if (!data)
+    return (
+      <Panel delay={delay}>
+        <Head kicker="F1 · closed learning loop" title="Reconciliation as ground truth" tag="novel core" tagTone="money" />
+        <Loading error={error} />
+      </Panel>
+    );
 
   const W = 560, H = 210, padL = 40, padR = 14, padT = 16, padB = 26;
   const on = data.on, off = data.off;
   const nb = on.length;
-  const x = (b) => padL + (b / (nb - 1 || 1)) * (W - padL - padR);
-  const y = (eff) => padT + (1 - eff) * (H - padT - padB);
-  const path = (rows) => rows.map((t, i) => `${i ? "L" : "M"}${x(t.batch)},${y(t.efficiency)}`).join(" ");
+  const x = (b: number) => padL + (b / (nb - 1 || 1)) * (W - padL - padR);
+  const y = (eff: number) => padT + (1 - eff) * (H - padT - padB);
+  const path = (rows: LearnResponse["on"]) => rows.map((t, i) => `${i ? "L" : "M"}${x(t.batch)},${y(t.efficiency)}`).join(" ");
   const area = `${path(on)} L${x(on[nb - 1].batch)},${y(0)} L${x(0)},${y(0)} Z`;
   const first = on[0], last = on[on.length - 1];
   const flipIdx = on.findIndex((t) => t.issuer_timing === "short");
@@ -202,18 +253,14 @@ export function LearnPanel({ seed, n, delay }) {
             {on.map((t) => (
               <text key={t.batch} x={x(t.batch)} y={H - 8} fontSize="10" fill="#7d8798" textAnchor="middle" className="font-mono">B{t.batch}</text>
             ))}
-            {/* flip marker */}
             {flipIdx > 0 && (
               <line x1={x(on[flipIdx].batch)} x2={x(on[flipIdx].batch)} y1={padT} y2={y(0)} stroke="#34d399" strokeWidth="1" strokeDasharray="2 4" opacity="0.5" />
             )}
             <path d={area} fill="url(#fillOn)" />
-            {/* off — the ablation */}
             <path d={path(off)} fill="none" stroke="#4a5262" strokeWidth="2" strokeDasharray="4 4" />
-            {/* on — recalibration */}
-            <path d={path(on)} fill="none" stroke="#34d399" strokeWidth="2.5" className="draw-line" style={{ "--len": 700 }} />
+            <path d={path(on)} fill="none" stroke="#34d399" strokeWidth="2.5" className="draw-line" style={{ "--len": 700 } as React.CSSProperties} />
             {on.map((t) => (
-              <circle key={t.batch} cx={x(t.batch)} cy={y(t.efficiency)} r="4"
-                fill={t.issuer_timing === "short" ? "#34d399" : "#f5b544"} stroke="#12151c" strokeWidth="2" />
+              <circle key={t.batch} cx={x(t.batch)} cy={y(t.efficiency)} r="4" fill={t.issuer_timing === "short" ? "#34d399" : "#f5b544"} stroke="#12151c" strokeWidth="2" />
             ))}
           </svg>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10.5px] text-faint">
@@ -225,21 +272,21 @@ export function LearnPanel({ seed, n, delay }) {
         </div>
 
         <dl className="flex flex-col justify-center divide-y divide-line-soft">
-          <Row term="issuer_soft timing">
+          <RowKV term="issuer_soft timing">
             <span className="text-amber">{first.issuer_timing}</span>
             <span className="mx-2 text-faint">→</span>
             <span className="text-money">{last.issuer_timing}</span>
-          </Row>
-          <Row term="regret">
-            <span className="text-muted">{rupees(first.regret_paise)}</span>
+          </RowKV>
+          <RowKV term="regret">
+            <span className="text-dim">{rupees(first.regret_paise)}</span>
             <span className="mx-2 text-faint">→</span>
             <span className="text-money">{rupees(last.regret_paise)}</span>
-          </Row>
-          <Row term="mean Brier">
-            <span className="text-muted">{first.mean_brier.toFixed(3)}</span>
+          </RowKV>
+          <RowKV term="mean Brier">
+            <span className="text-dim">{first.mean_brier.toFixed(3)}</span>
             <span className="mx-2 text-faint">→</span>
             <span className="text-money">{last.mean_brier.toFixed(3)}</span>
-          </Row>
+          </RowKV>
           <p className="pt-3 text-xs leading-relaxed text-faint">
             R starts over-trusting fast retries and picks the wrong day. Within{" "}
             <span className="font-mono text-ink">{flipIdx}</span> batches the argmax flips to{" "}
@@ -251,17 +298,22 @@ export function LearnPanel({ seed, n, delay }) {
   );
 }
 
-function Legend({ swatch, dot, label, dashed }) {
+function Legend({ swatch, dot, label, dashed }: { swatch?: string; dot?: string; label: string; dashed?: boolean }) {
   return (
     <span className="flex items-center gap-1.5">
-      {swatch && <i className={`inline-block h-[3px] w-4 ${swatch} ${dashed ? "opacity-70" : ""}`} style={dashed ? { borderTop: "2px dashed #4a5262", background: "transparent", height: 0, width: 16 } : {}} />}
+      {swatch && (
+        <i
+          className={`inline-block h-[3px] w-4 ${swatch} ${dashed ? "opacity-70" : ""}`}
+          style={dashed ? { borderTop: "2px dashed #4a5262", background: "transparent", height: 0, width: 16 } : {}}
+        />
+      )}
       {dot && <i className={`inline-block h-2 w-2 rounded-full ${dot}`} />}
       {label}
     </span>
   );
 }
 
-function Row({ term, children }) {
+function RowKV({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between py-2.5">
       <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">{term}</dt>
@@ -273,22 +325,28 @@ function Row({ term, children }) {
 // --------------------------------------------------------------------------- //
 // W — 3-way reconciliation: typed exceptions + netting
 // --------------------------------------------------------------------------- //
-const EXC = {
+const EXC: Record<ExceptionType, { dot: string; text: string; bg: string }> = {
   fee: { dot: "bg-sky", text: "text-sky", bg: "bg-sky/10" },
   timing: { dot: "bg-violet", text: "text-violet", bg: "bg-violet/10" },
   missing: { dot: "bg-rose", text: "text-rose", bg: "bg-rose/10" },
 };
 
-export function ExceptionsPanel({ seed, n, delay }) {
-  const { data, error } = useApi(`/exceptions?seed=${seed}&n=${n}`, [seed, n]);
-  if (!data) return <Panel delay={delay}><Head kicker="W · sensor" title="3-way reconciliation" tag="D4" /><Loading error={error} /></Panel>;
+export function ExceptionsPanel({ seed, n, delay }: SeedProps) {
+  const { data, error } = useApi<ExceptionsResponse>(`/exceptions?seed=${seed}&n=${n}`, [seed, n]);
+  if (!data)
+    return (
+      <Panel delay={delay}>
+        <Head kicker="W · sensor" title="3-way reconciliation" tag="D4" />
+        <Loading error={error} />
+      </Panel>
+    );
   const s = data.summary;
 
   return (
     <Panel delay={delay} className="flex flex-col">
       <Head kicker="W · sensor" title="3-way reconciliation" note="settlement ↔ bank ↔ orders · exact + tolerance match" tag="D4" />
       <div className="flex flex-wrap gap-1.5 px-5 py-3.5">
-        {["fee", "timing", "missing"].map((t) => (
+        {(["fee", "timing", "missing"] as ExceptionType[]).map((t) => (
           <span key={t} className={`rounded-md px-2 py-1 font-mono text-[11px] font-medium ${EXC[t].bg} ${EXC[t].text}`}>
             {t} <span className="tabular-nums">{s.detected[t] ?? 0}</span>
           </span>
@@ -296,7 +354,7 @@ export function ExceptionsPanel({ seed, n, delay }) {
         <span className="rounded-md bg-money/10 px-2 py-1 font-mono text-[11px] font-medium text-money">
           netting <span className="tabular-nums">{s.netting_reconciled}</span>
         </span>
-        <span className="rounded-md bg-raised px-2 py-1 font-mono text-[11px] font-medium text-muted">
+        <span className="rounded-md bg-raised px-2 py-1 font-mono text-[11px] font-medium text-dim">
           clean <span className="tabular-nums">{s.reconciled}</span>
         </span>
       </div>
@@ -313,7 +371,7 @@ export function ExceptionsPanel({ seed, n, delay }) {
           </thead>
           <tbody className="divide-y divide-line-soft">
             {data.exceptions.map((e) => (
-              <tr key={e.id} className="text-muted transition-colors hover:bg-raised/60">
+              <tr key={e.id} className="text-dim transition-colors hover:bg-raised/60">
                 <td className="px-3 py-1.5 text-faint">{e.id}</td>
                 <td className="px-3 py-1.5">
                   <span className={`inline-flex items-center gap-1.5 ${EXC[e.type].text}`}>
@@ -336,9 +394,15 @@ export function ExceptionsPanel({ seed, n, delay }) {
 // --------------------------------------------------------------------------- //
 // F3 — cost/churn sensitivity sweep
 // --------------------------------------------------------------------------- //
-export function ChurnPanel({ seed, n, delay }) {
-  const { data, error } = useApi(`/churn?seed=${seed}&n=${n}`, [seed, n]);
-  if (!data) return <Panel delay={delay}><Head kicker="F3 · net-value objective" title="Churn sensitivity" /><Loading error={error} /></Panel>;
+export function ChurnPanel({ seed, n, delay }: SeedProps) {
+  const { data, error } = useApi<ChurnResponse>(`/churn?seed=${seed}&n=${n}`, [seed, n]);
+  if (!data)
+    return (
+      <Panel delay={delay}>
+        <Head kicker="F3 · net-value objective" title="Churn sensitivity" />
+        <Loading error={error} />
+      </Panel>
+    );
   const max = Math.max(...data.rows.map((r) => Math.max(r.baseline_net, r.smart_net)));
 
   return (
@@ -373,9 +437,15 @@ export function ChurnPanel({ seed, n, delay }) {
 // --------------------------------------------------------------------------- //
 // Outcome model — WORLD vs BELIEF, the injected wrong prior highlighted
 // --------------------------------------------------------------------------- //
-export function OutcomeModelPanel({ delay }) {
-  const { data, error } = useApi(`/outcome-model`, []);
-  if (!data) return <Panel delay={delay}><Head kicker="honesty ledger" title="Outcome model" /><Loading error={error} /></Panel>;
+export function OutcomeModelPanel({ delay }: { delay?: number }) {
+  const { data, error } = useApi<OutcomeModelResponse>(`/outcome-model`, []);
+  if (!data)
+    return (
+      <Panel delay={delay}>
+        <Head kicker="honesty ledger" title="Outcome model" />
+        <Loading error={error} />
+      </Panel>
+    );
 
   return (
     <Panel delay={delay}>
@@ -430,23 +500,25 @@ export function OutcomeModelPanel({ delay }) {
 // --------------------------------------------------------------------------- //
 // Append-only audit trail — a real terminal log
 // --------------------------------------------------------------------------- //
-const ACTOR = {
+const ACTOR: Record<string, string> = {
   R: "text-azure border-azure/30 bg-azure/10",
   W: "text-money border-money/30 bg-money/10",
-  sim: "text-muted border-line bg-raised",
+  sim: "text-dim border-line bg-raised",
 };
 
-export function AuditPanel({ seed, n, delay }) {
-  const { data, error } = useApi(`/audit?seed=${seed}&n=${n}&limit=200`, [seed, n]);
-  if (!data) return <Panel delay={delay}><Head kicker="append-only" title="Audit trail" /><Loading error={error} /></Panel>;
+export function AuditPanel({ seed, n, delay }: SeedProps) {
+  const { data, error } = useApi<AuditResponse>(`/audit?seed=${seed}&n=${n}&limit=200`, [seed, n]);
+  if (!data)
+    return (
+      <Panel delay={delay}>
+        <Head kicker="append-only" title="Audit trail" />
+        <Loading error={error} />
+      </Panel>
+    );
 
   return (
     <Panel delay={delay}>
-      <Head
-        kicker="append-only · replayable by ₹ · insert-order deterministic"
-        title="Audit trail"
-        tag={`${data.total} events`}
-      />
+      <Head kicker="append-only · replayable by ₹ · insert-order deterministic" title="Audit trail" tag={`${data.total} events`} />
       <div className="max-h-72 overflow-auto px-2 py-2 font-mono text-[11px] leading-relaxed">
         {data.events.map((e) => (
           <div key={e.id} className="flex items-start gap-2 rounded px-3 py-1 hover:bg-raised/60">

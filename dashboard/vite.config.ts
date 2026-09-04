@@ -1,12 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import path from "path";
 
-// Proxy API calls to the FastAPI backend during development.
-// Every read-only endpoint the dashboard consumes is listed here.
+// Proxy API calls to the FastAPI backend during development; @ -> ./src for shadcn.
 const api = "http://localhost:8000";
 
 export default defineConfig({
   plugins: [react()],
+  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
   server: {
     proxy: {
       "/health": api,
@@ -16,6 +17,8 @@ export default defineConfig({
       "/churn": api,
       "/audit": api,
       "/outcome-model": api,
+      "/razorpay": api,
+      "/verify": api,
     },
   },
 });
