@@ -45,8 +45,8 @@ def test_settlement_substrate_injects_expected_exceptions():
     assert len(inj["timing"]) == 500 // 20
     assert len(inj["missing"]) == 500 // 25
     assert len(inj["netting"]) == 3
-    # exactly one lump-sum netted bank row exists
-    assert sum(1 for b in sub["bank_rows"] if b["ref"] == "BATCH_NET_A") == 1
+    # exactly one lump-sum netted bank row exists (ref == the netted batch_id)
+    assert sum(1 for b in sub["bank_rows"] if b["ref"] == "NET_A") == 1
     # missing + netting settlements have no individual bank row
     hidden = set(inj["missing"]) | {int(s.split("setl_")[1]) for s in inj["netting"]}
     bank_refs = {b["ref"] for b in sub["bank_rows"]}

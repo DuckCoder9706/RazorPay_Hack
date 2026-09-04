@@ -14,6 +14,7 @@ from __future__ import annotations
 import sqlite3
 
 from tijori.config.constants import (
+    BELIEF_TABLE,
     C_CHURN_PAISE,
     C_RETRY_PAISE,
     MAX_RETRY_ATTEMPTS,
@@ -21,6 +22,7 @@ from tijori.config.constants import (
     WORLD_TABLE,
     Action,
     Cause,
+    Timing,
 )
 from tijori.ledger.audit import append as audit_append
 from tijori.recover.diagnose import diagnose
@@ -43,18 +45,21 @@ def _load_onetime_failures(conn: sqlite3.Connection) -> list[dict]:
 
 
 def _decide(policy: str, cause: Cause, amount: int, attempt: int, cv: str,
-            c_retry: int, c_churn: int) -> Decision:
+            c_retry: int, c_churn: int, belief: dict[Cause, dict[Timing, float]]) -> Decision:
     if policy == "smart":
-        return choose_smart(cause, amount, attempt, cv, c_retry=c_retry, c_churn=c_churn)
+        return choose_smart(cause, amount, attempt, cv, belief=belief, c_retry=c_retry, c_churn=c_churn)
     return choose_baseline(cause, attempt)
 
 
 def run_policy(
     conn: sqlite3.Connection, *, seed: int, policy: str,
-    c_retry: int = C_RETRY_PAISE, c_churn: int = C_CHURN_PAISE, commit: bool = True,
+    c_retry: int = C_RETRY_PAISE, c_churn: int = C_CHURN_PAISE,
+    belief: dict[Cause, dict[Timing, float]] | None = None, commit: bool = True,
 ) -> list[dict]:
     """Execute `policy` ('baseline'|'smart') over the one-time failure batch. Returns
-    the recovery_action rows and persists them. c_churn overridable for the F3 sweep."""
+    the recovery_action rows and persists them. c_churn overridable for the F3 sweep;
+    belief overridable so F1 can feed a recalibrated table across batches."""
+    belief = belief if belief is not None else BELIEF_TABLE
     failures = _load_onetime_failures(conn)
     actions: list[dict] = []
 
@@ -76,7 +81,7 @@ def run_policy(
         strategy = "stop"
 
         for attempt_no in range(1, MAX_RETRY_ATTEMPTS + 1):
-            decision = _decide(policy, cause, amount, attempt_no, cv, c_retry, c_churn)
+            decision = _decide(policy, cause, amount, attempt_no, cv, c_retry, c_churn, belief)
             if decision.action is Action.RETRY:
                 attempts += 1
                 strategy = "retry"
@@ -120,9 +125,9 @@ def run_policy(
 
     conn.executemany(
         "INSERT INTO recovery_actions (id, ref, cause, strategy, timing_bucket, predicted_prob,"
-        " outcome, reconciled, amount_recovered, net_value, policy, seed, created_at)"
+        " outcome, reconciled, amount_recovered, net_value, attempts, policy, seed, created_at)"
         " VALUES (:id,:ref,:cause,:strategy,:timing_bucket,:predicted_prob,:outcome,:reconciled,"
-        " :amount_recovered,:net_value,:policy,:seed, '" + _TS + "')",
+        " :amount_recovered,:net_value,:attempts,:policy,:seed, '" + _TS + "')",
         actions,
     )
     audit_append(conn, ts=_TS, actor="R", event=f"policy_run:{policy}",

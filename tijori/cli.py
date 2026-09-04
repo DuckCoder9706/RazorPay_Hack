@@ -114,6 +114,42 @@ def _cmd_churn_sweep(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_reconcile(args: argparse.Namespace) -> int:
+    from tijori.ledger.db import get_conn, init_db
+    from tijori.simulator.seed import seed_ledger
+    from tijori.where.exceptions import run_reconciliation
+
+    init_db(args.path, fresh=True)
+    conn = get_conn(args.path)
+    try:
+        seed_ledger(conn, seed=args.seed, n=args.n)
+        s = run_reconciliation(conn, seed=args.seed)
+    finally:
+        conn.close()
+    print(f"W reconciliation  seed={args.seed}  n={args.n}")
+    print(f"  clean matches      : {s['reconciled']}")
+    print(f"  netting reconciled : {s['netting_reconciled']} (many settlements -> 1 lump credit)")
+    print(f"  exceptions detected: {s['total_exceptions']}  {s['detected']}")
+    return 0
+
+
+def _cmd_learn(args: argparse.Namespace) -> int:
+    from tijori.eval.harness import learning_run
+
+    traj = learning_run(seed=args.seed, n=args.n, batches=args.batches)
+    print(f"F1 learning  base_seed={args.seed}  n={args.n}  batches={args.batches}")
+    print(f"  {'batch':>5} {'issuer_soft timing':>19} {'efficiency':>11} {'regret₹':>10} {'brier':>7}")
+    for t in traj:
+        print(f"  {t['batch']:>5} {t['issuer_timing']:>19} {t['efficiency']:>10.1%} "
+              f"{t['regret_paise'] / 100:>10,.0f} {t['mean_brier']:>7.3f}")
+    first, last = traj[0], traj[-1]
+    print(f"  --> issuer_soft timing: {first['issuer_timing']} → {last['issuer_timing']} "
+          f"(F1 flipped it back to the world-optimal)")
+    print(f"  --> efficiency: {first['efficiency']:.1%} → {last['efficiency']:.1%}   "
+          f"Brier: {first['mean_brier']:.3f} → {last['mean_brier']:.3f} (better-calibrated)")
+    return 0
+
+
 def _cmd_bench(args: argparse.Namespace) -> int:
     import time
     from tijori.config.constants import BELIEF_TABLE, Cause
@@ -202,6 +238,18 @@ def main(argv: list[str] | None = None) -> int:
     p_cs.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
     p_cs.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
     p_cs.set_defaults(func=_cmd_churn_sweep)
+
+    p_rec = sub.add_parser("reconcile", help="W: 3-way reconcile a seeded batch, show exceptions")
+    p_rec.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
+    p_rec.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
+    p_rec.add_argument("--path", default=str(DEFAULT_DB_PATH))
+    p_rec.set_defaults(func=_cmd_reconcile)
+
+    p_learn = sub.add_parser("learn", help="F1: recalibrate BELIEF across batches, show regret shrink")
+    p_learn.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
+    p_learn.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
+    p_learn.add_argument("--batches", type=int, default=5)
+    p_learn.set_defaults(func=_cmd_learn)
 
     p_bench = sub.add_parser("bench", help="measure per-decision latency + batch throughput")
     p_bench.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)

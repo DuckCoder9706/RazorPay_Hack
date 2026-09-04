@@ -54,7 +54,10 @@ pytest -q                  # run T1 acceptance tests
 | **Reproducibility** · RNG substreams · golden snapshot · pinned env · seed provenance · lognormal | ✅ done |
 | **Week 2** · R policy (net-value argmax) + executor + oracle + scored batch | ✅ done — `tijori run` |
 | **Week 2b** · live test-mode Payment Link (real Razorpay object) | ✅ done — `tijori payment-link` |
-| Week 3 · W matcher + F1 recalibration + loop wiring + video | scaffolded |
+| **Week 3** · W 3-way matcher + exceptions + **F1 recalibration** + loop wiring | ✅ done — `tijori reconcile` / `tijori learn` |
+| Week 3b · dashboard panels + 5-min video | scaffolded |
+
+**F1 — the novel core, working** (`tijori learn --seed 42 --n 500 --batches 5`): R starts with a biased belief (over-trusts fast retries on soft declines) and picks the *wrong* timing; W reconciles the realized outcomes and recalibrates BELIEF; within 2 batches the timing **flips `fast → short`** (world-optimal), **regret ₹12,812 → ₹0**, Brier 0.012 → 0.001. With recalibration off, it never learns — proving F1 is the cause. **W reconciliation** (`tijori reconcile`) detects exactly the injected fee/timing/missing exceptions and reconciles the many-to-many netting case.
 
 **First scored result** (`tijori run --seed 42 --n 500`), WORLD table calibrated to published recovery bands (fixed ≈40–60% of recoverable, smart ≈65–85%): baseline recovers **46% of recoverable** (₹163,184); **smart recovers ≈72% of recoverable** (₹268,379) — **+64.5% gross, +₹109k net**, at 95.4% of the oracle ceiling vs baseline's 58.0%. **F3 robustness:** smart wins on net value across the entire ₹0–₹20 churn range. **Latency:** ~6 µs/decision (160k decisions/sec, single core) — no LLM or I/O in the scored path.
 

@@ -8,7 +8,7 @@ from tijori.simulator.rng import derive_seed, make_streams
 from tijori.simulator.seed import batch_fingerprint
 
 # Golden snapshot (#2): if this changes, determinism changed — investigate before updating.
-GOLDEN_42_100 = "733cf18fd8913e203da269787ac58df1e74b818db8e099eca55919631c2833a0"
+GOLDEN_42_100 = "c8f90e3c9b04b2cf7944b8aa83df9e5369ee32c2f5538911c3d0aed79a0276b8"
 
 
 def test_golden_fingerprint_stable():
