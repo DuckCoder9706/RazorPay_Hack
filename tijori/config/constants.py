@@ -156,8 +156,8 @@ WORLD_TABLE: dict[Cause, dict[Timing, float]] = {
 # Seeded = WORLD except injected wrong priors, so F1 (recon-as-ground-truth) has
 # something visible to correct across batches. docs/outcome-model.md §4.
 BELIEF_TABLE: dict[Cause, dict[Timing, float]] = {
-    Cause.INSUFFICIENT_FUNDS:   {Timing.FAST: 0.15, Timing.SHORT: 0.30, Timing.ALIGNED: 0.45},  # under-rates payday
-    Cause.ISSUER_SOFT_DECLINE:  {Timing.FAST: 0.50, Timing.SHORT: 0.55, Timing.ALIGNED: 0.50},  # over-trusts fast
+    Cause.INSUFFICIENT_FUNDS:   {Timing.FAST: 0.15, Timing.SHORT: 0.30, Timing.ALIGNED: 0.45},  # under-rates payday (magnitude, argmax still ALIGNED)
+    Cause.ISSUER_SOFT_DECLINE:  {Timing.FAST: 0.60, Timing.SHORT: 0.55, Timing.ALIGNED: 0.50},  # over-trusts fast → argmax FLIPS to FAST (world says SHORT); F1 must fix this
     Cause.AUTHENTICATION_FAILED:{Timing.FAST: 0.70, Timing.SHORT: 0.45, Timing.ALIGNED: 0.30},
     Cause.USER_DROPPED:         {Timing.FAST: 0.72, Timing.SHORT: 0.40, Timing.ALIGNED: 0.25},
     Cause.TECHNICAL_TRANSIENT:  {Timing.FAST: 0.75, Timing.SHORT: 0.50, Timing.ALIGNED: 0.42},

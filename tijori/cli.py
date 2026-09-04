@@ -83,13 +83,28 @@ def _cmd_sweep(args: argparse.Namespace) -> int:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
-    from tijori.eval.harness import run_batch  # imported lazily; body lands W2-3
+    from tijori.eval.harness import run_batch
 
-    try:
-        run_batch(seed=args.seed, n=args.n)
-    except NotImplementedError as e:
-        print(f"run pending: {e}", file=sys.stderr)
-        return 2
+    r = run_batch(seed=args.seed, n=args.n, db_path=args.path)
+    base, smart = r.metrics["baseline"], r.metrics["smart"]
+    oracle_r = r.oracle_paise / 100
+
+    def rup(paise: int) -> str:
+        return f"₹{paise / 100:,.0f}"
+
+    delta = smart.gross_recovered_paise - base.gross_recovered_paise
+    delta_pct = (delta / base.gross_recovered_paise * 100) if base.gross_recovered_paise else 0.0
+    net_delta = smart.net_value_paise - base.net_value_paise
+
+    print(f"scored batch  seed={r.seed}  n={r.n}   (oracle ceiling {rup(r.oracle_paise)})")
+    print(f"  {'policy':<9} {'recov%':>7} {'gross₹':>12} {'net₹':>12} {'attempts':>9} {'eff':>6}")
+    for m in (base, smart):
+        print(f"  {m.policy:<9} {m.recovery_rate:>6.1%} {rup(m.gross_recovered_paise):>12} "
+              f"{rup(m.net_value_paise):>12} {m.n_attempts:>9} {m.efficiency:>6.1%}")
+    print(f"  --> smart beats baseline: +{rup(delta)} gross ({delta_pct:+.1f}%), "
+          f"+{rup(net_delta)} net")
+    print(f"  --> smart captures {smart.efficiency:.1%} of the reachable maximum "
+          f"(baseline {base.efficiency:.1%})")
     return 0
 
 
@@ -123,9 +138,10 @@ def main(argv: list[str] | None = None) -> int:
     p_sweep.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
     p_sweep.set_defaults(func=_cmd_sweep)
 
-    p_run = sub.add_parser("run", help="run a scored batch (W2-3)")
+    p_run = sub.add_parser("run", help="run a scored batch: baseline vs smart vs oracle")
     p_run.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
     p_run.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
+    p_run.add_argument("--path", default=str(DEFAULT_DB_PATH), help="persist the scored ledger here")
     p_run.set_defaults(func=_cmd_run)
 
     args = parser.parse_args(argv)

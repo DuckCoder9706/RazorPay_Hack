@@ -37,3 +37,15 @@ class Streams:
 def make_streams(seed: int) -> Streams:
     """Build all named substreams for a master seed. Same seed -> identical streams."""
     return Streams(**{name: random.Random(derive_seed(seed, name)) for name in STREAM_NAMES})
+
+
+def uniform(seed: int, *keys: object) -> float:
+    """A deterministic uniform in [0, 1) keyed by (seed, *keys).
+
+    Used for retry OUTCOME draws so both baseline and smart face the SAME luck for the
+    same (payment, attempt): they differ only in which timing/probability they choose,
+    never in the underlying draw. This is what makes the beat fair AND reproducible.
+    """
+    payload = f"{seed}:" + ":".join(str(k) for k in keys)
+    digest = hashlib.sha256(payload.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") / 2**64
