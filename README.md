@@ -53,7 +53,7 @@ pytest -q                  # run T1 acceptance tests
 | **Week 1** · seeded generators + settlement substrate + audit + multi-seed sweep | ✅ done |
 | **Reproducibility** · RNG substreams · golden snapshot · pinned env · seed provenance · lognormal | ✅ done |
 | **Week 2** · R policy (net-value argmax) + executor + oracle + scored batch | ✅ done — `tijori run` |
-| Week 2b · live Payment Link (needs test keys) | scaffolded |
+| **Week 2b** · live test-mode Payment Link (real Razorpay object) | ✅ done — `tijori payment-link` |
 | Week 3 · W matcher + F1 recalibration + loop wiring + video | scaffolded |
 
 **First scored result** (`tijori run --seed 42 --n 500`): baseline recovers 67.8% (₹316,606); **smart recovers 78.2% (₹356,852)** — **+12.7% gross, +₹45k net**, capturing 95.6% of the oracle ceiling vs baseline's 84.8%. Across 10 seeds the gross delta is **+20.2% ± 4.3%**, leaving ~2.7% regret for F1 to close in Week 3.
