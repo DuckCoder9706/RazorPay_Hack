@@ -6,7 +6,7 @@ const prefersReducedMotion = () =>
 
 // ---- formatting -------------------------------------------------------------
 // Paise are integers on the wire; the API also ships *_rupees convenience fields.
-export const rupees = (paise, opts = {}) =>
+export const rupees = (paise: number, opts: { decimals?: number } = {}): string =>
   (paise / 100).toLocaleString("en-IN", {
     style: "currency",
     currency: "INR",
@@ -14,15 +14,12 @@ export const rupees = (paise, opts = {}) =>
     minimumFractionDigits: opts.decimals ?? 0,
   });
 
-export const pct = (x, d = 1) => `${(x * 100).toFixed(d)}%`;
-export const signed = (x, d = 1) => `${x >= 0 ? "+" : ""}${x.toFixed(d)}%`;
+export const pct = (x: number, d = 1): string => `${(x * 100).toFixed(d)}%`;
+export const signed = (x: number, d = 1): string => `${x >= 0 ? "+" : ""}${x.toFixed(d)}%`;
 
-// ---- data fetching ----------------------------------------------------------
-// Deterministic endpoints: (seed, n) fully determines the response, so a plain
-// fetch keyed on the query string is all we need. `deps` re-fetches on change.
 // Count a value up on change — the hero's single authored moment. Falls straight
 // to the target under reduced-motion, and always lands exactly on `target`.
-export function useCountUp(target, ms = 700) {
+export function useCountUp(target: number, ms = 700): number {
   const [value, setValue] = useState(target);
   const from = useRef(target);
   useEffect(() => {
@@ -32,8 +29,8 @@ export function useCountUp(target, ms = 700) {
     }
     const start = performance.now();
     const a = from.current;
-    let raf;
-    const tick = (now) => {
+    let raf = 0;
+    const tick = (now: number) => {
       const t = Math.min(1, (now - start) / ms);
       const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
       setValue(a + (target - a) * eased);
@@ -46,18 +43,29 @@ export function useCountUp(target, ms = 700) {
   return value;
 }
 
-export function useApi(path, deps = []) {
-  const [state, setState] = useState({ data: null, error: null, loading: true });
+// ---- data fetching ----------------------------------------------------------
+export interface ApiState<T> {
+  data: T | null;
+  error: string | null;
+  loading: boolean;
+}
+
+// Deterministic endpoints: (seed, n) fully determines the response, so a plain
+// fetch keyed on the query string is all we need. `deps` re-fetches on change.
+export function useApi<T>(path: string, deps: unknown[] = []): ApiState<T> {
+  const [state, setState] = useState<ApiState<T>>({ data: null, error: null, loading: true });
   useEffect(() => {
     let alive = true;
     setState((s) => ({ ...s, loading: true }));
     fetch(path)
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-        return r.json();
+        return r.json() as Promise<T>;
       })
       .then((data) => alive && setState({ data, error: null, loading: false }))
-      .catch((error) => alive && setState({ data: null, error: String(error), loading: false }));
+      .catch((error: unknown) =>
+        alive && setState({ data: null, error: String(error), loading: false }),
+      );
     return () => {
       alive = false;
     };

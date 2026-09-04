@@ -27,6 +27,7 @@ data/*.db
 node_modules/
 dashboard/dist/
 dashboard/.vite/
+*.tsbuildinfo
 
 # OS / editor
 .DS_Store

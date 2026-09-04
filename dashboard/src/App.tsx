@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApi } from "./lib";
+import type { HealthResponse } from "./types";
 import {
   BatchPanel,
   LearnPanel,
@@ -24,7 +25,7 @@ export default function App() {
   const [seed, setSeed] = useState(42);
   const [n, setN] = useState(500);
   const [draftSeed, setDraftSeed] = useState("42");
-  const health = useApi("/health", []);
+  const health = useApi<HealthResponse>("/health", []);
 
   const apply = () => {
     const s = parseInt(draftSeed, 10);
@@ -33,7 +34,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      {/* Terminal header */}
       <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -44,13 +44,10 @@ export default function App() {
               <h1 className="text-[15px] font-semibold leading-tight tracking-tight text-ink">
                 Tijori <span className="font-normal text-faint">Recovery Terminal</span>
               </h1>
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">
-                Track 3 · Revenue Recovery
-              </p>
+              <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">Track 3 · Revenue Recovery</p>
             </div>
           </div>
 
-          {/* Controls */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5">
               <label htmlFor="seed" className="font-mono text-[10.5px] uppercase tracking-wide text-faint">seed</label>
@@ -71,7 +68,7 @@ export default function App() {
                   onClick={() => setN(v)}
                   aria-pressed={n === v}
                   className={`px-2.5 py-1.5 font-mono text-xs tabular-nums transition-colors ${
-                    n === v ? "bg-money/15 text-money" : "text-faint hover:text-muted"
+                    n === v ? "bg-money/15 text-money" : "text-faint hover:text-dim"
                   }`}
                 >
                   {v}
@@ -93,11 +90,10 @@ export default function App() {
           </div>
         </div>
 
-        {/* The loop spine */}
         <div className="mx-auto hidden max-w-6xl items-center gap-1 px-5 pb-2.5 sm:flex">
           {LOOP.map((step, i) => (
             <div key={step.k} className="flex items-center gap-1">
-              <span className="flex items-center gap-1.5 font-mono text-[10.5px] text-muted">
+              <span className="flex items-center gap-1.5 font-mono text-[10.5px] text-dim">
                 <span className="text-faint">{step.who}</span>
                 {step.k}
               </span>
@@ -120,7 +116,8 @@ export default function App() {
         <AuditPanel seed={seed} n={n} delay={240} />
 
         <footer className="border-t border-line-soft pt-5 text-center font-mono text-[10.5px] leading-relaxed text-faint">
-          Same seed → byte-identical scored output · honest simulation, never claimed production<br className="sm:hidden" />
+          Same seed → byte-identical scored output · honest simulation, never claimed production
+          <br className="sm:hidden" />
           <span className="hidden sm:inline"> · </span>
           reason taxonomy cited · WORLD/BELIEF success probabilities modeled and declared
         </footer>

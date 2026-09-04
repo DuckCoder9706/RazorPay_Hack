@@ -3,8 +3,34 @@
 @tailwind utilities;
 
 @layer base {
+  /* shadcn/ui semantic tokens, mapped onto the terminal palette (HSL).
+     The app is dark-first, so these live on :root (color-scheme: dark). */
   :root {
+    --background: 220 24% 5%; /* canvas   #0a0c10 */
+    --foreground: 220 27% 92%; /* ink      #e7eaf0 */
+    --card: 219 22% 9%; /* surface  #12151c */
+    --card-foreground: 220 27% 92%;
+    --popover: 222 22% 12%; /* raised   #171b24 */
+    --popover-foreground: 220 27% 92%;
+    --primary: 158 64% 52%; /* money    #34d399 */
+    --primary-foreground: 220 24% 6%;
+    --secondary: 222 22% 12%;
+    --secondary-foreground: 220 27% 92%;
+    --muted: 222 22% 12%;
+    --muted-foreground: 219 14% 65%; /* dim  #9aa3b2 */
+    --accent: 222 20% 16%;
+    --accent-foreground: 220 27% 92%;
+    --destructive: 351 95% 71%; /* rose  #fb7185 */
+    --destructive-foreground: 220 27% 92%;
+    --border: 221 19% 17%; /* line   #232833 */
+    --input: 221 19% 17%;
+    --ring: 217 98% 71%; /* azure  #6ea8fe */
+    --radius: 0.625rem;
     color-scheme: dark;
+  }
+
+  * {
+    border-color: hsl(var(--border));
   }
 
   html {
@@ -31,15 +57,12 @@
     background: rgba(52, 211, 153, 0.28);
     color: #fff;
   }
-
   ::placeholder {
     color: theme("colors.faint");
   }
-
   input {
     caret-color: theme("colors.money");
   }
-
   :focus-visible {
     outline: 2px solid theme("colors.azure");
     outline-offset: 2px;
@@ -68,7 +91,6 @@
 }
 
 @layer components {
-  /* A drawable stroke: dashed offset that resolves — used for chart lines. */
   .draw-line {
     stroke-dasharray: var(--len, 1000);
     stroke-dashoffset: var(--len, 1000);
@@ -79,8 +101,6 @@
       stroke-dashoffset: 0;
     }
   }
-
-  /* Bars grow from the left on entry. */
   .grow-x {
     transform-origin: left;
     animation: growx 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -95,7 +115,6 @@
   }
 }
 
-/* Honor the user's motion preference — one global off-switch. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
