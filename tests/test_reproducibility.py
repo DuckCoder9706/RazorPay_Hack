@@ -42,7 +42,17 @@ def test_sweep_is_reproducible():
     assert a["total_failures"] == 500
 
 
-def test_sweep_recoverable_fraction_reasonable():
+def test_sweep_recoverable_fraction_matches_distribution():
+    # Bound is DERIVED from the frozen distribution, not hardcoded: expected recoverable =
+    # 1 - sum(terminal weights); tolerance = 4 sigma of a binomial at the pooled N.
+    import math
+
+    from tijori.config.constants import REASON_CODE_DISTRIBUTION, TERMINAL_ACTION
+    terminal_w = sum(REASON_CODE_DISTRIBUTION[c] for c in TERMINAL_ACTION)
+    expected = 1.0 - terminal_w
+
     r = run_sweep(default_seeds(10), n=200)
-    frac = r["retryable_pooled"] / r["total_failures"]
-    assert 0.75 <= frac <= 0.85  # ~80% recoverable (hard_decline+risk_blocked ~20%)
+    n = r["total_failures"]
+    frac = r["retryable_pooled"] / n
+    sigma = math.sqrt(expected * (1 - expected) / n)
+    assert abs(frac - expected) <= 4 * sigma, f"{frac:.4f} vs {expected:.4f} ± {4 * sigma:.4f}"

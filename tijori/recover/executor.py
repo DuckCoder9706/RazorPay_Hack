@@ -42,21 +42,25 @@ def _load_onetime_failures(conn: sqlite3.Connection) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def _decide(policy: str, cause: Cause, amount: int, attempt: int, cv: str) -> Decision:
+def _decide(policy: str, cause: Cause, amount: int, attempt: int, cv: str,
+            c_retry: int, c_churn: int) -> Decision:
     if policy == "smart":
-        return choose_smart(cause, amount, attempt, cv)
+        return choose_smart(cause, amount, attempt, cv, c_retry=c_retry, c_churn=c_churn)
     return choose_baseline(cause, attempt)
 
 
-def run_policy(conn: sqlite3.Connection, *, seed: int, policy: str, commit: bool = True) -> list[dict]:
+def run_policy(
+    conn: sqlite3.Connection, *, seed: int, policy: str,
+    c_retry: int = C_RETRY_PAISE, c_churn: int = C_CHURN_PAISE, commit: bool = True,
+) -> list[dict]:
     """Execute `policy` ('baseline'|'smart') over the one-time failure batch. Returns
-    the recovery_action rows and persists them."""
+    the recovery_action rows and persists them. c_churn overridable for the F3 sweep."""
     failures = _load_onetime_failures(conn)
     actions: list[dict] = []
 
     # Record the effective (possibly env-overridden) policy config — nothing hidden.
     audit_append(conn, ts=_TS, actor="R", event=f"policy_config:{policy}",
-                 payload={"c_retry_paise": C_RETRY_PAISE, "c_churn_paise": C_CHURN_PAISE,
+                 payload={"c_retry_paise": c_retry, "c_churn_paise": c_churn,
                           "net_value_floor_paise": NET_VALUE_FLOOR_PAISE,
                           "max_attempts": MAX_RETRY_ATTEMPTS}, seed=seed, commit=False)
 
@@ -72,13 +76,13 @@ def run_policy(conn: sqlite3.Connection, *, seed: int, policy: str, commit: bool
         strategy = "stop"
 
         for attempt_no in range(1, MAX_RETRY_ATTEMPTS + 1):
-            decision = _decide(policy, cause, amount, attempt_no, cv)
+            decision = _decide(policy, cause, amount, attempt_no, cv, c_retry, c_churn)
             if decision.action is Action.RETRY:
                 attempts += 1
                 strategy = "retry"
                 timing_used = decision.timing.value if decision.timing else None
                 predicted = decision.predicted_prob
-                total_cost += marginal_cost(attempt_no, cv)
+                total_cost += marginal_cost(attempt_no, cv, c_retry, c_churn)
                 u = uniform(seed, pid, attempt_no)
                 if u < WORLD_TABLE[cause][decision.timing]:
                     recovered = True

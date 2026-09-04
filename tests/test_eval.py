@@ -36,6 +36,18 @@ def test_baseline_over_retries():
     assert r.metrics["baseline"].n_attempts > r.metrics["smart"].n_attempts
 
 
+def test_churn_sweep_smart_always_wins():
+    # F3: whatever the (unknowable) churn cost, smart should still beat baseline on net
+    # value — the ranking is robust, not tuned to one guessed constant.
+    from tijori.eval.harness import churn_sweep
+
+    rows = churn_sweep(seed=42, n=300, churns=(0, 250, 500, 1000, 2000))
+    assert all(r["smart_wins_net"] for r in rows)
+    # higher churn should not increase smart's retry count (it stops earlier, never more)
+    attempts = [r["smart_attempts"] for r in rows]
+    assert attempts == sorted(attempts, reverse=True)
+
+
 def test_recovery_actions_persisted():
     from tijori.ledger.db import memory_db
     from tijori.simulator.seed import seed_ledger
