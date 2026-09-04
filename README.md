@@ -42,8 +42,28 @@ cp .env.example .env                                 # add your rzp_test_ keys
 
 tijori validate            # check the frozen constants (T1)
 tijori init-db --fresh     # build the SQLite ledger from schema.sql
-pytest -q                  # run T1 acceptance tests
+pytest -q                  # run acceptance tests (55: core + API)
 ```
+
+## Dashboard
+The React/Tailwind dashboard is six read-only panels over the same scored core the CLI
+runs — headline recovery (D7/F2/F3), the F1 learning curve, W's typed exceptions, the F3
+churn sweep, the WORLD/BELIEF outcome model, and the append-only audit trail. One control
+(seed, n) drives every panel; because every endpoint is a deterministic projection of the
+ledger, the whole board is reproducible.
+
+```bash
+# 1 · build the dashboard once (outputs dashboard/dist)
+cd dashboard && npm install && npm run build && cd ..
+
+# 2 · serve the API + built dashboard from one origin
+uvicorn tijori.api.app:app --port 8000      # open http://localhost:8000
+```
+
+The API mounts `dashboard/dist` at `/`, so a single `uvicorn` serves both — no proxy, no
+CORS. For live dashboard development instead, run `uvicorn …` and `npm run dev` (port 5173,
+which proxies the API). Endpoints: `/batch` `/learn` `/exceptions` `/churn` `/outcome-model`
+`/audit` (`/docs` for the OpenAPI UI) — all `GET`, all keyed on `?seed=&n=`.
 
 ## Build status
 | Task | State |
@@ -55,7 +75,8 @@ pytest -q                  # run T1 acceptance tests
 | **Week 2** · R policy (net-value argmax) + executor + oracle + scored batch | ✅ done — `tijori run` |
 | **Week 2b** · live test-mode Payment Link (real Razorpay object) | ✅ done — `tijori payment-link` |
 | **Week 3** · W 3-way matcher + exceptions + **F1 recalibration** + loop wiring | ✅ done — `tijori reconcile` / `tijori learn` |
-| Week 3b · dashboard panels + 5-min video | scaffolded |
+| **Week 3b** · FastAPI read-only API + React/Tailwind dashboard (6 panels) | ✅ done — `uvicorn tijori.api.app:app` |
+| Week 3c · 5-min pitch video | next |
 
 **F1 — the novel core, working** (`tijori learn --seed 42 --n 500 --batches 5`): R starts with a biased belief (over-trusts fast retries on soft declines) and picks the *wrong* timing; W reconciles the realized outcomes and recalibrates BELIEF; within 2 batches the timing **flips `fast → short`** (world-optimal), **regret ₹12,812 → ₹0**, Brier 0.012 → 0.001. With recalibration off, it never learns — proving F1 is the cause. **W reconciliation** (`tijori reconcile`) detects exactly the injected fee/timing/missing exceptions and reconciles the many-to-many netting case.
 

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tijori",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "tijori.api.app:app", "--port", "8000"],
+      "port": 8000
+    }
+  ]
+}
