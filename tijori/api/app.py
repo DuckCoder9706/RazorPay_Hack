@@ -99,6 +99,8 @@ def _batch_payload(seed: int, n: int) -> dict:
         "n": r.n,
         "oracle_paise": r.oracle_paise,
         "oracle_rupees": round(r.oracle_paise / 100, 2),
+        "at_risk_paise": r.at_risk_paise,
+        "at_risk_rupees": round(r.at_risk_paise / 100, 2),
         "policies": [_metrics_dict(base), _metrics_dict(smart)],
         "delta": {
             "gross_paise": delta_gross,

@@ -29,6 +29,7 @@ class BatchResult:
     seed: int
     n: int
     oracle_paise: int
+    at_risk_paise: int = 0
     metrics: dict[str, BatchMetrics] = field(default_factory=dict)
 
 
@@ -59,7 +60,11 @@ def run_batch(
     try:
         seed_ledger(conn, seed=seed, n=n)
         oracle = _oracle_ceiling(conn, seed)
-        result = BatchResult(seed=seed, n=n, oracle_paise=oracle)
+        at_risk = conn.execute(
+            "SELECT COALESCE(SUM(amount), 0) FROM payments "
+            "WHERE status='failed' AND id LIKE 'pay_f%'"
+        ).fetchone()[0]
+        result = BatchResult(seed=seed, n=n, oracle_paise=oracle, at_risk_paise=at_risk)
         for policy in ("baseline", "smart"):
             rows = run_policy(conn, seed=seed, policy=policy, c_retry=c_retry, c_churn=c_churn)
             result.metrics[policy] = summarise(policy, rows, oracle_paise=oracle)

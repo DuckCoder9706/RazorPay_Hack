@@ -27,6 +27,8 @@ export interface BatchResponse {
   n: number;
   oracle_paise: number;
   oracle_rupees: number;
+  at_risk_paise: number;
+  at_risk_rupees: number;
   policies: PolicyMetrics[];
   delta: {
     gross_paise: number;

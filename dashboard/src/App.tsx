@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   BatchPanel,
+  RecoveryFlowPanel,
   LearnPanel,
   ExceptionsPanel,
   ChurnPanel,
@@ -151,7 +152,8 @@ export default function App() {
 
           <TabsContent value="recover" className="mt-0 space-y-4 focus-visible:outline-none">
             <BatchPanel seed={seed} n={n} />
-            <ChurnPanel seed={seed} n={n} delay={60} />
+            <RecoveryFlowPanel seed={seed} n={n} delay={60} />
+            <ChurnPanel seed={seed} n={n} delay={120} />
           </TabsContent>
 
           <TabsContent value="reconcile" className="mt-0 space-y-4 focus-visible:outline-none">
