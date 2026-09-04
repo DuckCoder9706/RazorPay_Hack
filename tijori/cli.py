@@ -82,6 +82,23 @@ def _cmd_sweep(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_payment_link(args: argparse.Namespace) -> int:
+    from tijori.razorpay_client.client import create_payment_link, fetch_payment_link
+
+    link = create_payment_link(args.amount_paise, save_as="payment_link")
+    print("created a LIVE test-mode Payment Link (real Razorpay object):")
+    print(f"  id       : {link.get('id')}")
+    print(f"  status   : {link.get('status')}")
+    print(f"  amount   : ₹{link.get('amount', 0) / 100:,.2f} {link.get('currency')}")
+    print(f"  short_url: {link.get('short_url')}")
+    print(f"  fixture  : tijori/razorpay_client/fixtures/payment_link.json")
+    if link.get("id"):
+        status = fetch_payment_link(link["id"])
+        print(f"  re-fetched status: {status.get('status')}  "
+              f"(pay it at the short_url with test card 4111 1111 1111 1111 to mark it paid)")
+    return 0
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     from tijori.eval.harness import run_batch
 
@@ -137,6 +154,10 @@ def main(argv: list[str] | None = None) -> int:
     p_sweep.add_argument("--batches", type=int, default=20)
     p_sweep.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
     p_sweep.set_defaults(func=_cmd_sweep)
+
+    p_pl = sub.add_parser("payment-link", help="create a LIVE test-mode Razorpay Payment Link (D3)")
+    p_pl.add_argument("--amount-paise", type=int, default=50000, help="amount in paise (default ₹500)")
+    p_pl.set_defaults(func=_cmd_payment_link)
 
     p_run = sub.add_parser("run", help="run a scored batch: baseline vs smart vs oracle")
     p_run.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
