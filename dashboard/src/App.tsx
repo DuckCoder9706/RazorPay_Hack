@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { GraduationCap, ScanSearch, ScrollText, TrendingUp } from "lucide-react";
+import { GraduationCap, IndianRupee, ScanSearch, ScrollText, TrendingUp } from "lucide-react";
 import { useApi } from "./lib";
 import type { HealthResponse } from "./types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import {
   ChurnPanel,
   OutcomeModelPanel,
   AuditPanel,
+  RazorpayPanel,
 } from "./panels";
 
 const LOOP = [
@@ -30,6 +31,7 @@ const TABS = [
   { v: "recover", label: "Recover · R" },
   { v: "reconcile", label: "Reconcile · W" },
   { v: "learn", label: "Learn · F1" },
+  { v: "live", label: "Live · ₹" },
   { v: "ledger", label: "Ledger" },
 ];
 
@@ -146,6 +148,9 @@ export default function App() {
               <DrawerTile icon={TrendingUp} title="Churn · F3" desc="net-value ranking is robust" tint="text-amber">
                 <ChurnPanel seed={seed} n={n} />
               </DrawerTile>
+              <DrawerTile icon={IndianRupee} title="Live · Razorpay" desc="real test-mode Payment Link" tint="text-money">
+                <RazorpayPanel />
+              </DrawerTile>
               <DrawerTile icon={ScrollText} title="Ledger" desc="append-only audit trail" tint="text-dim">
                 <AuditPanel seed={seed} n={n} />
               </DrawerTile>
@@ -165,6 +170,10 @@ export default function App() {
 
           <TabsContent value="learn" className="mt-0 focus-visible:outline-none">
             <LearnPanel seed={seed} n={n} />
+          </TabsContent>
+
+          <TabsContent value="live" className="mt-0 focus-visible:outline-none">
+            <RazorpayPanel />
           </TabsContent>
 
           <TabsContent value="ledger" className="mt-0 focus-visible:outline-none">

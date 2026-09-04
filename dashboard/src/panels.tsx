@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Gauge } from "@/components/charts/gauge";
 import { FunnelChart } from "@/components/charts/funnel-chart";
 import { rupees, pct, signed, useApi, useBatchStream } from "./lib";
@@ -12,6 +13,7 @@ import type {
   AuditResponse,
   PolicyMetrics,
   PolicyName,
+  RazorpayLink,
 } from "./types";
 
 interface SeedProps {
@@ -622,6 +624,131 @@ export function AuditPanel({ seed, n, delay }: SeedProps) {
             <span className="truncate text-faint">{JSON.stringify(e.payload)}</span>
           </div>
         ))}
+      </div>
+    </Panel>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// D3 · the one live test-mode path — a real Razorpay Payment Link, polled
+// --------------------------------------------------------------------------- //
+function LinkRow({ k, children }: { k: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-3">
+      <dt className="w-20 shrink-0 text-[10px] uppercase tracking-wide text-faint">{k}</dt>
+      <dd className="min-w-0 text-ink">{children}</dd>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status?: string }) {
+  const paid = status === "paid";
+  const tone = paid ? "text-money bg-money/10 border-money/30" : "text-amber bg-amber/10 border-amber/30";
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-medium uppercase ${tone}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${paid ? "bg-money" : "bg-amber animate-pulse"}`} />
+      {status ?? "—"}
+    </span>
+  );
+}
+
+export function RazorpayPanel({ delay }: { delay?: number }) {
+  const [link, setLink] = useState<RazorpayLink | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const create = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await fetch("/razorpay/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount_paise: 50000 }),
+      });
+      const d: RazorpayLink = await r.json();
+      if (d.ok) setLink(d);
+      else setErr(d.reason ?? "failed");
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Poll status until the link is paid (the created → paid moment, live on screen).
+  useEffect(() => {
+    if (!link?.id || link.status === "paid") return;
+    const t = setInterval(async () => {
+      try {
+        const r = await fetch(`/razorpay/link/${link.id}`);
+        const d: RazorpayLink = await r.json();
+        if (d.ok) setLink((prev) => (prev ? { ...prev, status: d.status, live: d.live } : d));
+      } catch {
+        /* transient; keep polling */
+      }
+    }, 3000);
+    return () => clearInterval(t);
+  }, [link?.id, link?.status]);
+
+  return (
+    <Panel delay={delay}>
+      <Head
+        kicker="D3 · one live test-mode path"
+        title="Real Razorpay Payment Link"
+        note="The scored loop never touches the network — this is the genuine-object anchor. Create a real rzp_test_ link and watch it settle."
+        tag={link ? (link.live ? "live" : "replayed") : "test-mode"}
+        tagTone={link?.live ? "money" : "muted"}
+      />
+      <div className="p-5">
+        {!link ? (
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-dim">
+              Creates a genuine test-mode Payment Link — a real{" "}
+              <span className="font-mono text-ink">plink_</span> object, not a mock.
+            </p>
+            <button
+              onClick={create}
+              disabled={busy}
+              className="rounded-lg border border-money/40 bg-money/15 px-3.5 py-2 font-mono text-xs font-semibold uppercase tracking-wide text-money transition-colors hover:bg-money/25 disabled:opacity-50"
+            >
+              {busy ? "creating…" : "Create test Payment Link"}
+            </button>
+            {err && (
+              <p className="text-xs text-rose">
+                {err === "no_keys_no_fixture"
+                  ? "No rzp_test_ keys configured and no recorded object to replay."
+                  : err}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
+            <div className="w-max rounded-xl bg-white p-3">
+              {link.short_url && <QRCodeSVG value={link.short_url} size={132} bgColor="#ffffff" fgColor="#0a0c10" level="M" />}
+            </div>
+            <dl className="min-w-0 space-y-2 font-mono text-xs">
+              <LinkRow k="id">{link.id}</LinkRow>
+              <LinkRow k="amount">
+                {link.amount != null ? rupees(link.amount) : "—"} {link.currency}
+              </LinkRow>
+              <LinkRow k="status">
+                <StatusBadge status={link.status} />
+              </LinkRow>
+              <LinkRow k="link">
+                <a href={link.short_url} target="_blank" rel="noreferrer" className="break-all text-azure underline underline-offset-2">
+                  {link.short_url}
+                </a>
+              </LinkRow>
+              <p className="pt-1 text-[11px] leading-relaxed text-faint">
+                {link.live
+                  ? "Live object, fetched from Razorpay just now."
+                  : "Replayed from a recorded real object (offline demo)."}{" "}
+                Pay it with test card <span className="text-dim">4111 1111 1111 1111</span> — status flips to paid.
+              </p>
+            </dl>
+          </div>
+        )}
       </div>
     </Panel>
   );
