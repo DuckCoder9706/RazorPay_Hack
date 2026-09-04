@@ -7,7 +7,8 @@ F3 ranking is robust; the loop leaves an audit trail).
 
 from __future__ import annotations
 
-import pytest
+import json
+
 from fastapi.testclient import TestClient
 
 from tijori.api.app import app
@@ -106,3 +107,57 @@ def test_n_is_clamped():
     r = client.get("/batch", params={"seed": _SEED, "n": 10_000_000})
     assert r.status_code == 200
     assert r.json()["n"] <= 5000
+
+
+# --- P1 · live substrate ----------------------------------------------------
+
+def test_verify_is_deterministic():
+    r = client.get("/verify", params={"seed": _SEED, "n": _N})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["identical"] is True
+    assert body["hash_a"] == body["hash_b"]
+    assert len(body["hash_a"]) == 64  # sha256 hex
+
+
+def test_verify_hash_tracks_seed():
+    a = client.get("/verify", params={"seed": 42, "n": _N}).json()["hash_a"]
+    b = client.get("/verify", params={"seed": 7, "n": _N}).json()["hash_a"]
+    assert a != b  # different seeds → different scored output
+
+
+def test_batch_stream_ends_on_exact_batch_totals():
+    # secs=0 removes the presentational delay so the test is fast.
+    r = client.get("/batch/stream", params={"seed": _SEED, "n": _N, "secs": 0})
+    assert r.status_code == 200
+    assert "text/event-stream" in r.headers["content-type"]
+    text = r.text
+    assert "event: meta" in text and "event: progress" in text and "event: done" in text
+
+    # the final `done` frame must equal /batch exactly
+    done = None
+    for block in text.strip().split("\n\n"):
+        if block.startswith("event: done"):
+            done = json.loads(block.split("data: ", 1)[1])
+    assert done is not None
+    batch = client.get("/batch", params={"seed": _SEED, "n": _N}).json()
+    stream_smart = next(p for p in done["policies"] if p["policy"] == "smart")
+    batch_smart = next(p for p in batch["policies"] if p["policy"] == "smart")
+    assert stream_smart["gross_recovered_paise"] == batch_smart["gross_recovered_paise"]
+    assert done["oracle_paise"] == batch["oracle_paise"]
+
+
+def test_razorpay_link_falls_back_to_fixture(monkeypatch):
+    # Force the live path to fail so we exercise the recorded-object fallback (no network).
+    import tijori.razorpay_client.client as rc
+
+    monkeypatch.setattr(rc, "create_payment_link", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no keys")))
+    r = client.post("/razorpay/link", json={"amount_paise": 50000})
+    assert r.status_code == 200
+    body = r.json()
+    # fixture exists in the repo (Week 2b), so we expect a replayed real object
+    if body["ok"]:
+        assert body["live"] is False
+        assert body["id"]
+    else:
+        assert body["reason"] == "no_keys_no_fixture"
