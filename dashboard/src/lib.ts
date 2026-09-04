@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { PolicyMetrics } from "./types";
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -41,6 +42,64 @@ export function useCountUp(target: number, ms = 700): number {
     return () => cancelAnimationFrame(raf);
   }, [target, ms]);
   return value;
+}
+
+// ---- streamed batch playback (SSE) ------------------------------------------
+export interface StreamCum {
+  gross: number;
+  recovered: number;
+  attempts: number;
+}
+export interface BatchStreamView {
+  oracle: number;
+  baseline: StreamCum;
+  smart: StreamCum;
+  phase: "streaming" | "done";
+  final: PolicyMetrics[] | null;
+  progress: number; // 0..1
+}
+
+const ZERO: StreamCum = { gross: 0, recovered: 0, attempts: 0 };
+
+// Replay a deterministic batch as it scores. Returns null until the first frame
+// arrives (caller falls back to a static /batch fetch if SSE never produces).
+// Re-runs whenever (seed, n, runId) change — runId lets "Run" replay in place.
+export function useBatchStream(seed: number, n: number, runId = 0): BatchStreamView | null {
+  const [view, setView] = useState<BatchStreamView | null>(null);
+  useEffect(() => {
+    setView(null);
+    const secs = prefersReducedMotion() ? 0 : 1.6;
+    const es = new EventSource(`/batch/stream?seed=${seed}&n=${n}&secs=${secs}`);
+    let oracle = 0;
+
+    es.addEventListener("meta", (e) => {
+      oracle = JSON.parse((e as MessageEvent).data).oracle_paise;
+      setView({ oracle, baseline: ZERO, smart: ZERO, phase: "streaming", final: null, progress: 0 });
+    });
+    es.addEventListener("progress", (e) => {
+      const p = JSON.parse((e as MessageEvent).data);
+      setView({
+        oracle, baseline: p.baseline, smart: p.smart,
+        phase: "streaming", final: null, progress: p.i / p.total,
+      });
+    });
+    es.addEventListener("done", (e) => {
+      const d = JSON.parse((e as MessageEvent).data);
+      const pick = (name: string) => d.policies.find((x: PolicyMetrics) => x.policy === name);
+      const bl = pick("baseline"), sm = pick("smart");
+      setView({
+        oracle: d.oracle_paise,
+        baseline: { gross: bl.gross_recovered_paise, recovered: bl.n_recovered, attempts: bl.n_attempts },
+        smart: { gross: sm.gross_recovered_paise, recovered: sm.n_recovered, attempts: sm.n_attempts },
+        phase: "done", final: d.policies, progress: 1,
+      });
+      es.close();
+    });
+    es.onerror = () => es.close(); // leave view as-is; caller falls back if still null
+
+    return () => es.close();
+  }, [seed, n, runId]);
+  return view;
 }
 
 // ---- data fetching ----------------------------------------------------------

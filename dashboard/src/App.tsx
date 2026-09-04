@@ -38,11 +38,13 @@ export default function App() {
   const [n, setN] = useState(500);
   const [draftSeed, setDraftSeed] = useState("42");
   const [tab, setTab] = useState("overview");
+  const [runId, setRunId] = useState(0);
   const health = useApi<HealthResponse>("/health", []);
 
   const apply = () => {
     const s = parseInt(draftSeed, 10);
     if (!Number.isNaN(s)) setSeed(s);
+    setRunId((r) => r + 1); // replay the streamed playback even if the seed is unchanged
   };
 
   return (
@@ -133,7 +135,7 @@ export default function App() {
           </TabsList>
 
           <TabsContent value="overview" className="mt-0 space-y-4 focus-visible:outline-none">
-            <BatchPanel seed={seed} n={n} />
+            <BatchPanel seed={seed} n={n} runId={runId} />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <DrawerTile icon={ScanSearch} title="Reconcile · W" desc="3-way exceptions + netting" tint="text-sky">
                 <ExceptionsPanel seed={seed} n={n} />
@@ -151,7 +153,7 @@ export default function App() {
           </TabsContent>
 
           <TabsContent value="recover" className="mt-0 space-y-4 focus-visible:outline-none">
-            <BatchPanel seed={seed} n={n} />
+            <BatchPanel seed={seed} n={n} runId={runId} />
             <RecoveryFlowPanel seed={seed} n={n} delay={60} />
             <ChurnPanel seed={seed} n={n} delay={120} />
           </TabsContent>
