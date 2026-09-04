@@ -13,7 +13,15 @@ from __future__ import annotations
 
 import sqlite3
 
-from tijori.config.constants import MAX_RETRY_ATTEMPTS, WORLD_TABLE, Action, Cause
+from tijori.config.constants import (
+    C_CHURN_PAISE,
+    C_RETRY_PAISE,
+    MAX_RETRY_ATTEMPTS,
+    NET_VALUE_FLOOR_PAISE,
+    WORLD_TABLE,
+    Action,
+    Cause,
+)
 from tijori.ledger.audit import append as audit_append
 from tijori.recover.diagnose import diagnose
 from tijori.recover.policy import Decision, choose_baseline, choose_smart, marginal_cost
@@ -45,6 +53,12 @@ def run_policy(conn: sqlite3.Connection, *, seed: int, policy: str, commit: bool
     the recovery_action rows and persists them."""
     failures = _load_onetime_failures(conn)
     actions: list[dict] = []
+
+    # Record the effective (possibly env-overridden) policy config — nothing hidden.
+    audit_append(conn, ts=_TS, actor="R", event=f"policy_config:{policy}",
+                 payload={"c_retry_paise": C_RETRY_PAISE, "c_churn_paise": C_CHURN_PAISE,
+                          "net_value_floor_paise": NET_VALUE_FLOOR_PAISE,
+                          "max_attempts": MAX_RETRY_ATTEMPTS}, seed=seed, commit=False)
 
     for f in failures:
         pid, amount, cv = f["pid"], f["amount"], f["cv"]

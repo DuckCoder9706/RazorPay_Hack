@@ -1,8 +1,10 @@
 """Frozen configuration constants for Tijori (T1).
 
 This module is the single source of truth for the seeded, reproducible model.
-Every value here is either 📎 CITED or 🧪 MODELED per docs/outcome-model.md (T0.5).
-Nothing here reads the wall clock, the network, or the environment at import time.
+Every value here is 📎 CITED, 🧪 MODELED, or 🎛 PREFERENCE (see tier note below).
+It never reads the wall clock or the network. It DOES read a few TIJORI_* env vars for
+runtime-adaptable knobs (costs/gates), each with a frozen default; run_policy logs the
+effective values to the audit trail so a run's configuration is never hidden.
 
 See ARCHITECTURE.md §06 (outcome model) and docs/outcome-model.md for provenance.
 """
@@ -10,6 +12,22 @@ See ARCHITECTURE.md §06 (outcome model) and docs/outcome-model.md for provenanc
 from __future__ import annotations
 
 import enum
+import os
+
+
+# --------------------------------------------------------------------------- #
+# Runtime-adaptable knobs.
+# A few values below are business PREFERENCES, not measured facts. They are read
+# from TIJORI_* env vars with a frozen default, so a run can adapt them without
+# editing code — and run_policy logs the effective values to the audit trail, so
+# nothing is silently hardcoded. Provenance tiers used in comments:
+#   📎 CITED     — sourced from Razorpay/NPCI/industry data (see docs/outcome-model.md)
+#   🧪 MODELED   — a reasoned assumption, declared, not measured
+#   🎛 PREFERENCE — a business choice with no single "true" value; swept for sensitivity
+# --------------------------------------------------------------------------- #
+def _cfg_int(name: str, default: int) -> int:
+    v = os.getenv(name)
+    return int(v) if v is not None and v.strip() else default
 
 # --------------------------------------------------------------------------- #
 # Determinism
@@ -203,30 +221,37 @@ BASELINE_RETRY_DAYS: tuple[int, ...] = (1, 2, 3)
 
 
 # --------------------------------------------------------------------------- #
-# Cost / churn objective  (F3, docs/differentiation.md) — 🧪 MODELED
+# Cost / churn objective  (F3, docs/differentiation.md)
 # R optimizes NET VALUE = E[recovered] - C_RETRY*attempts - C_CHURN*annoyance*value
+#
+# HONESTY NOTE: a FAILED retry attempt incurs ~no Razorpay fee (MDR is charged only on
+# a SUCCESSFUL capture), so a per-attempt "rail cost" is not real. C_RETRY defaults to 0
+# and exists only to model an optional operational/notification cost. The real reason to
+# stop over-retrying is CHURN — annoying the customer — which has no single true value, so
+# it is a 🎛 PREFERENCE we SWEEP (never a claimed fact). Both are TIJORI_* overridable.
 # --------------------------------------------------------------------------- #
-C_RETRY_PAISE: int = 200          # per-attempt rail/gateway cost (₹2), modeled
-C_CHURN_PAISE: int = 500          # goodwill cost unit (₹5), swept for sensitivity
-CHURN_SWEEP_PAISE: tuple[int, ...] = (0, 250, 500, 1000, 2000)  # F3 sensitivity sweep
+C_RETRY_PAISE: int = _cfg_int("TIJORI_C_RETRY_PAISE", 0)      # 🎛 op cost/attempt (default 0 = failed retries are ~free)
+C_CHURN_PAISE: int = _cfg_int("TIJORI_C_CHURN_PAISE", 500)    # 🎛 goodwill cost unit (₹5), swept below
+CHURN_SWEEP_PAISE: tuple[int, ...] = (0, 250, 500, 1000, 2000)  # 🎛 F3 sensitivity sweep
 
-#: Customer-value tiers (multiplier on the churn penalty).
+#: Customer-value tiers (multiplier on the churn penalty). 🎛 PREFERENCE — annoying a
+#: high-LTV customer is assumed to cost more; ordering matters more than exact values.
 CUSTOMER_VALUE_MULTIPLIER: dict[str, float] = {"low": 0.5, "mid": 1.0, "high": 2.0}
 
 
 # --------------------------------------------------------------------------- #
 # Policy gates (deterministic; inside the scored path)  ARCHITECTURE.md §07
 # --------------------------------------------------------------------------- #
-MAX_RETRY_ATTEMPTS: int = 3        # attempt cap (matches baseline horizon)
-SPEND_CAP_PAISE: int = 0          # 0 = unused for one-time; reserved for mandates
-NET_VALUE_FLOOR_PAISE: int = 0     # stop retrying once marginal net value <= this
+MAX_RETRY_ATTEMPTS: int = _cfg_int("TIJORI_MAX_ATTEMPTS", 3)  # 📎 CITED: Razorpay retries 3x (T+1/T+2/T+3)
+SPEND_CAP_PAISE: int = _cfg_int("TIJORI_SPEND_CAP_PAISE", 0)  # 🧪 0 = unused for one-time; reserved for mandates
+NET_VALUE_FLOOR_PAISE: int = _cfg_int("TIJORI_NET_FLOOR_PAISE", 0)  # 🧪 break-even default: retry iff EV-positive
 
 
 # --------------------------------------------------------------------------- #
-# F1 calibration
+# F1 calibration (Week 3) — 🧪 MODELED hyperparameters (standard EMA / min-sample gate)
 # --------------------------------------------------------------------------- #
-CALIBRATION_N_MIN: int = 20        # min samples in a (cause,timing) cell to recalibrate
-CALIBRATION_EMA_ALPHA: float = 0.3  # EMA weight when updating BELIEF toward realized
+CALIBRATION_N_MIN: int = _cfg_int("TIJORI_CAL_N_MIN", 20)   # 🧪 min samples in a cell to recalibrate
+CALIBRATION_EMA_ALPHA: float = 0.3  # 🧪 EMA weight when updating BELIEF toward realized
 
 
 # --------------------------------------------------------------------------- #
