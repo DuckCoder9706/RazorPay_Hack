@@ -169,11 +169,14 @@ def generate_settlement_substrate(n: int, rng: random.Random) -> dict:
         settled_at = (datetime.fromisoformat(created) + timedelta(days=1)).isoformat()
 
         oid, pid, sid = f"order_s{i:05d}", f"pay_s{i:05d}", f"setl_{i:05d}"
+        # Netted settlements share a distinct batch_id so W can group them against the
+        # single lump-sum bank credit (the many-to-many reconciliation case).
+        batch_id = "NET_A" if i in net_set else "SETL_0001"
         orders.append({"id": oid, "amount": amount, "status": "paid",
                        "created_at": created, "customer_value": value})
         payments.append({"id": pid, "order_id": oid, "amount": amount, "status": "captured",
                          "reason_code": None, "attempt_no": 1, "created_at": created})
-        settlements.append({"id": sid, "batch_id": "SETL_0001", "gross": amount,
+        settlements.append({"id": sid, "batch_id": batch_id, "gross": amount,
                             "fee": fee, "net": net, "settled_at": settled_at})
 
         if i in missing_idx:
@@ -196,8 +199,9 @@ def generate_settlement_substrate(n: int, rng: random.Random) -> dict:
     if net_members:
         lump = sum(m[1] for m in net_members)
         last_date = max(m[2] for m in net_members)
+        # ref == the netted settlements' batch_id, so W reconciles by grouping.
         bank_rows.append({"id": "bank_netA", "credit_amount": lump,
-                          "value_date": last_date, "ref": "BATCH_NET_A"})
+                          "value_date": last_date, "ref": "NET_A"})
 
     return {
         "orders": orders,

@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS recovery_actions (
     reconciled       INTEGER NOT NULL DEFAULT 0,    -- 0/1, set by W re-reconciliation (F1)
     amount_recovered INTEGER NOT NULL DEFAULT 0,
     net_value        INTEGER NOT NULL DEFAULT 0,    -- recovered - costs (F3)
+    attempts         INTEGER NOT NULL DEFAULT 0,    -- retry attempts made (for F1 calibration)
     policy           TEXT NOT NULL,                 -- baseline | smart | oracle
     seed             INTEGER,                       -- provenance (#4)
     created_at       TEXT NOT NULL

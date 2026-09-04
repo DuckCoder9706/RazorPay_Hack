@@ -68,6 +68,46 @@ def run_batch(
         conn.close()
 
 
+def learning_run(
+    seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, batches: int = 5,
+    *, recalibrate_on: bool = True,
+) -> list[dict]:
+    """F1 demo: run `batches` cohorts, threading one BELIEF that W recalibrates from
+    reconciled outcomes after each batch. Returns a per-batch trajectory showing the
+    issuer_soft timing flipping back to optimal and regret shrinking as BELIEF -> WORLD.
+    """
+    from tijori.config.constants import Cause
+    from tijori.simulator.belief import Belief
+    from tijori.where.calibration import build_report, mean_brier, recalibrate
+    from tijori.where.exceptions import reconcile_recoveries
+
+    belief = Belief()
+    traj: list[dict] = []
+    for b in range(batches):
+        s = seed + b  # a fresh cohort each batch = accumulating real experience
+        conn = memory_db()
+        try:
+            seed_ledger(conn, seed=s, n=n)
+            oracle = _oracle_ceiling(conn, s)
+            rows = run_policy(conn, seed=s, policy="smart", belief=belief.snapshot())
+            m = summarise("smart", rows, oracle_paise=oracle)
+            reconcile_recoveries(conn, policy="smart")
+            report = build_report(rows, belief)
+            traj.append({
+                "batch": b, "seed": s,
+                "issuer_timing": belief.best_timing(Cause.ISSUER_SOFT_DECLINE).value,
+                "efficiency": m.efficiency,
+                "regret_paise": m.regret_paise,
+                "gross_paise": m.gross_recovered_paise,
+                "mean_brier": mean_brier(report),
+            })
+            if recalibrate_on:
+                recalibrate(belief, report)
+        finally:
+            conn.close()
+    return traj
+
+
 def churn_sweep(
     seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, churns: tuple[int, ...] | None = None
 ) -> list[dict]:
