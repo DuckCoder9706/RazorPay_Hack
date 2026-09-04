@@ -1,6 +1,11 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import { GraduationCap, ScanSearch, ScrollText, TrendingUp } from "lucide-react";
 import { useApi } from "./lib";
 import type { HealthResponse } from "./types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   BatchPanel,
   LearnPanel,
@@ -19,12 +24,19 @@ const LOOP = [
 ];
 const N_OPTIONS = [100, 200, 500, 1000, 2000];
 
-// Tijori — Recovery Terminal. One (seed, n) control drives every panel; each is a
-// deterministic projection of one scored ledger, so the whole board is reproducible.
+const TABS = [
+  { v: "overview", label: "Overview" },
+  { v: "recover", label: "Recover · R" },
+  { v: "reconcile", label: "Reconcile · W" },
+  { v: "learn", label: "Learn · F1" },
+  { v: "ledger", label: "Ledger" },
+];
+
 export default function App() {
   const [seed, setSeed] = useState(42);
   const [n, setN] = useState(500);
   const [draftSeed, setDraftSeed] = useState("42");
+  const [tab, setTab] = useState("overview");
   const health = useApi<HealthResponse>("/health", []);
 
   const apply = () => {
@@ -105,17 +117,58 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-4 px-5 py-6">
-        <BatchPanel seed={seed} n={n} />
-        <LearnPanel seed={seed} n={n} delay={60} />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ExceptionsPanel seed={seed} n={n} delay={120} />
-          <ChurnPanel seed={seed} n={n} delay={160} />
-        </div>
-        <OutcomeModelPanel delay={200} />
-        <AuditPanel seed={seed} n={n} delay={240} />
+      <main className="mx-auto max-w-6xl px-5 py-6">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="mb-4 h-auto flex-wrap gap-1 rounded-xl border border-line bg-surface p-1">
+            {TABS.map((t) => (
+              <TabsTrigger
+                key={t.v}
+                value={t.v}
+                className="rounded-lg px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-faint data-[state=active]:bg-money/15 data-[state=active]:text-money data-[state=active]:shadow-none"
+              >
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <footer className="border-t border-line-soft pt-5 text-center font-mono text-[10.5px] leading-relaxed text-faint">
+          <TabsContent value="overview" className="mt-0 space-y-4 focus-visible:outline-none">
+            <BatchPanel seed={seed} n={n} />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <DrawerTile icon={ScanSearch} title="Reconcile · W" desc="3-way exceptions + netting" tint="text-sky">
+                <ExceptionsPanel seed={seed} n={n} />
+              </DrawerTile>
+              <DrawerTile icon={GraduationCap} title="Learn · F1" desc="belief recalibrates, regret → 0" tint="text-money">
+                <LearnPanel seed={seed} n={n} />
+              </DrawerTile>
+              <DrawerTile icon={TrendingUp} title="Churn · F3" desc="net-value ranking is robust" tint="text-amber">
+                <ChurnPanel seed={seed} n={n} />
+              </DrawerTile>
+              <DrawerTile icon={ScrollText} title="Ledger" desc="append-only audit trail" tint="text-dim">
+                <AuditPanel seed={seed} n={n} />
+              </DrawerTile>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="recover" className="mt-0 space-y-4 focus-visible:outline-none">
+            <BatchPanel seed={seed} n={n} />
+            <ChurnPanel seed={seed} n={n} delay={60} />
+          </TabsContent>
+
+          <TabsContent value="reconcile" className="mt-0 space-y-4 focus-visible:outline-none">
+            <ExceptionsPanel seed={seed} n={n} />
+            <OutcomeModelPanel delay={60} />
+          </TabsContent>
+
+          <TabsContent value="learn" className="mt-0 focus-visible:outline-none">
+            <LearnPanel seed={seed} n={n} />
+          </TabsContent>
+
+          <TabsContent value="ledger" className="mt-0 focus-visible:outline-none">
+            <AuditPanel seed={seed} n={n} />
+          </TabsContent>
+        </Tabs>
+
+        <footer className="mt-6 border-t border-line-soft pt-5 text-center font-mono text-[10.5px] leading-relaxed text-faint">
           Same seed → byte-identical scored output · honest simulation, never claimed production
           <br className="sm:hidden" />
           <span className="hidden sm:inline"> · </span>
@@ -123,5 +176,36 @@ export default function App() {
         </footer>
       </main>
     </div>
+  );
+}
+
+function DrawerTile({
+  icon: Icon,
+  title,
+  desc,
+  tint,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  tint: string;
+  children: ReactNode;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button className="group flex w-full items-start gap-3 rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-line-soft hover:bg-raised/60">
+          <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tint}`} strokeWidth={1.8} />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-ink">{title}</span>
+            <span className="mt-0.5 block text-xs leading-snug text-faint">{desc}</span>
+          </span>
+        </button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full overflow-y-auto border-line bg-canvas p-4 sm:max-w-xl">
+        {children}
+      </SheetContent>
+    </Sheet>
   );
 }
