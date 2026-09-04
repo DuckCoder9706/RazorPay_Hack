@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Gauge } from "@/components/charts/gauge";
+import { FunnelChart } from "@/components/charts/funnel-chart";
 import { rupees, pct, signed, useApi, useCountUp } from "./lib";
 import type {
   BatchResponse,
@@ -200,6 +202,68 @@ function MiniStat({ label, value, foot, tone = "text-ink" }: { label: string; va
       <p className={`mt-0.5 font-mono text-base font-semibold tabular-nums ${tone}`}>{value}</p>
       {foot && <p className="mt-0.5 font-mono text-[10.5px] text-faint">{foot}</p>}
     </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// R · recovery flow — bklit Funnel (₹ cascade) + Gauge (efficiency dial)
+// --------------------------------------------------------------------------- //
+export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
+  const { data, error } = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
+  if (!data)
+    return (
+      <Panel delay={delay}>
+        <Head kicker="R · recovery flow" title="Where the money goes" tag="funnel + gauge" />
+        <Loading error={error} />
+      </Panel>
+    );
+  const by = Object.fromEntries(data.policies.map((p) => [p.policy, p])) as Record<
+    PolicyName,
+    BatchResponse["policies"][number]
+  >;
+  const smart = by.smart, base = by.baseline;
+  const stages = [
+    { label: "At risk", value: data.at_risk_paise, displayValue: rupees(data.at_risk_paise), color: "#3a4252" },
+    { label: "Recoverable", value: data.oracle_paise, displayValue: rupees(data.oracle_paise), color: "#6ea8fe" },
+    { label: "Recovered", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#34d399" },
+    { label: "Reconciled", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#10b981" },
+  ];
+
+  return (
+    <Panel delay={delay}>
+      <Head
+        kicker="R · recovery flow"
+        title="Where the money goes"
+        note="at-risk → recoverable ceiling (oracle) → recovered (smart) → reconciled"
+        tag="funnel + gauge"
+      />
+      <div className="grid gap-4 p-5 lg:grid-cols-[1.55fr_1fr]">
+        <div className="h-56 w-full">
+          <FunnelChart
+            data={stages}
+            orientation="horizontal"
+            showPercentage
+            showValues
+            showLabels
+            className="h-full w-full"
+          />
+        </div>
+        <div className="flex flex-col items-center justify-center border-t border-line-soft pt-4 lg:border-l lg:border-t-0 lg:pt-0">
+          <Gauge
+            value={smart.efficiency * 100}
+            centerValue={Math.round(smart.efficiency * 100)}
+            suffix="%"
+            defaultLabel="of ceiling"
+            height={170}
+            useGradient
+            activeGradient={["#34d399", "#10b981"]}
+          />
+          <p className="mt-1 text-center font-mono text-[11px] text-faint">
+            efficiency vs oracle · baseline {pct(base.efficiency)}
+          </p>
+        </div>
+      </div>
+    </Panel>
   );
 }
 
