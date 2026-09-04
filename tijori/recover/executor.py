@@ -1,30 +1,120 @@
-"""Executor: apply a Decision against a failure, draw the outcome from WORLD, and
-write the recovery_action + audit rows (ARCHITECTURE.md §07).
+"""Executor: run a policy over the failure batch, draw outcomes from WORLD, persist
+recovery_actions + audit (ARCHITECTURE.md §07).
 
-Two branches (D2): retry_payment (HERO, measured) and retry_mandate_debit/dun (DEMO).
-The outcome is drawn from the WORLD table via simulator.world.draw_outcome — R never
-sees WORLD directly; it only receives the realized result, exactly like production.
+R plans on BELIEF but the realized outcome is drawn from WORLD via a policy-independent
+keyed uniform (simulator.rng.uniform) — so baseline and smart face identical luck.
+One recovery_actions row per failure records the terminal path (cause, timing used,
+predicted prob, outcome, ₹ recovered, net value).
 
-STATUS: interfaces fixed; bodies land in Week 2.
+Scope: one-time failures (HERO). The mandate branch (DEMO) reuses this loop later.
 """
 
 from __future__ import annotations
 
-import random
 import sqlite3
 
-from tijori.recover.policy import Decision
+from tijori.config.constants import MAX_RETRY_ATTEMPTS, WORLD_TABLE, Action, Cause
+from tijori.ledger.audit import append as audit_append
+from tijori.recover.diagnose import diagnose
+from tijori.recover.policy import Decision, choose_baseline, choose_smart, marginal_cost
+from tijori.simulator.clock import EPOCH
+from tijori.simulator.rng import uniform
+
+_TS = EPOCH.isoformat()
 
 
-def retry_payment(
-    conn: sqlite3.Connection, payment: dict, decision: Decision, rng: random.Random, policy: str
-) -> dict:
-    """Execute one recovery decision on a one-time failure; persist action + audit. Week 2."""
-    raise NotImplementedError("Week 2 · T-exec-onetime")
+def _load_onetime_failures(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute(
+        "SELECT p.id AS pid, p.amount AS amount, p.reason_code AS reason,"
+        "       o.customer_value AS cv "
+        "FROM payments p JOIN orders o ON p.order_id = o.id "
+        "WHERE p.status = 'failed' AND p.id LIKE 'pay_f%' "
+        "ORDER BY p.id"
+    ).fetchall()
+    return [dict(r) for r in rows]
 
 
-def retry_mandate_debit(
-    conn: sqlite3.Connection, mandate: dict, decision: Decision, rng: random.Random, policy: str
-) -> dict:
-    """Execute a mandate-renewal recovery (DEMO branch). Week 2."""
-    raise NotImplementedError("Week 2 · T-exec-mandate")
+def _decide(policy: str, cause: Cause, amount: int, attempt: int, cv: str) -> Decision:
+    if policy == "smart":
+        return choose_smart(cause, amount, attempt, cv)
+    return choose_baseline(cause, attempt)
+
+
+def run_policy(conn: sqlite3.Connection, *, seed: int, policy: str, commit: bool = True) -> list[dict]:
+    """Execute `policy` ('baseline'|'smart') over the one-time failure batch. Returns
+    the recovery_action rows and persists them."""
+    failures = _load_onetime_failures(conn)
+    actions: list[dict] = []
+
+    for f in failures:
+        pid, amount, cv = f["pid"], f["amount"], f["cv"]
+        cause = diagnose(f["reason"])
+
+        attempts = 0
+        total_cost = 0
+        recovered = False
+        timing_used: str | None = None
+        predicted: float | None = None
+        strategy = "stop"
+
+        for attempt_no in range(1, MAX_RETRY_ATTEMPTS + 1):
+            decision = _decide(policy, cause, amount, attempt_no, cv)
+            if decision.action is Action.RETRY:
+                attempts += 1
+                strategy = "retry"
+                timing_used = decision.timing.value if decision.timing else None
+                predicted = decision.predicted_prob
+                total_cost += marginal_cost(attempt_no, cv)
+                u = uniform(seed, pid, attempt_no)
+                if u < WORLD_TABLE[cause][decision.timing]:
+                    recovered = True
+                    break
+                continue
+            # terminal decision
+            strategy = decision.action.value  # dun | stop
+            break
+
+        if recovered:
+            outcome = "recovered"
+        elif attempts >= MAX_RETRY_ATTEMPTS:
+            outcome = "exhausted"
+        else:
+            outcome = "abandoned"
+
+        amount_recovered = amount if recovered else 0
+        net_value = amount_recovered - total_cost
+
+        actions.append({
+            "id": f"ra_{policy}_{pid}",
+            "ref": pid,
+            "cause": cause.value,
+            "strategy": strategy,
+            "timing_bucket": timing_used,
+            "predicted_prob": predicted,
+            "outcome": outcome,
+            "reconciled": 0,
+            "amount_recovered": amount_recovered,
+            "net_value": net_value,
+            "policy": policy,
+            "seed": seed,
+            "attempts": attempts,
+        })
+
+    conn.executemany(
+        "INSERT INTO recovery_actions (id, ref, cause, strategy, timing_bucket, predicted_prob,"
+        " outcome, reconciled, amount_recovered, net_value, policy, seed, created_at)"
+        " VALUES (:id,:ref,:cause,:strategy,:timing_bucket,:predicted_prob,:outcome,:reconciled,"
+        " :amount_recovered,:net_value,:policy,:seed, '" + _TS + "')",
+        actions,
+    )
+    audit_append(conn, ts=_TS, actor="R", event=f"policy_run:{policy}",
+                 payload={"n": len(actions), "recovered": sum(a["outcome"] == "recovered" for a in actions)},
+                 seed=seed, commit=False)
+    if commit:
+        conn.commit()
+    return actions
+
+
+# --- DEMO branch placeholder (reuses the same loop over subscriptions) ---
+def run_mandate_policy(conn: sqlite3.Connection, *, seed: int, policy: str) -> list[dict]:
+    raise NotImplementedError("Week 2b · mandate DEMO branch (reuses run_policy loop)")

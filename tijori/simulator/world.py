@@ -24,3 +24,8 @@ def draw_outcome(cause: Cause, timing: Timing, rng: random.Random) -> bool:
 def best_timing(cause: Cause) -> Timing:
     """The timing bucket a clairvoyant-of-distribution oracle would choose (F2)."""
     return max(Timing, key=lambda t: WORLD_TABLE[cause][t])
+
+
+def best_world_prob(cause: Cause) -> float:
+    """The success probability at the WORLD-optimal timing (the oracle's per-attempt edge)."""
+    return WORLD_TABLE[cause][best_timing(cause)]
