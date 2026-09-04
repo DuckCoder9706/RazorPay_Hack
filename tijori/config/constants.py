@@ -159,28 +159,33 @@ REASON_CODE_DISTRIBUTION: dict[Cause, float] = {
 # (cause, timing) -> P(retry succeeds). Drives outcome draws AND the oracle bound.
 # docs/outcome-model.md §4. Anchored so the retryable population lands ~50%->60%.
 # --------------------------------------------------------------------------- #
+# These are SINGLE-ATTEMPT probabilities. Over a 3-attempt budget the cumulative recovery
+# is 1-(1-p)^3, calibrated so a cause-blind fixed-SHORT baseline lands in the cited
+# 40-60%-of-recoverable band and best-timing smart in 65-85% (see docs/outcome-model.md
+# §Sources-of-Truth: Recurly/Solidgate/GR4VY/Slicker 2026). Argmax timing per cause
+# encodes the documented mechanism (payday for NSF, fast for transient/user/auth).
 WORLD_TABLE: dict[Cause, dict[Timing, float]] = {
-    Cause.INSUFFICIENT_FUNDS:   {Timing.FAST: 0.15, Timing.SHORT: 0.30, Timing.ALIGNED: 0.62},
-    Cause.ISSUER_SOFT_DECLINE:  {Timing.FAST: 0.35, Timing.SHORT: 0.55, Timing.ALIGNED: 0.50},
-    Cause.AUTHENTICATION_FAILED:{Timing.FAST: 0.70, Timing.SHORT: 0.45, Timing.ALIGNED: 0.30},
-    Cause.USER_DROPPED:         {Timing.FAST: 0.72, Timing.SHORT: 0.40, Timing.ALIGNED: 0.25},
-    Cause.TECHNICAL_TRANSIENT:  {Timing.FAST: 0.75, Timing.SHORT: 0.50, Timing.ALIGNED: 0.42},
-    Cause.LIMIT_EXCEEDED:       {Timing.FAST: 0.10, Timing.SHORT: 0.35, Timing.ALIGNED: 0.60},
-    Cause.HARD_DECLINE:         {Timing.FAST: 0.02, Timing.SHORT: 0.02, Timing.ALIGNED: 0.02},
-    Cause.RISK_BLOCKED:         {Timing.FAST: 0.00, Timing.SHORT: 0.00, Timing.ALIGNED: 0.00},
+    Cause.INSUFFICIENT_FUNDS:   {Timing.FAST: 0.08, Timing.SHORT: 0.15, Timing.ALIGNED: 0.35},  # payday >> next-day
+    Cause.ISSUER_SOFT_DECLINE:  {Timing.FAST: 0.12, Timing.SHORT: 0.22, Timing.ALIGNED: 0.18},  # do-not-honor clears ~next-day
+    Cause.AUTHENTICATION_FAILED:{Timing.FAST: 0.30, Timing.SHORT: 0.15, Timing.ALIGNED: 0.08},  # user re-attempts fast
+    Cause.USER_DROPPED:         {Timing.FAST: 0.32, Timing.SHORT: 0.14, Timing.ALIGNED: 0.08},  # re-prompt fast
+    Cause.TECHNICAL_TRANSIENT:  {Timing.FAST: 0.35, Timing.SHORT: 0.18, Timing.ALIGNED: 0.15},  # transient, retry fast
+    Cause.LIMIT_EXCEEDED:       {Timing.FAST: 0.05, Timing.SHORT: 0.12, Timing.ALIGNED: 0.30},  # wait for reset
+    Cause.HARD_DECLINE:         {Timing.FAST: 0.01, Timing.SHORT: 0.01, Timing.ALIGNED: 0.01},  # needs new instrument
+    Cause.RISK_BLOCKED:         {Timing.FAST: 0.00, Timing.SHORT: 0.00, Timing.ALIGNED: 0.00},  # do not retry
 }
 
 # BELIEF table — R's INITIAL (deliberately biased) view  🧪 MODELED
 # Seeded = WORLD except injected wrong priors, so F1 (recon-as-ground-truth) has
 # something visible to correct across batches. docs/outcome-model.md §4.
 BELIEF_TABLE: dict[Cause, dict[Timing, float]] = {
-    Cause.INSUFFICIENT_FUNDS:   {Timing.FAST: 0.15, Timing.SHORT: 0.30, Timing.ALIGNED: 0.45},  # under-rates payday (magnitude, argmax still ALIGNED)
-    Cause.ISSUER_SOFT_DECLINE:  {Timing.FAST: 0.60, Timing.SHORT: 0.55, Timing.ALIGNED: 0.50},  # over-trusts fast → argmax FLIPS to FAST (world says SHORT); F1 must fix this
-    Cause.AUTHENTICATION_FAILED:{Timing.FAST: 0.70, Timing.SHORT: 0.45, Timing.ALIGNED: 0.30},
-    Cause.USER_DROPPED:         {Timing.FAST: 0.72, Timing.SHORT: 0.40, Timing.ALIGNED: 0.25},
-    Cause.TECHNICAL_TRANSIENT:  {Timing.FAST: 0.75, Timing.SHORT: 0.50, Timing.ALIGNED: 0.42},
-    Cause.LIMIT_EXCEEDED:       {Timing.FAST: 0.10, Timing.SHORT: 0.35, Timing.ALIGNED: 0.60},
-    Cause.HARD_DECLINE:         {Timing.FAST: 0.02, Timing.SHORT: 0.02, Timing.ALIGNED: 0.02},
+    Cause.INSUFFICIENT_FUNDS:   {Timing.FAST: 0.08, Timing.SHORT: 0.15, Timing.ALIGNED: 0.25},  # under-rates payday MAGNITUDE (0.25<0.35); argmax still ALIGNED
+    Cause.ISSUER_SOFT_DECLINE:  {Timing.FAST: 0.28, Timing.SHORT: 0.22, Timing.ALIGNED: 0.18},  # over-trusts FAST → argmax FLIPS to FAST (world says SHORT); F1 must fix
+    Cause.AUTHENTICATION_FAILED:{Timing.FAST: 0.30, Timing.SHORT: 0.15, Timing.ALIGNED: 0.08},  # matches world
+    Cause.USER_DROPPED:         {Timing.FAST: 0.32, Timing.SHORT: 0.14, Timing.ALIGNED: 0.08},  # matches world
+    Cause.TECHNICAL_TRANSIENT:  {Timing.FAST: 0.35, Timing.SHORT: 0.18, Timing.ALIGNED: 0.15},  # matches world
+    Cause.LIMIT_EXCEEDED:       {Timing.FAST: 0.05, Timing.SHORT: 0.12, Timing.ALIGNED: 0.30},  # matches world
+    Cause.HARD_DECLINE:         {Timing.FAST: 0.01, Timing.SHORT: 0.01, Timing.ALIGNED: 0.01},
     Cause.RISK_BLOCKED:         {Timing.FAST: 0.00, Timing.SHORT: 0.00, Timing.ALIGNED: 0.00},
 }
 

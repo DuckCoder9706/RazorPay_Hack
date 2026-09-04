@@ -60,28 +60,32 @@ This is what makes the **optimal-retry-date** policy (D5) and **regret** (F2) me
 - **SHORT** — next-day (≈ Razorpay's T+1), the cause-blind default
 - **ALIGNED** — wait for a salary credit (≈ month-end / 1st) or a limit reset
 
-### WORLD success table — `(cause, timing) → true_prob` 🧪 (illustrative, to finalize in T1)
+These are **single-attempt** probabilities. Over the 3-attempt budget, cumulative recovery
+is `1-(1-p)^3`. They are **calibrated to published recovery bands** (see Sources of Truth §6):
+a cause-blind fixed-SHORT baseline must land in the **40–60%-of-recoverable** band, and
+best-timing smart in **65–85%**. Verified live: baseline ≈ 46% of recoverable, smart ≈ 72%.
 
-| Cause | FAST | SHORT | ALIGNED | Best bucket |
+### WORLD success table — `(cause, timing) → true_prob` 🧪 (frozen in constants.py)
+
+| Cause | FAST | SHORT | ALIGNED | Best (world) |
 |---|---:|---:|---:|---|
-| `insufficient_funds` | 0.15 | 0.30 | **0.62** | ALIGNED (payday) |
-| `issuer_soft_decline` | 0.35 | **0.55** | 0.50 | SHORT |
-| `authentication_failed` | **0.70** | 0.45 | 0.30 | FAST |
-| `user_dropped` | **0.72** | 0.40 | 0.25 | FAST |
-| `technical_transient` | **0.75** | 0.50 | 0.42 | FAST |
-| `limit_exceeded` | 0.10 | 0.35 | **0.60** | ALIGNED (reset) |
-| `hard_decline` | 0.02 | 0.02 | 0.02 | none → dun |
+| `insufficient_funds` | 0.08 | 0.15 | **0.35** | ALIGNED (payday) |
+| `issuer_soft_decline` | 0.12 | **0.22** | 0.18 | SHORT (do-not-honor clears next-day) |
+| `authentication_failed` | **0.30** | 0.15 | 0.08 | FAST (user re-attempts) |
+| `user_dropped` | **0.32** | 0.14 | 0.08 | FAST (re-prompt) |
+| `technical_transient` | **0.35** | 0.18 | 0.15 | FAST (transient) |
+| `limit_exceeded` | 0.05 | 0.12 | **0.30** | ALIGNED (reset) |
+| `hard_decline` | 0.01 | 0.01 | 0.01 | none → dun |
 | `risk_blocked` | 0.00 | 0.00 | 0.00 | none → stop |
 
-- Probabilities anchored so the **retryable population** lands near the literature's **~50%→60%** smart-retry band, while the **cause-blind SHORT-only** baseline (Razorpay's default) leaves the payday/reset/transient gains on the table.
-- `hard_decline` / `risk_blocked` ≈ 0 → they define the **irreducible** floor used to scope F2 regret to the *recoverable* population.
+- The **argmax timing** per cause encodes the *documented mechanism* (payday for NSF, fast for transient/user/auth, reset for limits) — that mechanism is cited; the exact magnitudes are modeled to hit the bands above.
+- `hard_decline` / `risk_blocked` ≈ 0 → the **irreducible** floor scoping F2 regret to the *recoverable* population.
 
 ### BELIEF table — R's initial (deliberately biased) view 🧪
 
-Initialize `BELIEF = WORLD` **except** inject realistic wrong priors, so F1 has something to correct:
-- BELIEF **under-rates the payday effect**: `insufficient_funds` ALIGNED set to ~0.45 (thinks SHORT is fine).
-- BELIEF **over-trusts fast retries** on `issuer_soft_decline`: FAST ~0.50.
-Recon (F1) then reveals the gap and recalibrates toward WORLD across batches — the visible "it learns" demo.
+`BELIEF = WORLD` **except** two realistic wrong priors, so F1 has something to correct:
+- **Under-rates the payday magnitude**: `insufficient_funds` ALIGNED = 0.25 (< world 0.35), but argmax stays ALIGNED — F1 fixes the *size* of the estimate.
+- **Over-trusts fast retries** on `issuer_soft_decline`: FAST = 0.28 > SHORT 0.22 — the argmax **flips** to FAST while the world's best is SHORT. This is a *decision* error (smart picks the wrong timing) → real regret → F1's recalibration must flip it back. This is the visible "it learns" demo.
 
 ---
 
@@ -92,9 +96,27 @@ Recon (F1) then reveals the gap and recalibrates toward WORLD across batches —
 
 ---
 
-## Sources (verified 2026-09-03)
-- Razorpay error reasons (109-value enum): https://razorpay.com/docs/payments/payment-gateway/rainy-day/errors/error-reasons/ · list: https://razorpay.com/docs/errors/payments/list/ · cards: https://razorpay.com/docs/errors/payments/cards/
-- Card decline reason breakdown (insufficient funds ≈44%, incorrect details ≈1-in-5; codes 51/54/14/59/96/05): https://stripe.com/resources/more/a-complete-list-of-decline-codes · https://www.checkout.com/blog/five-reasons-why-card-payments-are-declined
-- UPI Technical vs Business Decline (TD ≈0.7–0.8%, target <1%; BD target <5%; blended SR 92–96%): https://paytm.com/blog/payments/upi/upi-decline-rate-drops-to-0-8-global-expansion/ · https://productgrowth.in/insights/fintech/upi-payment-success-rates/ · NPCI: https://www.npci.org.in/what-we-do/upi/upi-ecosystem-statistics
-- Razorpay UPI failure categories (business vs technical decline): https://razorpay.com/blog/tackling-upi-payment-failures-with-razorpay/
-- Smart-retry uplift (~50%→60%) baseline band: carried from v1 competitive research; to be re-cited before final README.
+## 6 · Sources of Truth — every number's provenance
+
+**Taxonomy & distribution (§1–§3)**
+- Razorpay error reasons (109-value enum) — 📎 CITED: https://razorpay.com/docs/payments/payment-gateway/rainy-day/errors/error-reasons/ · https://razorpay.com/docs/errors/payments/list/ · https://razorpay.com/docs/errors/payments/cards/
+- Card decline breakdown (insufficient funds ≈44%, incorrect details ≈1-in-5; codes 51/54/14/59/96/05) — 📎 anchors §3: https://stripe.com/resources/more/a-complete-list-of-decline-codes · https://www.checkout.com/blog/five-reasons-why-card-payments-are-declined
+- NSF regional variance (25%–81% of failures) — context for the NSF weight: https://solidgate.com/blog/smart-retries-for-revenue-recovery/
+- UPI Technical vs Business Decline (TD ≈0.7–0.8%, target <1%; BD target <5%; blended SR 92–96%) — 📎 anchors UPI mix: https://paytm.com/blog/payments/upi/upi-decline-rate-drops-to-0-8-global-expansion/ · https://productgrowth.in/insights/fintech/upi-payment-success-rates/ · https://www.npci.org.in/what-we-do/upi/upi-ecosystem-statistics
+- Razorpay recurring retry = fixed T+1/T+2/T+3, cause-blind (the baseline) — 📎 CITED: https://razorpay.com/docs/payments/subscriptions/payment-retries/
+
+**Recovery-rate bands the WORLD table is calibrated to (§4)**
+- Fixed retry schedules recover **≈40–60%** of recoverable failures; smart/AI decline-code-aware **≈65–85%** (basic retry-only 10–20%) — 📎 the bands our baseline (≈46%) and smart (≈72%) are tuned to hit:
+  - https://gr4vy.com/posts/payment-retry-logic-explained-smart-retries-for-failed-transactions-in-2026/
+  - https://www.slickerhq.com/resources/blog/soft-decline-retry-playbook
+  - https://recurly.com/blog/failed-payment-recovery-revenue-strategy/
+- 60–70% of card declines are temporary/recoverable — 📎 supports the retryable fraction: https://solidgate.com/blog/smart-retries-for-revenue-recovery/
+- **Payday-aligned** retries for insufficient funds lift success significantly (payday-shift drove ~7% billing-failure churn reduction) — 📎 justifies NSF argmax = ALIGNED and the FAST≪ALIGNED gap: https://gr4vy.com/posts/subscription-payment-decline-recovery-handling-failed-recurring-charges-and-retry-strategies-that-work/ · https://www.slickerhq.com/resources/blog/complete-payment-retry-strategy-subscription
+- Soft declines (incl. do-not-honor) are 70–90% of CNP failures and clear on a short cadence — 📎 justifies issuer_soft argmax = SHORT: https://www.slickerhq.com/resources/blog/soft-decline-retry-playbook · https://www.pxp.io/payments-glossary/soft-decline
+
+**What remains 🧪 MODELED (no public dataset exists) or 🎛 PREFERENCE**
+- The *exact* per-(cause,timing) magnitudes: no public dataset gives these — they are chosen to satisfy the cited bands and mechanisms above. The DIRECTION is cited; the precise numbers are modeled and declared.
+- `C_CHURN`, customer-value multipliers: 🎛 business PREFERENCE — handled by the F3 sensitivity sweep (smart wins on net value across ₹0–₹20 churn), never asserted as fact.
+- Amount lognormal (μ=ln600, σ=0.9): 🧪 modeled to a plausible Indian AOV shape.
+
+*Verified 2026-09-04.*

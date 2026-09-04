@@ -99,6 +99,45 @@ def _cmd_payment_link(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_churn_sweep(args: argparse.Namespace) -> int:
+    from tijori.eval.harness import churn_sweep
+
+    rows = churn_sweep(seed=args.seed, n=args.n)
+    print(f"F3 churn sensitivity  seed={args.seed}  n={args.n}")
+    print(f"  {'c_churn':>9} {'base net₹':>12} {'smart net₹':>12} {'smart wins?':>12} {'attempts':>9}")
+    for r in rows:
+        print(f"  ₹{r['c_churn_paise'] / 100:>7.2f} {r['baseline_net'] / 100:>12,.0f} "
+              f"{r['smart_net'] / 100:>12,.0f} {'yes' if r['smart_wins_net'] else 'NO':>12} "
+              f"{r['smart_attempts']:>9}")
+    always = all(r["smart_wins_net"] for r in rows)
+    print(f"  --> smart wins on net value across the ENTIRE churn range: {always}")
+    return 0
+
+
+def _cmd_bench(args: argparse.Namespace) -> int:
+    import time
+    from tijori.config.constants import BELIEF_TABLE, Cause
+    from tijori.recover.policy import choose_smart
+    from tijori.eval.harness import run_batch
+
+    # Per-decision latency (the hot path: diagnose + net-value argmax, no I/O, no LLM).
+    reps = 200_000
+    t0 = time.perf_counter()
+    for i in range(reps):
+        choose_smart(Cause.INSUFFICIENT_FUNDS, 50000, (i % 3) + 1, "mid")
+    per = (time.perf_counter() - t0) / reps * 1e6  # microseconds
+    print(f"per-decision latency : {per:.2f} µs  ({1e6 / per:,.0f} decisions/sec, single core)")
+
+    # End-to-end scored batch throughput.
+    t0 = time.perf_counter()
+    r = run_batch(seed=args.seed, n=args.n)
+    dt = time.perf_counter() - t0
+    print(f"scored batch (n={args.n}) : {dt * 1000:.0f} ms  "
+          f"({args.n / dt:,.0f} failures/sec, both policies + oracle)")
+    print(f"  (smart recovered ₹{r.metrics['smart'].gross_recovered_paise / 100:,.0f})")
+    return 0
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     from tijori.eval.harness import run_batch
 
@@ -158,6 +197,16 @@ def main(argv: list[str] | None = None) -> int:
     p_pl = sub.add_parser("payment-link", help="create a LIVE test-mode Razorpay Payment Link (D3)")
     p_pl.add_argument("--amount-paise", type=int, default=50000, help="amount in paise (default ₹500)")
     p_pl.set_defaults(func=_cmd_payment_link)
+
+    p_cs = sub.add_parser("churn-sweep", help="F3: smart-vs-baseline across churn costs")
+    p_cs.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
+    p_cs.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
+    p_cs.set_defaults(func=_cmd_churn_sweep)
+
+    p_bench = sub.add_parser("bench", help="measure per-decision latency + batch throughput")
+    p_bench.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)
+    p_bench.add_argument("--n", type=int, default=constants.DEFAULT_BATCH_SIZE)
+    p_bench.set_defaults(func=_cmd_bench)
 
     p_run = sub.add_parser("run", help="run a scored batch: baseline vs smart vs oracle")
     p_run.add_argument("--seed", type=int, default=constants.DEFAULT_SEED)

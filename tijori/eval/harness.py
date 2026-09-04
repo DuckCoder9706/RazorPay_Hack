@@ -9,7 +9,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from tijori.config.constants import DEFAULT_BATCH_SIZE, DEFAULT_SEED, MAX_RETRY_ATTEMPTS
+from tijori.config.constants import (
+    C_CHURN_PAISE,
+    C_RETRY_PAISE,
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_SEED,
+    MAX_RETRY_ATTEMPTS,
+)
 from tijori.eval.metrics import BatchMetrics, summarise
 from tijori.eval.oracle import oracle_recovers
 from tijori.ledger.db import init_db, get_conn, memory_db
@@ -40,7 +46,8 @@ def _oracle_ceiling(conn, seed: int) -> int:
 
 
 def run_batch(
-    seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, *, db_path: str | None = None
+    seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, *, db_path: str | None = None,
+    c_retry: int = C_RETRY_PAISE, c_churn: int = C_CHURN_PAISE,
 ) -> BatchResult:
     """Run one fully-reproducible scored batch. Persists to db_path if given, else memory."""
     if db_path is None:
@@ -54,8 +61,33 @@ def run_batch(
         oracle = _oracle_ceiling(conn, seed)
         result = BatchResult(seed=seed, n=n, oracle_paise=oracle)
         for policy in ("baseline", "smart"):
-            rows = run_policy(conn, seed=seed, policy=policy)
+            rows = run_policy(conn, seed=seed, policy=policy, c_retry=c_retry, c_churn=c_churn)
             result.metrics[policy] = summarise(policy, rows, oracle_paise=oracle)
         return result
     finally:
         conn.close()
+
+
+def churn_sweep(
+    seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, churns: tuple[int, ...] | None = None
+) -> list[dict]:
+    """F3 sensitivity: run the scored batch across a range of churn costs and report the
+    smart-vs-baseline outcome at each. Shows the ranking is robust, not tuned to one guess."""
+    from tijori.config.constants import CHURN_SWEEP_PAISE
+
+    churns = churns if churns is not None else CHURN_SWEEP_PAISE
+    out: list[dict] = []
+    for c in churns:
+        r = run_batch(seed=seed, n=n, c_churn=c)
+        b, s = r.metrics["baseline"], r.metrics["smart"]
+        out.append({
+            "c_churn_paise": c,
+            "baseline_net": b.net_value_paise,
+            "smart_net": s.net_value_paise,
+            "baseline_gross": b.gross_recovered_paise,
+            "smart_gross": s.gross_recovered_paise,
+            "smart_attempts": s.n_attempts,
+            "smart_wins_net": s.net_value_paise > b.net_value_paise,
+            "smart_wins_gross": s.gross_recovered_paise > b.gross_recovered_paise,
+        })
+    return out

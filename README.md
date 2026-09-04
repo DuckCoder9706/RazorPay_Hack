@@ -56,7 +56,7 @@ pytest -q                  # run T1 acceptance tests
 | **Week 2b** · live test-mode Payment Link (real Razorpay object) | ✅ done — `tijori payment-link` |
 | Week 3 · W matcher + F1 recalibration + loop wiring + video | scaffolded |
 
-**First scored result** (`tijori run --seed 42 --n 500`): baseline recovers 67.8% (₹316,606); **smart recovers 78.2% (₹356,852)** — **+12.7% gross, +₹45k net**, capturing 95.6% of the oracle ceiling vs baseline's 84.8%. Across 10 seeds the gross delta is **+20.2% ± 4.3%**, leaving ~2.7% regret for F1 to close in Week 3.
+**First scored result** (`tijori run --seed 42 --n 500`), WORLD table calibrated to published recovery bands (fixed ≈40–60% of recoverable, smart ≈65–85%): baseline recovers **46% of recoverable** (₹163,184); **smart recovers ≈72% of recoverable** (₹268,379) — **+64.5% gross, +₹109k net**, at 95.4% of the oracle ceiling vs baseline's 58.0%. **F3 robustness:** smart wins on net value across the entire ₹0–₹20 churn range. **Latency:** ~6 µs/decision (160k decisions/sec, single core) — no LLM or I/O in the scored path.
 
 ## Honesty
 The reason **taxonomy** is cited (Razorpay's 109-value error enum); the reason **distribution** is anchored to cited card/UPI decline data with a modeled blend; the **WORLD/BELIEF** success tables are modeled and declared. Same seed → byte-identical scored output. Honest simulation, never claimed production. Full provenance in [docs/outcome-model.md](docs/outcome-model.md).

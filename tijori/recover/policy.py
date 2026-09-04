@@ -43,10 +43,16 @@ class Decision:
     expected_net_value: int
 
 
-def marginal_cost(attempt_no: int, customer_value: str) -> int:
-    """Cost of making the k-th attempt: a flat rail cost + churn rising with attempt (F3)."""
+def marginal_cost(
+    attempt_no: int,
+    customer_value: str,
+    c_retry: int = C_RETRY_PAISE,
+    c_churn: int = C_CHURN_PAISE,
+) -> int:
+    """Cost of making the k-th attempt: op cost + churn rising with attempt (F3).
+    c_retry / c_churn are overridable so the F3 sensitivity sweep can vary churn."""
     vmult = CUSTOMER_VALUE_MULTIPLIER[customer_value]
-    return round(C_RETRY_PAISE + C_CHURN_PAISE * vmult * attempt_no)
+    return round(c_retry + c_churn * vmult * attempt_no)
 
 
 def choose_smart(
@@ -55,6 +61,8 @@ def choose_smart(
     attempt_no: int,
     customer_value: str,
     belief: BeliefTable = BELIEF_TABLE,
+    c_retry: int = C_RETRY_PAISE,
+    c_churn: int = C_CHURN_PAISE,
 ) -> Decision:
     """Cause-aware net-value argmax on BELIEF (smart policy)."""
     if not is_retryable(cause):
@@ -63,7 +71,7 @@ def choose_smart(
     if attempt_no > MAX_RETRY_ATTEMPTS:
         return Decision(Action.STOP, None, None, 0)
 
-    cost = marginal_cost(attempt_no, customer_value)
+    cost = marginal_cost(attempt_no, customer_value, c_retry, c_churn)
     best_t = max(Timing, key=lambda t: belief[cause][t])
     best_net = round(belief[cause][best_t] * amount_paise - cost)
 
