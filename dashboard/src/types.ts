@@ -137,3 +137,17 @@ export interface AuditResponse {
   total: number;
   events: AuditEvent[];
 }
+
+export interface RazorpayLink {
+  ok: boolean;
+  live?: boolean;
+  id?: string;
+  status?: string;
+  amount?: number;
+  currency?: string;
+  short_url?: string;
+  description?: string;
+  created_at?: number;
+  reason?: string;
+  detail?: string;
+}
