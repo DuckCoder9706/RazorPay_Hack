@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Gauge } from "@/components/charts/gauge";
 import { FunnelChart } from "@/components/charts/funnel-chart";
-import { rupees, pct, signed, useApi, useCountUp } from "./lib";
+import { rupees, pct, signed, useApi, useBatchStream } from "./lib";
 import type {
   BatchResponse,
   ChurnResponse,
@@ -10,6 +10,7 @@ import type {
   LearnResponse,
   OutcomeModelResponse,
   AuditResponse,
+  PolicyMetrics,
   PolicyName,
 } from "./types";
 
@@ -111,25 +112,47 @@ function Loading({ error, label = "computing…" }: { error: string | null; labe
 // HERO — the persuade moment: one enormous recovered figure, the three-way
 // gauge (baseline · smart · oracle ceiling), and the metrics that frame it.
 // --------------------------------------------------------------------------- //
-export function BatchPanel({ seed, n }: SeedProps) {
-  const { data, error } = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
-  const by = data
-    ? (Object.fromEntries(data.policies.map((p) => [p.policy, p])) as Record<PolicyName, BatchResponse["policies"][number]>)
-    : null;
-  const smartPaise = by ? by.smart.gross_recovered_paise : 0;
-  const counted = useCountUp(smartPaise);
+export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number }) {
+  const stream = useBatchStream(seed, n, runId);
+  const staticState = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
+  const fallback = staticState.data;
 
-  if (!data || !by)
+  if (!stream && !fallback)
     return (
       <Panel hero>
-        <Loading error={error} />
+        <Loading error={staticState.error} label="scoring batch…" />
       </Panel>
     );
-  const base = by.baseline, smart = by.smart, oracle = data.oracle_paise;
 
-  const gauge = [
-    { label: "Razorpay baseline", sub: "cited T+1 / T+2 / T+3, cause-blind", paise: base.gross_recovered_paise, eff: base.efficiency, color: "bg-amber", text: "text-amber" },
-    { label: "Tijori smart", sub: "cause-aware · optimal-timing · net-value", paise: smart.gross_recovered_paise, eff: smart.efficiency, color: "bg-money", text: "text-money" },
+  // Prefer the live stream; fall back to the static fetch only if SSE never produced.
+  let oracle: number, baseGross: number, smartGross: number, baseAtt: number, smartAtt: number;
+  let finalBase: PolicyMetrics | undefined, finalSmart: PolicyMetrics | undefined;
+  let streaming = false, progress = 1;
+
+  if (stream) {
+    oracle = stream.oracle;
+    baseGross = stream.baseline.gross; smartGross = stream.smart.gross;
+    baseAtt = stream.baseline.attempts; smartAtt = stream.smart.attempts;
+    streaming = stream.phase === "streaming"; progress = stream.progress;
+    finalBase = stream.final?.find((p) => p.policy === "baseline");
+    finalSmart = stream.final?.find((p) => p.policy === "smart");
+  } else {
+    const by = Object.fromEntries(fallback!.policies.map((p) => [p.policy, p])) as Record<PolicyName, PolicyMetrics>;
+    oracle = fallback!.oracle_paise;
+    baseGross = by.baseline.gross_recovered_paise; smartGross = by.smart.gross_recovered_paise;
+    baseAtt = by.baseline.n_attempts; smartAtt = by.smart.n_attempts;
+    finalBase = by.baseline; finalSmart = by.smart;
+  }
+
+  const smartEff = oracle ? smartGross / oracle : 0;
+  const baseEff = oracle ? baseGross / oracle : 0;
+  const deltaGross = smartGross - baseGross;
+  const deltaPct = baseGross ? (deltaGross / baseGross) * 100 : 0;
+  const netPaise = finalSmart && finalBase ? finalSmart.net_value_paise - finalBase.net_value_paise : null;
+
+  const bars = [
+    { label: "Razorpay baseline", sub: "cited T+1 / T+2 / T+3, cause-blind", gross: baseGross, eff: baseEff, color: "bg-amber", text: "text-amber" },
+    { label: "Tijori smart", sub: "cause-aware · optimal-timing · net-value", gross: smartGross, eff: smartEff, color: "bg-money", text: "text-money" },
   ];
 
   return (
@@ -137,16 +160,23 @@ export function BatchPanel({ seed, n }: SeedProps) {
       <div className="grid gap-8 p-6 sm:p-7 lg:grid-cols-[1.05fr_1.35fr] lg:gap-10">
         {/* Left — the number */}
         <div className="flex flex-col justify-center">
-          <Kicker>Net new revenue recovered · seed {data.seed} · n {data.n}</Kicker>
-          <div className="mt-3 font-mono font-semibold leading-none tracking-tighter2 text-money text-[clamp(2.2rem,11vw,5rem)]">
-            {rupees(Math.round(counted))}
+          <div className="flex items-center gap-2">
+            <Kicker>Net new revenue recovered · seed {seed} · n {n}</Kicker>
+            {streaming && <span className="font-mono text-[10px] uppercase tracking-wide text-money">● scoring</span>}
+          </div>
+          <div className="mt-3 font-mono font-semibold leading-none tracking-tighter2 text-money text-[clamp(2.2rem,11vw,5rem)] tabular-nums">
+            {rupees(Math.round(smartGross))}
+          </div>
+          {/* playback progress */}
+          <div className="mt-3 h-0.5 w-full max-w-sm overflow-hidden rounded-full bg-line" hidden={!streaming}>
+            <div className="h-full rounded-full bg-money transition-[width] duration-150 ease-out" style={{ width: `${progress * 100}%` }} />
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="rounded-md bg-money/10 px-2 py-1 font-mono font-semibold text-money">
-              {signed(data.delta.gross_pct)}
+            <span className="rounded-md bg-money/10 px-2 py-1 font-mono font-semibold text-money tabular-nums">
+              {signed(deltaPct)}
             </span>
             <span className="text-dim">
-              vs Razorpay's cited baseline — <span className="font-mono text-ink">{rupees(data.delta.gross_paise)}</span> more recovered
+              vs Razorpay's cited baseline — <span className="font-mono text-ink">{rupees(deltaGross)}</span> more recovered
             </span>
           </div>
           <p className="mt-4 max-w-sm text-xs leading-relaxed text-faint">
@@ -155,21 +185,21 @@ export function BatchPanel({ seed, n }: SeedProps) {
           </p>
         </div>
 
-        {/* Right — the gauge + framing metrics */}
+        {/* Right — the bars + framing metrics */}
         <div className="flex flex-col justify-center gap-5">
           <div className="space-y-4">
-            {gauge.map((g, i) => (
+            {bars.map((g) => (
               <div key={g.label}>
                 <div className="mb-1.5 flex items-baseline justify-between gap-2">
                   <span className="text-sm font-medium text-ink">
                     {g.label} <span className="ml-1 text-xs font-normal text-faint">{g.sub}</span>
                   </span>
-                  <span className={`font-mono text-sm font-semibold ${g.text}`}>{rupees(g.paise)}</span>
+                  <span className={`font-mono text-sm font-semibold tabular-nums ${g.text}`}>{rupees(g.gross)}</span>
                 </div>
                 <div className="relative h-2.5 overflow-hidden rounded-full bg-raised ring-1 ring-inset ring-line">
                   <div
-                    className={`grow-x h-full rounded-full ${g.color}`}
-                    style={{ width: `${(g.paise / oracle) * 100}%`, animationDelay: `${0.2 + i * 0.15}s` }}
+                    className={`h-full rounded-full transition-[width] duration-150 ease-out ${g.color}`}
+                    style={{ width: `${oracle ? (g.gross / oracle) * 100 : 0}%` }}
                   />
                 </div>
                 <div className="mt-1 text-right font-mono text-[11px] text-faint">{pct(g.eff)} of ceiling</div>
@@ -185,9 +215,9 @@ export function BatchPanel({ seed, n }: SeedProps) {
           </div>
 
           <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-px overflow-hidden rounded-lg border border-line bg-line">
-            <MiniStat label="Efficiency (F2)" value={pct(smart.efficiency)} tone="text-money" foot={`baseline ${pct(base.efficiency)}`} />
-            <MiniStat label="Net-value gain (F3)" value={rupees(data.delta.net_paise)} foot="net of churn" />
-            <MiniStat label="Fewer attempts" value={`−${base.n_attempts - smart.n_attempts}`} foot={`${smart.n_attempts} vs ${base.n_attempts}`} />
+            <MiniStat label="Efficiency (F2)" value={pct(smartEff)} tone="text-money" foot={`baseline ${pct(baseEff)}`} />
+            <MiniStat label="Net-value gain (F3)" value={netPaise != null ? rupees(netPaise) : "—"} foot="net of churn" />
+            <MiniStat label="Fewer attempts" value={`−${baseAtt - smartAtt}`} foot={`${smartAtt} vs ${baseAtt}`} />
           </div>
         </div>
       </div>
