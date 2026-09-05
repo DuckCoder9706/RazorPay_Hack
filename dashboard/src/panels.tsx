@@ -319,15 +319,17 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
           />
         </div>
         <div className="flex flex-col items-center justify-center border-t border-line-soft pt-4 lg:border-l lg:border-t-0 lg:pt-0">
-          <Gauge
-            value={smart.efficiency * 100}
-            centerValue={Math.round(smart.efficiency * 100)}
-            suffix="%"
-            defaultLabel="of ceiling"
-            height={170}
-            useGradient
-            activeGradient={["#34d399", "#10b981"]}
-          />
+          <div className="w-full max-w-[240px]">
+            <Gauge
+              value={smart.efficiency * 100}
+              centerValue={Math.round(smart.efficiency * 100)}
+              suffix="%"
+              defaultLabel="of ceiling"
+              height={150}
+              useGradient
+              activeGradient={["#34d399", "#10b981"]}
+            />
+          </div>
           <p className="mt-1 text-center font-mono text-[11px] text-faint">
             efficiency vs oracle · baseline {pct(base.efficiency)}
           </p>
