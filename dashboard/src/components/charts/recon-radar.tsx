@@ -4,13 +4,11 @@ import { useState, useMemo } from "react";
 import { motion } from "motion/react";
 import {
   Activity,
-  ChevronLeft,
-  ChevronRight,
   Sparkles,
   Layers,
   TrendingUp,
 } from "lucide-react";
-import type { ReconInfrastructure } from "../../types";
+import type { ReconInfrastructure, ReconTrendPoint } from "../../types";
 import { pct, rupees } from "../../lib";
 
 interface ReconBenchmarkVisualizerProps {
@@ -18,6 +16,7 @@ interface ReconBenchmarkVisualizerProps {
   selectedId: string;
   onSelectId: (id: string) => void;
   totalVolumePaise: number;
+  trend: ReconTrendPoint[];
   seed: number;
   n: number;
   tijoriSavingsVsDefault: number;
@@ -58,40 +57,27 @@ const RADAR_DIMENSIONS: RadarDimension[] = [
     key: "netting",
     name: "Many-to-Many Netting Recall",
     shortName: "Netting",
-    description: "Resolution accuracy of batched bank credit lumps into multiple individual merchant settlements.",
-    getScore: (i) => {
-      if (i.id === "tijori") return 1.0;
-      if (i.id === "adyen") return 0.72;
-      if (i.id === "stripe") return 0.68;
-      if (i.id === "razorpay_default") return 0.42;
-      return 0.18;
-    },
-    getFormatted: (i) => {
-      if (i.id === "tijori") return "100%";
-      if (i.id === "adyen") return "72%";
-      if (i.id === "stripe") return "68%";
-      if (i.id === "razorpay_default") return "42%";
-      return "18%";
-    },
+    description: "Resolution of batched bank-credit lumps into individual merchant settlements. Tijori is measured (100% on the ledger); other rails are a qualitative estimate scaled from their auto-match rate (none resolve NPCI-style circular netting natively).",
+    // Tijori: measured 100%. Others: derived from their (cited) auto-match rate, discounted
+    // because native many-to-many netting is not a standard gateway capability.
+    getScore: (i) => (i.id === "tijori" ? 1.0 : Math.max(0.15, i.reconciliation_rate - 0.25)),
+    getFormatted: (i) => (i.id === "tijori" ? "100% (measured)" : `~${Math.round(Math.max(0.15, i.reconciliation_rate - 0.25) * 100)}% (est.)`),
   },
   {
     key: "determinism",
-    name: "Cryptographic Proof (SHA-256)",
+    name: "Audit Reproducibility",
     shortName: "Determinism",
-    description: "Byte-for-byte reproducibility of the audit trail under historical replay.",
+    description: "Byte-for-byte reproducibility of the audit trail under replay. Tijori is measured (SHA-256 dual-run identical, /verify); other rails are rated qualitatively by audit architecture (log/SQL vs manual CSV).",
+    // Tijori: measured SHA-256 determinism. Others: rule-based by category, not per-name literals.
     getScore: (i) => {
       if (i.id === "tijori") return 1.0;
-      if (i.id === "adyen") return 0.88;
-      if (i.id === "stripe") return 0.85;
-      if (i.id === "razorpay_default") return 0.7;
-      return 0.35;
+      if (i.category === "legacy") return 0.35;   // manual CSV / spreadsheet audit
+      return 0.8;                                  // gateway DB / SQL audit logs
     },
     getFormatted: (i) => {
-      if (i.id === "tijori") return "SHA-256 (100%)";
-      if (i.id === "adyen") return "Log Audit (88%)";
-      if (i.id === "stripe") return "SQL Audit (85%)";
-      if (i.id === "razorpay_default") return "DB Logs (70%)";
-      return "Manual CSV (35%)";
+      if (i.id === "tijori") return "SHA-256 (measured)";
+      if (i.category === "legacy") return "Manual CSV (est.)";
+      return "System logs (est.)";
     },
   },
   {
@@ -117,6 +103,7 @@ export function ReconBenchmarkVisualizer({
   selectedId,
   onSelectId,
   totalVolumePaise,
+  trend,
   seed,
   n,
   tijoriSavingsVsDefault,
@@ -126,7 +113,6 @@ export function ReconBenchmarkVisualizer({
   const [hoveredDimIdx, setHoveredDimIdx] = useState<number | null>(null);
   const [showTijoriOverlay, setShowTijoriOverlay] = useState<boolean>(true);
   const [trendMetric, setTrendMetric] = useState<"rate" | "leakage">("rate");
-  const [batchRangeIdx, setBatchRangeIdx] = useState(0);
 
   const selectedInfra =
     infrastructures.find((i) => i.id === selectedId) || infrastructures[0];
@@ -185,22 +171,27 @@ export function ReconBenchmarkVisualizer({
     });
   }, [selectedInfra, tijoriInfra]);
 
-  // Image 3: Synthetic dynamic multi-batch trend data derived from active seed & n
-  const batchRanges = ["Batch 1 – 5", "Batch 6 – 10", "Batch 11 – 15"];
+  // Real multi-batch trend. Tijori's series is MEASURED by the backend across real
+  // sub-batches (`trend`); competitors have no public per-rail time series, so their line
+  // is drawn flat at their steady-state reconciliation rate (honest, not fabricated).
   const trendPoints = useMemo(() => {
-    const baseRate = selectedInfra.reconciliation_rate;
-    const labels = ["Batch 1", "Batch 2", "Batch 3", "Batch 4", "Batch 5", "Batch 6"];
-    return labels.map((label, idx) => {
-      const noise = (((seed * 7 + idx * 13) % 20) - 10) / 1000;
-      const rate = Math.min(0.999, Math.max(0.65, baseRate + (selectedInfra.id === "tijori" ? idx * 0.001 : -idx * 0.002) + noise));
-      return {
-        label,
-        rate,
-        pctText: pct(rate),
-        leakagePaise: Math.round(totalVolumePaise * (selectedInfra.leakage_basis_points / 10000)),
-      };
-    });
-  }, [selectedInfra, seed, totalVolumePaise]);
+    const leakagePaise = Math.round(totalVolumePaise * (selectedInfra.leakage_basis_points / 10000));
+    if (selectedInfra.id === "tijori" && trend.length) {
+      return trend.map((t) => ({
+        label: `Batch ${t.batch}`,
+        rate: t.reconciliation_rate,
+        pctText: pct(t.reconciliation_rate),
+        leakagePaise,
+      }));
+    }
+    const count = trend.length || 6;
+    return Array.from({ length: count }, (_, idx) => ({
+      label: `Batch ${idx + 1}`,
+      rate: selectedInfra.reconciliation_rate,
+      pctText: pct(selectedInfra.reconciliation_rate),
+      leakagePaise,
+    }));
+  }, [selectedInfra, trend, totalVolumePaise]);
 
   return (
     <div className="rounded-2xl border border-line-soft bg-white/95 backdrop-blur-md shadow-card overflow-hidden">
@@ -537,7 +528,7 @@ export function ReconBenchmarkVisualizer({
                 <p className="text-xs text-dim leading-relaxed">
                   {hoveredDimIdx !== null
                     ? RADAR_DIMENSIONS[hoveredDimIdx].description
-                    : "Hover any glowing vertex node or label on the 3D isometric chart to inspect real-time dimensional metrics and audit comparisons."}
+                    : "Six-axis comparison of settlement reconciliation architecture."}
                 </p>
 
                 {/* Dimensional Score Cards */}
@@ -594,6 +585,37 @@ export function ReconBenchmarkVisualizer({
                     {selectedInfra.vulnerability}
                   </div>
                 )}
+                {/* Provenance — every number on this row is sourced, not invented. */}
+                <div className="mt-2 flex items-start justify-between gap-2 border-t border-line-soft pt-2">
+                  <span
+                    className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase ${
+                      selectedInfra.basis === "measured"
+                        ? "border-money/30 bg-money-light text-money-dim"
+                        : selectedInfra.basis === "cited"
+                        ? "border-azure/30 bg-azure-light text-azure"
+                        : "border-amber/30 bg-amber/10 text-amber-700"
+                    }`}
+                  >
+                    {selectedInfra.basis === "measured"
+                      ? "Measured"
+                      : selectedInfra.basis === "cited"
+                      ? "Cited"
+                      : "Industry est."}
+                  </span>
+                  <p className="text-[10px] text-faint leading-tight">
+                    {selectedInfra.source_note}{" "}
+                    {selectedInfra.source_url && (
+                      <a
+                        href={selectedInfra.source_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-azure hover:underline whitespace-nowrap"
+                      >
+                        Source ↗
+                      </a>
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -630,30 +652,18 @@ export function ReconBenchmarkVisualizer({
                 </button>
               </div>
 
-              {/* Pill Selector matching Image 3 (< Jan-Jun >) */}
-              <div className="flex items-center gap-1 rounded-full border border-line-soft bg-white px-2.5 py-1 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => setBatchRangeIdx((i) => Math.max(0, i - 1))}
-                  disabled={batchRangeIdx === 0}
-                  className="text-slate-400 hover:text-navy disabled:opacity-30"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <span className="font-mono text-xs font-semibold text-navy px-1.5">
-                  {batchRanges[batchRangeIdx]}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setBatchRangeIdx((i) => Math.min(batchRanges.length - 1, i + 1))
-                  }
-                  disabled={batchRangeIdx === batchRanges.length - 1}
-                  className="text-slate-400 hover:text-navy disabled:opacity-30"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              {/* Provenance pill — measured vs steady-state */}
+              <span
+                className={`rounded-full border px-2.5 py-1 font-mono text-[10.5px] font-semibold ${
+                  selectedInfra.id === "tijori"
+                    ? "border-money/30 bg-money-light text-money-dim"
+                    : "border-line-soft bg-white text-slate-500"
+                }`}
+              >
+                {selectedInfra.id === "tijori"
+                  ? `Measured · ${trendPoints.length} real sub-batches`
+                  : "Steady-state (no public time series)"}
+              </span>
             </div>
 
             {/* SVG Area Chart Container matching Image 3 Card */}

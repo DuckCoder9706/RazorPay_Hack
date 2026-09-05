@@ -43,7 +43,6 @@ import type {
   PolicyName,
   RazorpayLink,
   VerifyResponse,
-  ReconInfrastructure,
   ReconBenchmarkResponse,
 } from "./types";
 
@@ -335,14 +334,12 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
             <p className="mt-1 font-mono text-base sm:text-lg font-bold text-money-dim tabular-nums">
               {netPaise != null ? rupees(netPaise) : "—"}
             </p>
-            <p className="mt-0.5 font-medium text-[10px] text-faint truncate">Net of friction costs</p>
           </div>
           <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm hover:border-line transition-all">
             <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-faint truncate">Friction Reduced</p>
             <p className="mt-1 font-mono text-base sm:text-lg font-bold text-navy tabular-nums">
               −{baseAtt - smartAtt}
             </p>
-            <p className="mt-0.5 font-medium text-[10px] text-faint truncate">{baseAtt - smartAtt} fewer retry attempts</p>
           </div>
         </div>
       </div>
@@ -549,21 +546,13 @@ export function SankeyPanel({
           <SankeyTooltip />
         </SankeyChart>
       </div>
-      <div className="flex flex-wrap items-center justify-between border-t border-line/80 px-5 py-3 text-xs bg-slate-50/50">
+      <div className="flex flex-wrap items-center gap-4 border-t border-line/80 px-5 py-3 text-xs bg-slate-50/50">
         <div className="flex flex-wrap gap-4 font-mono text-[11px] text-faint">
           <Legend swatch="bg-slate-500" label="Decline Reason" />
           <Legend swatch="bg-azure" label="Autonomous Timing Action" />
           <Legend swatch="bg-money" label="Recovered & Reconciled" />
           <Legend swatch="bg-rose" label="Unrecovered" />
         </div>
-        <button
-          type="button"
-          onClick={() => onNavigateToLedger?.("recovered", "W")}
-          className="flex items-center gap-1 font-mono text-[11px] font-semibold text-azure hover:text-navy transition-colors cursor-pointer"
-        >
-          <span>Click any node/flow to inspect verified ledger audit</span>
-          <span>→</span>
-        </button>
       </div>
     </Panel>
   );
@@ -848,121 +837,32 @@ const INFRA_BADGE: Record<string, { label: string; cls: string; bar: string }> =
 export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
   const [selectedId, setSelectedId] = useState<string>("tijori");
 
-  // Fetch live batch and exceptions data to drive all numbers dynamically
-  const exceptionsApi = useApi<ExceptionsResponse>(`/exceptions?seed=${seed}&n=${n}`, [seed, n]);
-  const batchApi = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
+  // Single source of truth: the backend benchmark endpoint. Every competitor number it
+  // returns is researched + cited (see each row's basis / source_note); the trend is
+  // measured across real sub-batches. No competitor data is invented in the frontend.
   const benchmarkApi = useApi<ReconBenchmarkResponse>(`/reconciliation/benchmarks?seed=${seed}&n=${n}`, [seed, n]);
 
-  if (!exceptionsApi.data && !benchmarkApi.data) {
+  if (!benchmarkApi.data) {
     return (
       <Panel delay={delay}>
         <Head title="Multi-Infrastructure Reconciliation & Impact Benchmark" tag="Competitive Analysis" />
-        <Loading error={exceptionsApi.error} label="Computing multi-infrastructure reconciliation benchmarks…" />
+        <Loading error={benchmarkApi.error} label="Computing multi-infrastructure reconciliation benchmarks…" />
       </Panel>
     );
   }
 
-  // Dynamic calculations derived from active batch size, total volume, and exception counts
-  const totalVolumePaise = benchmarkApi.data?.total_volume_paise ?? batchApi.data?.at_risk_paise ?? (n * 60000);
-  const detectedExceptions = exceptionsApi.data?.summary.total_exceptions ?? Math.round(n * 0.04);
-  const cleanMatches = exceptionsApi.data?.summary.reconciled ?? (n - detectedExceptions);
-  const nettingMatches = exceptionsApi.data?.summary.netting_reconciled ?? Math.round(n * 0.03);
+  const bench = benchmarkApi.data;
+  const infrastructures = bench.infrastructures;
+  const totalVolumePaise = bench.total_volume_paise;
+  const nettingMatches = bench.summary?.netting_reconciled ?? 0;
 
-  // Dynamic empirical Tijori reconciliation rate: clean matches + netting resolved / total
-  const tijoriRate = Math.min(0.998, Math.max(0.991, (cleanMatches + nettingMatches) / Math.max(1, (cleanMatches + detectedExceptions))));
+  const tijoriInfra = infrastructures.find((i) => i.id === "tijori") ?? infrastructures[0];
+  const defaultInfra = infrastructures.find((i) => i.id === "razorpay_default");
+  const tijoriRate = tijoriInfra.reconciliation_rate;
 
-  const defaultInfrastructures: ReconInfrastructure[] = [
-    {
-      id: "tijori",
-      name: "Tijori Autonomous 3-Way Sensor",
-      category: "active",
-      reconciliation_rate: tijoriRate,
-      latency_label: "Real-time Streaming (T+0)",
-      latency_hours: 0.05,
-      leakage_basis_points: 0,
-      manual_touch_pct: 0.6,
-      strengths: "Automated 3-way matching across Gateway Telemetry ↔ Bank Statements ↔ Merchant Orders with automated many-to-many netting resolution.",
-      vulnerability: "None · Continuous append-only audit ledger with 100% deterministic SHA-256 byte replay.",
-      features: [
-        "Automated UTR & NEFT matching",
-        "Many-to-many lump netting resolution",
-        "Automated fee deduction audit (MDR + GST)",
-      ],
-    },
-    {
-      id: "razorpay_default",
-      name: "Standard Razorpay Settlement (Default)",
-      category: "baseline",
-      reconciliation_rate: 0.842,
-      latency_label: "T+2 Batch Settlement",
-      latency_hours: 48,
-      leakage_basis_points: 142,
-      manual_touch_pct: 15.8,
-      strengths: "Native Razorpay merchant dashboard reports with standard T+2 settlement cycles.",
-      vulnerability: "Bank fee haircuts (MDR/GST mismatches) and bank statement timing lag require manual spreadsheet auditing.",
-      features: [
-        "T+2 batch settlement CSVs",
-        "Single-settlement lookup",
-        "Manual haircut dispute filing",
-      ],
-    },
-    {
-      id: "stripe",
-      name: "Stripe Sigma / Financial Connections",
-      category: "competitor",
-      reconciliation_rate: 0.918,
-      latency_label: "T+2 Multi-Currency",
-      latency_hours: 48,
-      leakage_basis_points: 76,
-      manual_touch_pct: 8.2,
-      strengths: "Excellent global card network ledger query engine with automated SQL reporting.",
-      vulnerability: "Lacks domestic Indian bank UTR extraction and struggles with NPCI circular netting structures.",
-      features: [
-        "Automated SQL ledger",
-        "Multi-currency matching",
-        "Global card fee rules",
-      ],
-    },
-    {
-      id: "adyen",
-      name: "Adyen Unified Commerce",
-      category: "competitor",
-      reconciliation_rate: 0.925,
-      latency_label: "T+1 Consolidated",
-      latency_hours: 24,
-      leakage_basis_points: 68,
-      manual_touch_pct: 7.5,
-      strengths: "Single platform settlement with granular Interchange++ fee transparency.",
-      vulnerability: "Requires complex bespoke ERP integration for domestic Indian RTGS/NEFT clearing houses.",
-      features: [
-        "Interchange++ fee visibility",
-        "Unified global ledger",
-        "Daily consolidated clearing",
-      ],
-    },
-    {
-      id: "legacy_erp",
-      name: "Legacy FinOps / Manual ERP (SAP / NetSuite)",
-      category: "legacy",
-      reconciliation_rate: 0.710,
-      latency_label: "T+7 to T+30 EOM Batch",
-      latency_hours: 240,
-      leakage_basis_points: 284,
-      manual_touch_pct: 29.0,
-      strengths: "Standard double-entry accounting compliance in legacy enterprise general ledgers.",
-      vulnerability: "End-of-month manual spreadsheet matching results in severe float drag and unrecovered bank fee haircuts.",
-      features: [
-        "End-of-month manual matching",
-        "Spreadsheet import workflows",
-        "Delayed dispute recognition",
-      ],
-    },
-  ];
-
-  const infrastructures = benchmarkApi.data?.infrastructures ?? defaultInfrastructures;
   const selectedInfra = infrastructures.find((i) => i.id === selectedId) || infrastructures[0];
 
-  // Derive dynamic leakage amounts for each infrastructure based on active totalVolumePaise
+  // Derive leakage amounts for each infrastructure from live volume + its (cited) bps.
   const leakageMap: Record<string, number> = Object.fromEntries(
     infrastructures.map((i) => [
       i.id,
@@ -973,6 +873,13 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
   const defaultLeakage = leakageMap["razorpay_default"] ?? 0;
   const tijoriLeakage = leakageMap["tijori"] ?? 0;
   const tijoriSavingsVsDefault = defaultLeakage - tijoriLeakage;
+
+  // Live-derived captions (previously hardcoded "+15.2%", "−96%", "0.6% vs 15.8%", "1.42%").
+  const recRateDeltaPP = defaultInfra ? (tijoriRate - defaultInfra.reconciliation_rate) * 100 : 0;
+  const manualReducedPct = defaultInfra && defaultInfra.manual_touch_pct
+    ? Math.round((1 - tijoriInfra.manual_touch_pct / defaultInfra.manual_touch_pct) * 100)
+    : 0;
+  const defaultLeakagePctText = defaultInfra ? (defaultInfra.leakage_basis_points / 100).toFixed(2) : "0";
 
   return (
     <Panel delay={delay} className="space-y-6">
@@ -990,7 +897,7 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
               <ShieldCheck className="h-3 w-3 text-money-dim" /> Tijori Recon Rate
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-navy">{pct(tijoriRate)}</div>
-            <div className="text-[10.5px] text-money-dim font-medium">+15.2% vs standard default</div>
+            <div className="text-[10.5px] text-money-dim font-medium">{signed(recRateDeltaPP)}pp vs standard default</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
@@ -1010,8 +917,10 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
               <Clock className="h-3 w-3 text-amber" /> Manual Touch Reduced
             </div>
-            <div className="mt-1 font-mono text-xl font-bold text-navy">−96%</div>
-            <div className="text-[10.5px] text-faint">0.6% vs 15.8% manual review</div>
+            <div className="mt-1 font-mono text-xl font-bold text-navy">−{manualReducedPct}%</div>
+            <div className="text-[10.5px] text-faint">
+              {tijoriInfra.manual_touch_pct}% vs {defaultInfra?.manual_touch_pct ?? "—"}% manual review
+            </div>
           </div>
         </div>
 
@@ -1021,6 +930,7 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
           selectedId={selectedId}
           onSelectId={setSelectedId}
           totalVolumePaise={totalVolumePaise}
+          trend={bench.trend}
           seed={seed}
           n={n}
           tijoriSavingsVsDefault={tijoriSavingsVsDefault}
@@ -1029,7 +939,7 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
         {/* 4. Bottom Authoritative Infrastructure Statement */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft pt-4 text-xs text-dim">
           <p className="text-[11.5px] text-faint leading-relaxed max-w-3xl">
-            Tijori’s three-way reconciliation sensor matches <strong className="text-navy font-semibold">Gateway Telemetry ↔ Bank Statements ↔ Merchant Orders</strong> deterministically at <span className="font-mono text-navy font-semibold">~6 µs/eval</span>, eliminating the 1.42% revenue leakage typical in standard T+2 batch reconciliation.
+            Tijori’s three-way reconciliation sensor matches <strong className="text-navy font-semibold">Gateway Telemetry ↔ Bank Statements ↔ Merchant Orders</strong> deterministically and in-process (no network or model call in the scored path), eliminating the {defaultLeakagePctText}% revenue leakage modeled for standard T+2 batch reconciliation.
           </p>
           <span className="font-mono text-[11px] font-semibold text-money-dim bg-money-light px-2.5 py-1 rounded-md border border-money/20">
             100% Cryptographic Match ✓
@@ -1362,22 +1272,18 @@ export function AuditPanel({
           <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm">
             <div className="text-[10px] uppercase font-semibold text-faint">Total Audited</div>
             <div className="font-mono text-lg font-bold text-navy">{data.total}</div>
-            <div className="text-[10.5px] text-faint">Recorded ledger entries</div>
           </div>
           <div className="rounded-xl border border-azure/20 bg-azure-light/40 p-3 shadow-sm">
             <div className="text-[10px] uppercase font-semibold text-azure">Recovery Policy (R)</div>
             <div className="font-mono text-lg font-bold text-azure">{rCount}</div>
-            <div className="text-[10.5px] text-faint">Actuator decisions</div>
           </div>
           <div className="rounded-xl border border-money/20 bg-money-light/40 p-3 shadow-sm">
             <div className="text-[10px] uppercase font-semibold text-money-dim">Recon Sensor (W)</div>
             <div className="font-mono text-lg font-bold text-money-dim">{wCount}</div>
-            <div className="text-[10.5px] text-faint">Three-way settlements</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm">
             <div className="text-[10px] uppercase font-semibold text-faint">Pipeline Engine</div>
             <div className="font-mono text-lg font-bold text-dim">{simCount}</div>
-            <div className="text-[10.5px] text-faint">Batch pipeline runs</div>
           </div>
         </div>
       </div>
@@ -1569,10 +1475,7 @@ export function RazorpayPanel({
                   Payment Link API
                 </p>
               </div>
-              <p className="text-sm font-medium text-ink leading-relaxed">
-                Create a test payment link to test gateway callbacks, customer payment experience, and real-time ledger settlement.
-              </p>
-              
+
               {/* Quick / Custom Amount Selector */}
               <div className="pt-2">
                 <label className="block text-[11px] font-semibold uppercase tracking-wide text-faint mb-1.5">
@@ -1725,7 +1628,7 @@ export function RazorpayPanel({
                 {link.status === "paid" ? (
                   <span className="text-money-dim font-medium">✓ Payment settled! Closed loop received webhook confirmation.</span>
                 ) : (
-                  <>Test with card <code className="font-mono font-medium text-ink bg-surface px-1 py-0.5 rounded border border-line-soft">4111 1111 1111 1111</code> to watch status flip live.</>
+                  <>In Test Mode, pay via <code className="font-mono font-medium text-ink bg-surface px-1 py-0.5 rounded border border-line-soft">UPI success@razorpay</code> or Netbanking → Success to watch the status flip to paid live. (Test cards are often rejected as international.)</>
                 )}
               </p>
             </div>
@@ -1796,8 +1699,14 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
         </div>
         <div className="bg-surface">
           <Assurance icon={Zap} title="Low-Latency Execution Engine">
-            CPython evaluation at <span className="font-mono font-semibold text-ink">~6 µs</span> per decision
-            (~160,000 ops/sec single core) with zero external network or model latency in the execution path.
+            {verify.data ? (
+              <>
+                Measured this run: <span className="font-mono font-semibold text-ink">{verify.data.micros_per_decision} µs</span> per decision
+                (~{verify.data.decisions_per_sec.toLocaleString("en-IN")} decisions/sec over {verify.data.decisions.toLocaleString("en-IN")} scored) with zero external network or model latency in the execution path.
+              </>
+            ) : (
+              <span className="text-faint">Timing the scored path…</span>
+            )}
           </Assurance>
         </div>
         <div className="bg-surface">
@@ -1949,28 +1858,24 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
               <Users className="h-3 w-3 text-azure" /> Customer Orders
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-navy">{data.summary.n_onetime_failures}</div>
-            <div className="text-[10.5px] text-faint">Lognormal (~₹600 median)</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
               <CreditCard className="h-3 w-3 text-rose" /> Gateway Declines
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-navy">{data.summary.n_onetime_failures}</div>
-            <div className="text-[10.5px] text-faint">109 Razorpay decline codes</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
               <Building2 className="h-3 w-3 text-money-dim" /> Bank Statements
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-money-dim">{data.summary.n_bank_rows}</div>
-            <div className="text-[10.5px] text-faint">NEFT/RTGS settlement entries</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
               <AlertCircle className="h-3 w-3 text-amber" /> Audited Discrepancies
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-amber">{totalAnomalies}</div>
-            <div className="text-[10.5px] text-faint">Ground-truth test vectors</div>
           </div>
         </div>
 
@@ -2001,28 +1906,24 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
                     <span>Customer Orders & Cohorts</span>
                     <span className="font-mono text-[10.5px] text-azure">15% / 35% / 50%</span>
                   </div>
-                  <p className="text-[11px] text-faint mt-0.5">Lognormal ticket sizes (₹50 to ₹1L, median ₹600).</p>
                 </div>
                 <div className="rounded-lg border border-line-soft bg-raised/40 p-2">
                   <div className="font-semibold text-navy flex items-center justify-between">
                     <span>Gateway Decline Telemetry</span>
                     <span className="font-mono text-[10.5px] text-rose">109 Reasons</span>
                   </div>
-                  <p className="text-[11px] text-faint mt-0.5">Razorpay decline taxonomy and gateway timestamps.</p>
                 </div>
                 <div className="rounded-lg border border-line-soft bg-raised/40 p-2">
                   <div className="font-semibold text-navy flex items-center justify-between">
                     <span>Bank Settlement Statements</span>
                     <span className="font-mono text-[10.5px] text-money-dim">MDR 2%+GST</span>
                   </div>
-                  <p className="text-[11px] text-faint mt-0.5">NEFT/RTGS credit lines & UTR transaction identifiers.</p>
                 </div>
                 <div className="rounded-lg border border-amber/20 bg-amber/5 p-2">
                   <div className="font-semibold text-amber flex items-center justify-between">
                     <span>Reconciliation Discrepancies</span>
                     <span className="font-mono text-[10.5px] text-amber">{totalAnomalies} vectors</span>
                   </div>
-                  <p className="text-[11px] text-dim mt-0.5">Fee deductions, bank timing lag, and uncredited settlements.</p>
                 </div>
               </div>
             </div>
@@ -2040,18 +1941,12 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
                       <Database className="h-3.5 w-3.5 text-azure" />
                       Deterministic SQLite Store
                     </div>
-                    <p className="text-[11px] text-dim mt-1">
-                      In-memory ACID tables (<code className="font-mono text-[10.5px] text-azure">orders</code>, <code className="font-mono text-[10.5px] text-azure">payments</code>, <code className="font-mono text-[10.5px] text-azure">settlements</code>, <code className="font-mono text-[10.5px] text-azure">bank_rows</code>).
-                    </p>
                   </div>
                   <div className="rounded-lg border border-azure/20 bg-white p-2.5 shadow-sm">
                     <div className="flex items-center gap-1.5 font-bold text-navy">
                       <ShieldCheck className="h-3.5 w-3.5 text-money-dim" />
                       Append-Only Audit Ledger
                     </div>
-                    <p className="text-[11px] text-dim mt-1">
-                      Immutable sequence recording every raw event and policy decision for verifiable replay.
-                    </p>
                   </div>
                 </div>
               </div>
@@ -2073,18 +1968,12 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
                     <span>Sensor (W): Three-Way Reconciliation</span>
                     <span className="rounded bg-money-light px-1.5 py-0.2 font-mono text-[10px] font-bold text-money-dim">Sensor</span>
                   </div>
-                  <p className="text-[11px] text-dim mt-1">
-                    Audits Gateway ↔ Bank Statement ↔ Orders to isolate fee variance, timing lag, and uncredited deposits.
-                  </p>
                 </div>
                 <div className="rounded-lg border border-azure/30 bg-azure-light/30 p-2.5">
                   <div className="font-bold text-navy flex items-center justify-between">
                     <span>Actuator (R): Dynamic Recovery</span>
                     <span className="rounded bg-azure-light px-1.5 py-0.2 font-mono text-[10px] font-bold text-azure">Actuator</span>
                   </div>
-                  <p className="text-[11px] text-dim mt-1">
-                    Evaluates customer cohorts against decline root causes to schedule optimal retry timing and maximize net recovery.
-                  </p>
                 </div>
               </div>
             </div>

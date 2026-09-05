@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useApi } from "./lib";
+import { IntroSplash } from "./components/IntroSplash";
 import type { HealthResponse } from "./types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -83,6 +84,7 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [ledgerSearch, setLedgerSearch] = useState("");
   const [ledgerActor, setLedgerActor] = useState<"all" | "R" | "W" | "sim">("all");
+  const [entered, setEntered] = useState(false);
   const health = useApi<HealthResponse>("/health", []);
 
   const handleNavigateToLedger = (query: string, actor: "all" | "R" | "W" | "sim" = "all") => {
@@ -115,6 +117,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
+      {!entered && <IntroSplash onEnter={() => setEntered(true)} />}
       {/* Primary Clean Enterprise Header */}
       <header className="sticky top-0 z-30 border-b border-line/80 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5">
@@ -240,16 +243,17 @@ export default function App() {
       {/* Main Container */}
       <main className="mx-auto max-w-7xl px-5 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          {/* Elevated Single-Row Tab Bar */}
-          <div className="mb-6 w-full overflow-x-auto pb-1 scrollbar-none">
-            <TabsList className="flex h-auto min-w-max items-center gap-1.5 rounded-2xl border border-line/80 bg-white/95 p-1.5 shadow-sm backdrop-blur-md">
+          {/* Condensed, fully-visible tab bar — wraps instead of scrolling so every
+              tab stays on screen during a live demo (no hidden off-screen tabs). */}
+          <div className="mb-6 w-full">
+            <TabsList className="flex h-auto w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-line/80 bg-white/95 p-1.5 shadow-sm backdrop-blur-md">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 return (
                   <TabsTrigger
                     key={t.v}
                     value={t.v}
-                    className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold tracking-wide whitespace-nowrap transition-all data-[state=active]:bg-azure data-[state=active]:text-white data-[state=active]:shadow-md ${
+                    className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide whitespace-nowrap transition-all data-[state=active]:bg-azure data-[state=active]:text-white data-[state=active]:shadow-md ${
                       t.highlight
                         ? "text-azure bg-azure-light/70 hover:bg-azure-light"
                         : "text-slate-600 hover:text-navy hover:bg-slate-50"
@@ -330,13 +334,6 @@ export default function App() {
           <TabsContent value="recover" className="mt-0 space-y-5 focus-visible:outline-none">
             <BatchPanel seed={seed} n={n} runId={runId} />
             <RecoveryFlowPanel seed={seed} n={n} delay={40} />
-            <SankeyPanel
-              seed={seed}
-              n={n}
-              runId={runId}
-              delay={80}
-              onNavigateToLedger={handleNavigateToLedger}
-            />
             <ChurnPanel seed={seed} n={n} delay={120} />
           </TabsContent>
 
@@ -371,16 +368,6 @@ export default function App() {
             />
           </TabsContent>
         </Tabs>
-
-        {/* Clean Enterprise Footer */}
-        <footer className="mt-12 border-t border-line/80 pt-6 pb-4 text-center text-xs text-faint">
-          <p className="font-semibold text-navy">
-            Tijori · Closed-Loop Autonomous Revenue Recovery for Razorpay
-          </p>
-          <p className="mt-1 text-[11px] text-faint">
-            Deterministic transaction scoring engine with live Razorpay Payment Link API integration
-          </p>
-        </footer>
       </main>
     </div>
   );
