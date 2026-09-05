@@ -93,7 +93,7 @@ export function SankeyTooltip({
     const rows: TooltipRow[] = [
       {
         color: "var(--chart-line-primary)",
-        label: "Sessions",
+        label: "Volume",
         value: formatValue(totalValue),
       },
     ];
@@ -122,12 +122,12 @@ export function SankeyTooltip({
 
     // Get source and target names
     const sourceName = getNodeName(
-      link.source as NodeOrIndex,
-      tooltipData.linkIndex
+      link.source,
+      typeof link.source === "number" ? link.source : 0
     );
     const targetName = getNodeName(
-      link.target as NodeOrIndex,
-      tooltipData.linkIndex
+      link.target,
+      typeof link.target === "number" ? link.target : 0
     );
 
     // Custom content
@@ -151,7 +151,7 @@ export function SankeyTooltip({
     const rows: TooltipRow[] = [
       {
         color: "var(--chart-foreground-muted)",
-        label: "Flow",
+        label: "Payments",
         value: formatValue(link.value),
       },
     ];
