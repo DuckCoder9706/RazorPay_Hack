@@ -246,7 +246,7 @@ function AnimatedNode({
   const valueEnter = transitionWithDelay(enterTransition, valueLabelDelaySec);
   const nodeOpacity = isFaded ? fadedOpacity : 1;
   const nameOpacity = isFaded ? fadedOpacity : 1;
-  const valueOpacity = isFaded ? fadedOpacity * 0.8 : 0.6;
+  const valueOpacity = isFaded ? fadedOpacity * 0.8 : 0.85;
   const labelLayouts = getNodeLabelLayouts({
     labelOrientation,
     isLeftSide,
@@ -280,7 +280,7 @@ function AnimatedNode({
       {showLabels ? (
         <>
           <NodeLabel
-            className="fill-foreground font-medium text-[13px]"
+            className="fill-navy font-semibold text-[13px]"
             key={`name-${index}-${revealEpoch}`}
             layout={labelLayouts.name}
             opacity={nameOpacity}
@@ -290,7 +290,7 @@ function AnimatedNode({
           </NodeLabel>
           {labelLayouts.value ? (
             <NodeLabel
-              className="fill-foreground text-[11px]"
+              className="fill-dim font-mono text-[11px] font-medium"
               key={`value-${index}-${revealEpoch}`}
               layout={labelLayouts.value}
               opacity={valueOpacity}

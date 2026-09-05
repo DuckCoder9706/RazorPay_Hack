@@ -39,9 +39,9 @@ const GLOSSARY = [
   { term: "R (Recover)", def: "Actuator: diagnoses causes and optimizes retry timing for max recovery." },
   { term: "W (Reconcile)", def: "Sensor: 3-way reconciles settlement, bank, and orders to emit exceptions." },
   { term: "F1 (Learn)", def: "Closed loop: realized outcomes recalibrate probability beliefs." },
-  { term: "F2 (Efficiency)", def: "Recovered revenue ratio vs the reachable oracle ceiling." },
+  { term: "F2 (Efficiency)", def: "Recovered revenue ratio relative to theoretical upper bound." },
   { term: "F3 (Net Value)", def: "Objective function net of operational and customer churn costs." },
-  { term: "Oracle", def: "Clairvoyant upper bound of recoverable revenue under true probabilities." },
+  { term: "Upper Bound", def: "Clairvoyant upper bound of recoverable revenue under true probabilities." },
   { term: "Baseline", def: "Razorpay's cited default fixed T+1 / T+2 / T+3 retry pattern." },
   { term: "Deterministic", def: "Identical seed produces 100% byte-identical scored ledger outcomes." },
 ];
