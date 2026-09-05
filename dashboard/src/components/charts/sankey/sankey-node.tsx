@@ -296,7 +296,7 @@ function AnimatedNode({
               opacity={valueOpacity}
               transition={valueEnter}
             >
-              {intFmt(value)} sessions
+              {intFmt(value)} payments
             </NodeLabel>
           ) : null}
         </>

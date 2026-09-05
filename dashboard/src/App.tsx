@@ -107,69 +107,95 @@ export default function App() {
   return (
     <div className="min-h-screen bg-canvas text-ink">
       {/* Primary Clean Enterprise Header */}
-      <header className="sticky top-0 z-30 border-b border-line/80 bg-white/90 backdrop-blur-lg">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-          {/* Brand & Badge */}
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-azure/10 text-azure font-mono text-base font-bold border border-azure/20 shadow-sm">
+      <header className="sticky top-0 z-30 border-b border-line/80 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5">
+          {/* Brand Identity & Live API Status */}
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-azure text-white font-mono text-base font-bold shadow-xs">
               ₹
             </span>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold tracking-tight text-navy">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-lg font-bold tracking-tight text-navy">
                 Tijori
               </h1>
-              <span className="hidden sm:inline-flex items-center rounded-full bg-azure-light px-2.5 py-0.5 text-[11px] font-semibold text-azure border border-azure/20">
+              <span className="hidden md:inline text-xs font-medium text-slate-400">
+                |
+              </span>
+              <span className="hidden md:inline text-xs font-medium text-slate-500">
                 Autonomous Revenue Recovery
+              </span>
+            </div>
+            {/* Live API status cleanly anchored next to brand */}
+            <div className="flex items-center gap-1.5 rounded-full border border-line bg-slate-50/90 px-2.5 py-0.5 text-xs">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  health.data ? "bg-money animate-pulse shadow-[0_0_8px] shadow-money/60" : "bg-rose"
+                }`}
+              />
+              <span className="font-mono text-[11px] font-medium text-slate-600">
+                {health.data ? "Live API" : "Offline"}
               </span>
             </div>
           </div>
 
-          {/* Controls & Tools */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Seed Input */}
-            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1.5 shadow-sm">
-              <label htmlFor="seed" className="font-mono text-[10px] font-semibold uppercase tracking-wider text-faint">
-                seed
-              </label>
-              <input
-                id="seed"
-                value={draftSeed}
-                onChange={(e) => setDraftSeed(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && apply()}
-                inputMode="numeric"
-                className="w-12 bg-transparent text-center font-mono text-xs font-semibold tabular-nums text-navy outline-none"
-              />
-            </div>
+          {/* Unified Simulation Toolbar & Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Grouped Seed + Batch + Run Toolbar */}
+            <div className="inline-flex items-center rounded-xl border border-line/90 bg-slate-50/90 p-1 shadow-xs">
+              {/* Seed */}
+              <div className="flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 border border-line/80 shadow-2xs">
+                <label htmlFor="seed" className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Seed
+                </label>
+                <input
+                  id="seed"
+                  value={draftSeed}
+                  onChange={(e) => setDraftSeed(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && apply()}
+                  inputMode="numeric"
+                  className="w-10 bg-transparent text-center font-mono text-xs font-bold text-navy outline-none"
+                />
+              </div>
 
-            {/* Batch Size Selector */}
-            <div className="flex overflow-hidden rounded-lg border border-line bg-white shadow-sm">
-              {N_OPTIONS.map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setN(v)}
-                  aria-pressed={n === v}
-                  className={`px-2.5 py-1.5 font-mono text-xs tabular-nums transition-colors ${
-                    n === v ? "bg-azure text-white font-semibold" : "text-faint hover:text-ink hover:bg-raised"
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
+              <div className="mx-1 h-4 w-px bg-slate-200" />
 
-            {/* Run Button */}
-            <button
-              onClick={apply}
-              className="rounded-lg bg-azure hover:bg-azure-hover px-3.5 py-1.5 font-semibold text-xs text-white shadow-sm transition-all"
-            >
-              Run
-            </button>
+              {/* Batch Size */}
+              <div className="flex items-center gap-0.5">
+                <span className="hidden xl:inline px-1 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Batch
+                </span>
+                {N_OPTIONS.map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setN(v)}
+                    aria-pressed={n === v}
+                    className={`rounded-lg px-2.5 py-1 font-mono text-xs tabular-nums transition-all ${
+                      n === v
+                        ? "bg-azure font-semibold text-white shadow-xs"
+                        : "text-slate-600 hover:text-navy hover:bg-white"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mx-1 h-4 w-px bg-slate-200" />
+
+              {/* Run */}
+              <button
+                onClick={apply}
+                className="rounded-lg bg-navy hover:bg-navy-light px-3.5 py-1 text-xs font-semibold text-white shadow-xs transition-all"
+              >
+                Run
+              </button>
+            </div>
 
             {/* Copy Permalink */}
             <button
               onClick={copyLink}
               title="Copy shareable link to this exact view"
-              className="grid h-8 w-8 place-items-center rounded-lg border border-line bg-white text-faint shadow-sm transition-colors hover:text-ink hover:bg-raised"
+              className="grid h-8 w-8 place-items-center rounded-lg border border-line bg-white text-slate-500 shadow-xs transition-colors hover:text-navy hover:bg-slate-50"
             >
               {copied ? <Check className="h-3.5 w-3.5 text-money" /> : <Link2 className="h-3.5 w-3.5" />}
             </button>
@@ -179,7 +205,7 @@ export default function App() {
               <PopoverTrigger asChild>
                 <button
                   title="Architecture Glossary"
-                  className="grid h-8 w-8 place-items-center rounded-lg border border-line bg-white text-faint shadow-sm transition-colors hover:text-ink hover:bg-raised"
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-line bg-white text-slate-500 shadow-xs transition-colors hover:text-navy hover:bg-slate-50"
                 >
                   <HelpCircle className="h-3.5 w-3.5" />
                 </button>
@@ -198,18 +224,6 @@ export default function App() {
                 </dl>
               </PopoverContent>
             </Popover>
-
-            {/* Live API Status */}
-            <div className="flex items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1 text-xs shadow-sm">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  health.data ? "bg-money animate-pulse shadow-[0_0_8px] shadow-money/60" : "bg-rose"
-                }`}
-              />
-              <span className="font-mono text-[11px] font-medium text-dim">
-                {health.data ? "Live API" : "Offline"}
-              </span>
-            </div>
           </div>
         </div>
       </header>
@@ -217,34 +231,36 @@ export default function App() {
       {/* Main Container */}
       <main className="mx-auto max-w-7xl px-5 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          {/* Elevated Glassmorphic Floating Tab Bar */}
-          <TabsList className="mb-6 flex w-full flex-wrap items-center gap-1.5 rounded-2xl border border-line/80 bg-white/90 p-1.5 shadow-sm backdrop-blur-md">
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              return (
-                <TabsTrigger
-                  key={t.v}
-                  value={t.v}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold tracking-wide transition-all data-[state=active]:bg-azure data-[state=active]:text-white data-[state=active]:shadow-md ${
-                    t.highlight
-                      ? "text-azure bg-azure-light/60 hover:bg-azure-light"
-                      : "text-dim hover:text-ink hover:bg-raised"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {t.label}
-                  {t.highlight && (
-                    <span className="rounded bg-azure px-1.5 py-0.2 font-mono text-[9px] font-bold text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                      LIVE
-                    </span>
-                  )}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          {/* Elevated Single-Row Tab Bar */}
+          <div className="mb-6 w-full overflow-x-auto pb-1 scrollbar-none">
+            <TabsList className="flex h-auto min-w-max items-center gap-1.5 rounded-2xl border border-line/80 bg-white/95 p-1.5 shadow-sm backdrop-blur-md">
+              {TABS.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <TabsTrigger
+                    key={t.v}
+                    value={t.v}
+                    className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold tracking-wide whitespace-nowrap transition-all data-[state=active]:bg-azure data-[state=active]:text-white data-[state=active]:shadow-md ${
+                      t.highlight
+                        ? "text-azure bg-azure-light/70 hover:bg-azure-light"
+                        : "text-slate-600 hover:text-navy hover:bg-slate-50"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    <span>{t.label}</span>
+                    {t.highlight && (
+                      <span className="rounded bg-azure px-1.5 py-0.5 font-mono text-[9px] font-bold text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                        LIVE
+                      </span>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
-          {/* OVERVIEW TAB (Option A: The Split Stage) */}
-          <TabsContent value="overview" className="mt-0 space-y-5 focus-visible:outline-none">
+          {/* OVERVIEW TAB */}
+          <TabsContent value="overview" className="mt-0 space-y-6 focus-visible:outline-none">
             {/* Top Stage: Recovery Performance (Left 7) + Live Sandbox Testing (Right 5) */}
             <div className="grid gap-5 lg:grid-cols-12 items-stretch">
               <div className="lg:col-span-7 flex flex-col">
@@ -254,6 +270,9 @@ export default function App() {
                 <RazorpayPanel heroMode />
               </div>
             </div>
+
+            {/* LIVE SANKEY ROUTING & SETTLEMENT RECONCILIATION FLOW */}
+            <SankeyPanel seed={seed} n={n} runId={runId} delay={20} />
 
             {/* Ingestion Pipeline Interactive Summary Card */}
             <PipelineSummaryCard seed={seed} n={n} onNavigate={() => setTab("pipeline")} />
@@ -303,7 +322,8 @@ export default function App() {
           {/* RECONCILE TAB */}
           <TabsContent value="reconcile" className="mt-0 space-y-5 focus-visible:outline-none">
             <ExceptionsPanel seed={seed} n={n} />
-            <OutcomeModelPanel delay={40} />
+            <SankeyPanel seed={seed} n={n} runId={runId} delay={40} />
+            <OutcomeModelPanel delay={60} />
           </TabsContent>
 
           {/* LEARN TAB */}
