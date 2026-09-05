@@ -39,14 +39,14 @@ import {
 const N_OPTIONS = [100, 200, 500, 1000, 2000];
 
 const GLOSSARY = [
-  { term: "R (Recover)", def: "Actuator: diagnoses causes and optimizes retry timing for max recovery." },
-  { term: "W (Reconcile)", def: "Sensor: 3-way reconciles settlement, bank, and orders to emit exceptions." },
-  { term: "F1 (Learn)", def: "Closed loop: realized outcomes recalibrate probability beliefs." },
-  { term: "F2 (Efficiency)", def: "Recovered revenue ratio relative to theoretical upper bound." },
-  { term: "F3 (Net Value)", def: "Objective function net of operational and customer churn costs." },
-  { term: "Upper Bound", def: "Clairvoyant upper bound of recoverable revenue under true probabilities." },
-  { term: "Baseline", def: "Razorpay's cited default fixed T+1 / T+2 / T+3 retry pattern." },
-  { term: "Deterministic", def: "Identical seed produces 100% byte-identical scored ledger outcomes." },
+  { term: "Recovery Policy (R)", def: "Autonomous actuator: maps payment decline codes to calibrated retry timing to maximize net recovered volume." },
+  { term: "Reconciliation Sensor (W)", def: "Three-way matching engine: audits gateway records, merchant orders, and bank statements to isolate fee variance and missing credits." },
+  { term: "Adaptive Calibration (F1)", def: "Closed-loop feedback: updates transition probabilities from realized settlement outcomes without human intervention." },
+  { term: "Recovery Efficiency (F2)", def: "Ratio of captured revenue relative to theoretical maximum recoverable volume." },
+  { term: "Net Value Recovery (F3)", def: "Optimization objective balancing gross recovered funds against retry overhead and customer churn risk." },
+  { term: "Oracle Upper Bound", def: "Theoretical maximum recoverable volume under complete network observability." },
+  { term: "Standard Baseline", def: "Razorpay standard fixed retry schedule (T+1 / T+2 / T+3) without decline classification." },
+  { term: "Audit Determinism", def: "Guarantee that identical input seeds yield byte-identical ledger states and verifiable SHA-256 digests." },
 ];
 
 const TABS = [
@@ -283,16 +283,16 @@ export default function App() {
                 <InsightCard seed={seed} n={n} delay={40} />
               </div>
               <div className="lg:col-span-7 grid gap-3 sm:grid-cols-2">
-                <DrawerTile icon={ScanSearch} title="3-Way Reconciliation" desc="Settlement match & exception audit" tint="text-azure">
+                <DrawerTile icon={ScanSearch} title="3-Way Reconciliation" desc="Settlement audit & exception isolation" tint="text-azure">
                   <ExceptionsPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={GraduationCap} title="Adaptive Learning" desc="Belief recalibration via real outcomes" tint="text-money">
+                <DrawerTile icon={GraduationCap} title="Adaptive Learning" desc="Autonomous belief calibration from settlement telemetry" tint="text-money">
                   <LearnPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={TrendingUp} title="Cost & Churn Analysis" desc="Net-value sensitivity sweep" tint="text-azure">
+                <DrawerTile icon={TrendingUp} title="Cost & Churn Analysis" desc="Net value optimization across friction tiers" tint="text-azure">
                   <ChurnPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={ShieldCheck} title="Verification & Guarantees" desc="SHA-256 byte-identical proofs" tint="text-money">
+                <DrawerTile icon={ShieldCheck} title="Verification & Guarantees" desc="SHA-256 byte-identical audit proofs" tint="text-money">
                   <VerifyPanel seed={seed} n={n} />
                 </DrawerTile>
               </div>
@@ -348,7 +348,7 @@ export default function App() {
             Tijori · Closed-Loop Autonomous Revenue Recovery for Razorpay
           </p>
           <p className="mt-1 text-[11px] text-faint">
-            Standard library scoring engine with live rzp_test_ API payment integration
+            Deterministic transaction scoring engine with live Razorpay Payment Link API integration
           </p>
         </footer>
       </main>
