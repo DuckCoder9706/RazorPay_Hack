@@ -160,3 +160,74 @@ export interface RazorpayLink {
   reason?: string;
   detail?: string;
 }
+
+export interface CustomerCohortInfo {
+  tier: string;
+  count: number;
+  pct: number;
+  desc: string;
+}
+
+export interface InjectedFailure {
+  id: string;
+  order_id: string;
+  amount_paise: number;
+  reason_code: string;
+  cause: string;
+  customer_value: "high" | "mid" | "low";
+  created_at: string;
+}
+
+export interface InjectedSubstrateRow {
+  settlement_id: string;
+  batch_id: string;
+  gross_paise: number;
+  fee_paise: number;
+  net_paise: number;
+  settled_at: string;
+  bank_row_id: string | null;
+  bank_credit_paise: number | null;
+  bank_value_date: string | null;
+  status: "matched" | "discrepancy" | "missing";
+}
+
+export interface InjectedAnomaly {
+  type: "fee" | "timing" | "missing" | "netting";
+  settlement_id: string;
+  expected_paise?: number;
+  observed_paise?: number;
+  delta_paise?: number;
+  expected_date?: string;
+  observed_date?: string | null;
+  details: string;
+}
+
+export interface PipelineResponse {
+  seed: number;
+  n: number;
+  fingerprint: string;
+  summary: {
+    seed: number;
+    n_onetime_failures: number;
+    n_mandate_failures: number;
+    n_settlements: number;
+    n_bank_rows: number;
+    total_at_risk_paise: number;
+    cause_mix: Record<string, number>;
+    injected_exceptions: {
+      fee: number;
+      timing: number;
+      missing: number;
+      netting: number;
+    };
+  };
+  customer_cohorts: {
+    high: CustomerCohortInfo;
+    mid: CustomerCohortInfo;
+    low: CustomerCohortInfo;
+  };
+  sample_failures: InjectedFailure[];
+  sample_substrate: InjectedSubstrateRow[];
+  injected_details: InjectedAnomaly[];
+}
+

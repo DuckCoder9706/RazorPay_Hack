@@ -278,10 +278,135 @@ def get_audit(
     return _audit_payload(seed, _clamp(n, 1, _N_MAX), _clamp(limit, 1, 2000))
 
 
+@lru_cache(maxsize=128)
+def _pipeline_payload(seed: int, n: int) -> dict:
+    from tijori.simulator.seed import batch_fingerprint, build_batch, summarise
+
+    b = build_batch(seed=seed, n=n)
+    summary = summarise(b)
+    fp = batch_fingerprint(seed=seed, n=n)
+
+    total_failures = len(b["failures"])
+    high_count = sum(1 for f in b["failures"] if f["customer_value"] == "high")
+    mid_count = sum(1 for f in b["failures"] if f["customer_value"] == "mid")
+    low_count = sum(1 for f in b["failures"] if f["customer_value"] == "low")
+
+    customer_cohorts = {
+        "high": {
+            "tier": "High Value",
+            "count": high_count,
+            "pct": round((high_count / total_failures) * 100, 1) if total_failures else 0,
+            "desc": "High-LTV repeat customers (strict friction tolerance, high churn penalty)",
+        },
+        "mid": {
+            "tier": "Mid Value",
+            "count": mid_count,
+            "pct": round((mid_count / total_failures) * 100, 1) if total_failures else 0,
+            "desc": "Standard repeat customers (balanced recovery priority)",
+        },
+        "low": {
+            "tier": "Standard",
+            "count": low_count,
+            "pct": round((low_count / total_failures) * 100, 1) if total_failures else 0,
+            "desc": "Low-touch / one-time shoppers",
+        },
+    }
+
+    bank_by_ref = {r["ref"]: r for r in b["substrate"]["bank_rows"]}
+    sample_substrate = []
+    for s in b["substrate"]["settlements"][:25]:
+        bank_match = bank_by_ref.get(s["id"]) or (
+            bank_by_ref.get(s["batch_id"]) if s["batch_id"] == "NET_A" else None
+        )
+        sample_substrate.append({
+            "settlement_id": s["id"],
+            "batch_id": s["batch_id"],
+            "gross_paise": s["gross"],
+            "fee_paise": s["fee"],
+            "net_paise": s["net"],
+            "settled_at": s["settled_at"],
+            "bank_row_id": bank_match["id"] if bank_match else None,
+            "bank_credit_paise": bank_match["credit_amount"] if bank_match else None,
+            "bank_value_date": bank_match["value_date"] if bank_match else None,
+            "status": (
+                "matched"
+                if bank_match and bank_match["credit_amount"] == s["net"]
+                else "discrepancy"
+                if bank_match
+                else "missing"
+            ),
+        })
+
+    injected_details = []
+    sub = b["substrate"]
+    settlements = sub["settlements"]
+    for idx in sub["injected"]["fee"]:
+        s = settlements[idx]
+        b_row = bank_by_ref.get(s["id"])
+        deduction = (s["net"] - b_row["credit_amount"]) if b_row else 0
+        injected_details.append({
+            "type": "fee",
+            "settlement_id": s["id"],
+            "expected_paise": s["net"],
+            "observed_paise": b_row["credit_amount"] if b_row else 0,
+            "delta_paise": deduction,
+            "details": f"Unexplained bank fee haircut of ₹{deduction/100:.2f} below settlement net",
+        })
+    for idx in sub["injected"]["timing"]:
+        s = settlements[idx]
+        b_row = bank_by_ref.get(s["id"])
+        injected_details.append({
+            "type": "timing",
+            "settlement_id": s["id"],
+            "expected_date": s["settled_at"],
+            "observed_date": b_row["value_date"] if b_row else None,
+            "details": "Bank credit value date delayed beyond standard T+1 settlement window",
+        })
+    for idx in sub["injected"]["missing"]:
+        s = settlements[idx]
+        injected_details.append({
+            "type": "missing",
+            "settlement_id": s["id"],
+            "expected_paise": s["net"],
+            "observed_paise": 0,
+            "details": "Gateway settlement confirmed, but zero deposit recorded on bank statement",
+        })
+    if sub["injected"]["netting"]:
+        netted_ids = sub["injected"]["netting"]
+        netted_sum = sum(s["net"] for s in settlements if s["id"] in netted_ids)
+        injected_details.append({
+            "type": "netting",
+            "settlement_id": f"{len(netted_ids)} netted settlements",
+            "expected_paise": netted_sum,
+            "observed_paise": netted_sum,
+            "details": f"Many-to-many netting: {len(netted_ids)} settlements consolidated into single bank credit bank_netA",
+        })
+
+    return {
+        "seed": seed,
+        "n": n,
+        "fingerprint": fp,
+        "summary": summary,
+        "customer_cohorts": customer_cohorts,
+        "sample_failures": b["failures"][:35],
+        "sample_substrate": sample_substrate,
+        "injected_details": injected_details,
+    }
+
+
 @app.get("/outcome-model")
 def get_outcome_model() -> dict:
     """The WORLD/BELIEF tables + cited distribution — provenance for the demo."""
     return _outcome_model_payload()
+
+
+@app.get("/pipeline")
+def get_pipeline(
+    seed: int = Query(constants.DEFAULT_SEED),
+    n: int = Query(constants.DEFAULT_BATCH_SIZE),
+) -> dict:
+    """Data Ingestion pipeline: Customer cohorts, gateway failures, bank substrate, and injected anomalies."""
+    return _pipeline_payload(seed, _clamp(n, 1, _N_MAX))
 
 
 @app.get("/batch/{seed:int}")

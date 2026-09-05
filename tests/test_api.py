@@ -180,3 +180,18 @@ def test_razorpay_link_falls_back_to_fixture(monkeypatch):
         assert body["id"]
     else:
         assert body["reason"] == "no_keys_no_fixture"
+
+
+def test_pipeline_endpoint():
+    r = client.get("/pipeline", params={"seed": _SEED, "n": _N})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["seed"] == _SEED
+    assert body["n"] == _N
+    assert "fingerprint" in body
+    assert "customer_cohorts" in body
+    assert set(body["customer_cohorts"]) == {"high", "mid", "low"}
+    assert len(body["sample_failures"]) > 0
+    assert len(body["sample_substrate"]) > 0
+    assert len(body["injected_details"]) > 0
+

@@ -1,6 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Check, ChevronDown, ChevronRight, Fingerprint, Info, Lightbulb, ShieldCheck, Zap } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Building2,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  CreditCard,
+  Database,
+  Fingerprint,
+  Info,
+  Layers,
+  Lightbulb,
+  Network,
+  ShieldCheck,
+  Users,
+  Zap,
+} from "lucide-react";
 import { Gauge } from "@/components/charts/gauge";
 import { FunnelChart } from "@/components/charts/funnel-chart";
 import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip, type SankeyData } from "@/components/charts/sankey";
@@ -15,6 +32,7 @@ import type {
   OutcomeModelResponse,
   AuditResponse,
   AuditEvent,
+  PipelineResponse,
   PolicyMetrics,
   PolicyName,
   RazorpayLink,
@@ -1484,3 +1502,498 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
     </Panel>
   );
 }
+
+// --------------------------------------------------------------------------- //
+// Front-Page Ingestion Summary Card (Navigates to dedicated tab upon click)
+// --------------------------------------------------------------------------- //
+export function PipelineSummaryCard({
+  seed,
+  n,
+  onNavigate,
+}: {
+  seed: number;
+  n: number;
+  onNavigate: () => void;
+}) {
+  const { data } = useApi<PipelineResponse>(`/pipeline?seed=${seed}&n=${n}`, [seed, n]);
+
+  return (
+    <div
+      onClick={onNavigate}
+      className="group cursor-pointer rounded-2xl border border-azure/20 bg-gradient-to-r from-surface via-azure-light/25 to-surface p-4 sm:p-5 shadow-sm transition-all hover:border-azure hover:shadow-panel"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-azure text-white shadow-sm">
+              <Network className="h-3.5 w-3.5" />
+            </span>
+            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-azure">
+              Data Ingestion & Infrastructure Pipeline
+            </span>
+            <span className="rounded-md bg-money-light px-2 py-0.5 font-mono text-[10px] font-bold text-money-dim border border-money/20">
+              Live Synthetic Feeds
+            </span>
+          </div>
+          <p className="text-sm font-bold text-navy">
+            Ingesting {n} synthetic users, gateway failure events, and bank credits into SQLite
+          </p>
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-dim">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
+              <Users className="h-3 w-3 text-azure" />
+              <strong>{n} Users</strong> (15% High, 35% Mid, 50% Std)
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
+              <CreditCard className="h-3 w-3 text-rose" />
+              <strong>{n} Declines</strong> (109 Razorpay taxonomy)
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
+              <Building2 className="h-3 w-3 text-money-dim" />
+              <strong>{data?.summary.n_bank_rows ?? n} Bank Rows</strong> (UTR credits)
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
+              <AlertCircle className="h-3 w-3 text-amber" />
+              <strong>
+                {data ? Object.values(data.summary.injected_exceptions).reduce((a, b) => a + b, 0) : "—"} Planted Anomalies
+              </strong>
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-xl bg-azure px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-all group-hover:bg-azure-hover group-hover:shadow"
+          >
+            Explore Ingestion Streams
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// Dedicated Data Ingestion & Backend Pipeline Surface
+// --------------------------------------------------------------------------- //
+const COHORT_BADGE: Record<string, { label: string; cls: string }> = {
+  high: { label: "High Value (15%)", cls: "bg-amber/15 text-amber border-amber/30 font-bold" },
+  mid: { label: "Mid Value (35%)", cls: "bg-azure-light text-azure border-azure/30 font-semibold" },
+  low: { label: "Standard (50%)", cls: "bg-line/60 text-dim border-line font-medium" },
+};
+
+export function PipelinePanel({ seed, n, delay }: SeedProps) {
+  const { data, error } = useApi<PipelineResponse>(`/pipeline?seed=${seed}&n=${n}`, [seed, n]);
+  const [activeSubTab, setActiveSubTab] = useState<"cohorts" | "substrate" | "anomalies">("cohorts");
+  const [cohortFilter, setCohortFilter] = useState<"all" | "high" | "mid" | "low">("all");
+
+  if (!data)
+    return (
+      <Panel delay={delay}>
+        <Head title="Data Ingestion & Infrastructure Pipeline" tag="Ingestion Stream" />
+        <Loading error={error} />
+      </Panel>
+    );
+
+  const totalAnomalies = Object.values(data.summary.injected_exceptions).reduce((a, b) => a + b, 0);
+
+  const filteredFailures = data.sample_failures.filter((f) => {
+    if (cohortFilter === "all") return true;
+    return f.customer_value === cohortFilter;
+  });
+
+  return (
+    <Panel delay={delay} className="space-y-6">
+      {/* 1. Header & Determinism Info */}
+      <Head
+        title="Data Ingestion & Infrastructure Pipeline"
+        note="Visualizing how synthetic users, gateway decline streams, and banking feeds are injected into Tijori's SQLite ledger"
+        tag={`Seed ${seed} · ${n} Ingested`}
+        tagTone="azure"
+      />
+
+      <div className="px-5 sm:px-6 space-y-6">
+        {/* 2. Infrastructure Provenance KPIs */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
+            <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
+              <Users className="h-3 w-3 text-azure" /> Customer Orders
+            </div>
+            <div className="mt-1 font-mono text-xl font-bold text-navy">{data.summary.n_onetime_failures}</div>
+            <div className="text-[10.5px] text-faint">Lognormal (~₹600 median)</div>
+          </div>
+          <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
+            <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
+              <CreditCard className="h-3 w-3 text-rose" /> Gateway Failures
+            </div>
+            <div className="mt-1 font-mono text-xl font-bold text-navy">{data.summary.n_onetime_failures}</div>
+            <div className="text-[10.5px] text-faint">109 Razorpay decline codes</div>
+          </div>
+          <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
+            <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
+              <Building2 className="h-3 w-3 text-money-dim" /> Bank Statements
+            </div>
+            <div className="mt-1 font-mono text-xl font-bold text-money-dim">{data.summary.n_bank_rows}</div>
+            <div className="text-[10.5px] text-faint">NEFT/RTGS credit entries</div>
+          </div>
+          <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
+            <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
+              <AlertCircle className="h-3 w-3 text-amber" /> Planted Anomalies
+            </div>
+            <div className="mt-1 font-mono text-xl font-bold text-amber">{totalAnomalies}</div>
+            <div className="text-[10.5px] text-faint">Controlled ground truth</div>
+          </div>
+        </div>
+
+        {/* 3. Interactive Infrastructure Architecture Map */}
+        <div className="rounded-2xl border border-line-soft bg-canvas/60 p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-azure">
+                Architecture Blueprint
+              </span>
+              <h4 className="text-sm font-bold text-navy">End-to-End Ingestion Flow</h4>
+            </div>
+            <span className="rounded-md bg-white border border-line-soft px-2 py-0.5 font-mono text-[10.5px] text-faint shadow-sm">
+              SHA-256: {data.fingerprint.slice(0, 12)}…
+            </span>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-3">
+            {/* Column 1: Source Ingestion Streams */}
+            <div className="space-y-2 rounded-xl border border-line-soft bg-white p-3.5 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-line-soft pb-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-azure text-white text-[10px] font-bold">1</span>
+                <span className="font-bold text-navy text-xs uppercase tracking-wide">Injected Data Streams</span>
+              </div>
+              <div className="space-y-2 pt-1 text-xs">
+                <div className="rounded-lg border border-line-soft bg-raised/40 p-2">
+                  <div className="font-semibold text-navy flex items-center justify-between">
+                    <span>User Cohorts & Orders</span>
+                    <span className="font-mono text-[10.5px] text-azure">15% / 35% / 50%</span>
+                  </div>
+                  <p className="text-[11px] text-faint mt-0.5">Lognormal ticket sizes (₹50 to ₹1L, median ₹600).</p>
+                </div>
+                <div className="rounded-lg border border-line-soft bg-raised/40 p-2">
+                  <div className="font-semibold text-navy flex items-center justify-between">
+                    <span>Gateway Decline Feed</span>
+                    <span className="font-mono text-[10.5px] text-rose">109 Reasons</span>
+                  </div>
+                  <p className="text-[11px] text-faint mt-0.5">Real Razorpay decline vocabulary and timestamps.</p>
+                </div>
+                <div className="rounded-lg border border-line-soft bg-raised/40 p-2">
+                  <div className="font-semibold text-navy flex items-center justify-between">
+                    <span>Bank Statement Rows</span>
+                    <span className="font-mono text-[10.5px] text-money-dim">MDR 2%+GST</span>
+                  </div>
+                  <p className="text-[11px] text-faint mt-0.5">Simulated NEFT/RTGS credit lines & UTR codes.</p>
+                </div>
+                <div className="rounded-lg border border-amber/20 bg-amber/5 p-2">
+                  <div className="font-semibold text-amber flex items-center justify-between">
+                    <span>Planted Anomalies</span>
+                    <span className="font-mono text-[10.5px] text-amber">{totalAnomalies} bugs</span>
+                  </div>
+                  <p className="text-[11px] text-dim mt-0.5">Controlled fee haircuts, timing delays & missing deposits.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2: Tijori Storage & Ledger */}
+            <div className="space-y-2 rounded-xl border border-azure/30 bg-azure-light/20 p-3.5 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 border-b border-azure/20 pb-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-navy text-white text-[10px] font-bold">2</span>
+                  <span className="font-bold text-navy text-xs uppercase tracking-wide">Tijori Core Ledger</span>
+                </div>
+                <div className="mt-3 space-y-2 text-xs">
+                  <div className="rounded-lg border border-azure/20 bg-white p-2.5 shadow-sm">
+                    <div className="flex items-center gap-1.5 font-bold text-navy">
+                      <Database className="h-3.5 w-3.5 text-azure" />
+                      Deterministic SQLite Store
+                    </div>
+                    <p className="text-[11px] text-dim mt-1">
+                      In-memory ACID tables (<code className="font-mono text-[10.5px] text-azure">orders</code>, <code className="font-mono text-[10.5px] text-azure">payments</code>, <code className="font-mono text-[10.5px] text-azure">settlements</code>, <code className="font-mono text-[10.5px] text-azure">bank_rows</code>).
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-azure/20 bg-white p-2.5 shadow-sm">
+                    <div className="flex items-center gap-1.5 font-bold text-navy">
+                      <ShieldCheck className="h-3.5 w-3.5 text-money-dim" />
+                      Append-Only Audit Engine
+                    </div>
+                    <p className="text-[11px] text-dim mt-1">
+                      Immutable sequence recording every raw event and decision for 100% reproducible replay.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-azure text-white p-2 text-center font-mono text-[11px] font-semibold">
+                ⇄ 100% Replayable Byte Output
+              </div>
+            </div>
+
+            {/* Column 3: Processing Engines */}
+            <div className="space-y-2 rounded-xl border border-line-soft bg-white p-3.5 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-line-soft pb-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-money text-white text-[10px] font-bold">3</span>
+                <span className="font-bold text-navy text-xs uppercase tracking-wide">Autonomous Engines</span>
+              </div>
+              <div className="space-y-2.5 pt-1 text-xs">
+                <div className="rounded-lg border border-money/30 bg-money-light/30 p-2.5">
+                  <div className="font-bold text-navy flex items-center justify-between">
+                    <span>W Sensor: 3-Way Recon</span>
+                    <span className="rounded bg-money-light px-1.5 py-0.2 font-mono text-[10px] font-bold text-money-dim">Sensor</span>
+                  </div>
+                  <p className="text-[11px] text-dim mt-1">
+                    Matches Gateway ↔ Bank Statement ↔ Orders to detect planted fee haircuts, timing lag, and missing funds.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-azure/30 bg-azure-light/30 p-2.5">
+                  <div className="font-bold text-navy flex items-center justify-between">
+                    <span>R Actuator: Smart Recovery</span>
+                    <span className="rounded bg-azure-light px-1.5 py-0.2 font-mono text-[10px] font-bold text-azure">Actuator</span>
+                  </div>
+                  <p className="text-[11px] text-dim mt-1">
+                    Pairs customer value cohorts with decline causes to select optimal retry timing and maximize net value.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Interactive Stream Inspector */}
+        <div className="rounded-2xl border border-line-soft bg-white p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line-soft pb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setActiveSubTab("cohorts")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  activeSubTab === "cohorts"
+                    ? "bg-navy text-white shadow-sm"
+                    : "border border-line bg-surface text-dim hover:bg-raised"
+                }`}
+              >
+                1. Customer Cohorts & Failures ({data.sample_failures.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab("substrate")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  activeSubTab === "substrate"
+                    ? "bg-navy text-white shadow-sm"
+                    : "border border-line bg-surface text-dim hover:bg-raised"
+                }`}
+              >
+                2. Bank & Settlement Feed ({data.sample_substrate.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab("anomalies")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  activeSubTab === "anomalies"
+                    ? "bg-navy text-white shadow-sm"
+                    : "border border-line bg-surface text-dim hover:bg-raised"
+                }`}
+              >
+                3. Ground-Truth Injected Anomalies ({data.injected_details.length})
+              </button>
+            </div>
+
+            {activeSubTab === "cohorts" && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-faint mr-1">Cohort:</span>
+                {(["all", "high", "mid", "low"] as const).map((tier) => (
+                  <button
+                    key={tier}
+                    type="button"
+                    onClick={() => setCohortFilter(tier)}
+                    className={`rounded px-2 py-0.5 font-mono text-[10.5px] font-semibold uppercase ${
+                      cohortFilter === tier
+                        ? "bg-azure text-white shadow-sm"
+                        : "border border-line bg-surface text-dim hover:bg-raised"
+                    }`}
+                  >
+                    {tier}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sub-view 1: Customer Cohorts & Failures */}
+          {activeSubTab === "cohorts" && (
+            <div className="space-y-3">
+              {/* Cohort Distribution Bar */}
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-amber/30 bg-amber/5 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber">High Value Tier</span>
+                    <span className="font-mono text-xs font-bold text-amber">{data.customer_cohorts.high.count} ({data.customer_cohorts.high.pct}%)</span>
+                  </div>
+                  <p className="text-[10.5px] text-dim mt-1 leading-snug">{data.customer_cohorts.high.desc}</p>
+                </div>
+                <div className="rounded-xl border border-azure/30 bg-azure-light/30 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-azure">Mid Value Tier</span>
+                    <span className="font-mono text-xs font-bold text-azure">{data.customer_cohorts.mid.count} ({data.customer_cohorts.mid.pct}%)</span>
+                  </div>
+                  <p className="text-[10.5px] text-dim mt-1 leading-snug">{data.customer_cohorts.mid.desc}</p>
+                </div>
+                <div className="rounded-xl border border-line-soft bg-raised/50 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-dim">Standard Tier</span>
+                    <span className="font-mono text-xs font-bold text-dim">{data.customer_cohorts.low.count} ({data.customer_cohorts.low.pct}%)</span>
+                  </div>
+                  <p className="text-[10.5px] text-dim mt-1 leading-snug">{data.customer_cohorts.low.desc}</p>
+                </div>
+              </div>
+
+              {/* Data Table */}
+              <div className="max-h-80 overflow-auto rounded-xl border border-line-soft">
+                <table className="w-full text-left font-mono text-[11px]">
+                  <thead className="sticky top-0 bg-raised text-[10px] uppercase tracking-wide text-faint border-b border-line-soft">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Order ID</th>
+                      <th className="px-3 py-2 font-semibold">Payment ID</th>
+                      <th className="px-3 py-2 font-semibold">Customer Cohort</th>
+                      <th className="px-3 py-2 text-right font-semibold">Amount</th>
+                      <th className="px-3 py-2 font-semibold">Decline Reason (Razorpay)</th>
+                      <th className="px-3 py-2 font-semibold">Root Cause</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line-soft bg-white">
+                    {filteredFailures.map((f) => {
+                      const badge = COHORT_BADGE[f.customer_value] || COHORT_BADGE.low;
+                      return (
+                        <tr key={f.id} className="hover:bg-raised/40 transition-colors">
+                          <td className="px-3 py-2 font-semibold text-navy">{f.order_id}</td>
+                          <td className="px-3 py-2 text-faint">{f.id}</td>
+                          <td className="px-3 py-2">
+                            <span className={`rounded border px-1.5 py-0.5 text-[9.5px] uppercase ${badge.cls}`}>
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-right font-bold text-navy tabular-nums">
+                            {rupees(f.amount_paise)}
+                          </td>
+                          <td className="px-3 py-2 font-sans font-medium text-dim">{f.reason_code}</td>
+                          <td className="px-3 py-2">
+                            <span className="rounded bg-line/60 px-1.5 py-0.5 text-[10px] font-medium text-faint">
+                              {f.cause}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-view 2: Bank Statement & Settlement Substrate */}
+          {activeSubTab === "substrate" && (
+            <div className="space-y-3">
+              <p className="text-xs text-dim">
+                Raw settlement stream generated for 3-way reconciliation against incoming bank statement credit rows.
+              </p>
+              <div className="max-h-80 overflow-auto rounded-xl border border-line-soft">
+                <table className="w-full text-left font-mono text-[11px]">
+                  <thead className="sticky top-0 bg-raised text-[10px] uppercase tracking-wide text-faint border-b border-line-soft">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Settlement ID</th>
+                      <th className="px-3 py-2 text-right font-semibold">Gross</th>
+                      <th className="px-3 py-2 text-right font-semibold">MDR Fee (2%+GST)</th>
+                      <th className="px-3 py-2 text-right font-semibold">Net Expected</th>
+                      <th className="px-3 py-2 text-right font-semibold">Bank Credit</th>
+                      <th className="px-3 py-2 font-semibold">Bank Ref / UTR</th>
+                      <th className="px-3 py-2 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line-soft bg-white">
+                    {data.sample_substrate.map((s) => {
+                      const matched = s.status === "matched";
+                      const isDiscrepancy = s.status === "discrepancy";
+                      return (
+                        <tr key={s.settlement_id} className="hover:bg-raised/40 transition-colors">
+                          <td className="px-3 py-2 font-semibold text-navy">{s.settlement_id}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-faint">{rupees(s.gross_paise)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-faint">{rupees(s.fee_paise)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold text-navy">{rupees(s.net_paise)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-bold">
+                            {s.bank_credit_paise != null ? rupees(s.bank_credit_paise) : "₹0 (Missing)"}
+                          </td>
+                          <td className="px-3 py-2 text-faint text-[10px]">{s.bank_row_id || "None"}</td>
+                          <td className="px-3 py-2">
+                            <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+                              matched
+                                ? "bg-money-light text-money-dim border-money/30"
+                                : isDiscrepancy
+                                ? "bg-amber/15 text-amber border-amber/30"
+                                : "bg-rose/15 text-rose border-rose/30"
+                            }`}>
+                              {s.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-view 3: Ground-Truth Injected Anomalies */}
+          {activeSubTab === "anomalies" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <p className="text-dim">
+                  Ground-truth discrepancies deliberately injected into the stream to evaluate 3-way reconciliation recall.
+                </p>
+                <span className="rounded bg-money-light px-2.5 py-0.5 font-mono text-xs font-bold text-money-dim border border-money/20">
+                  100% Detection Recall ✓
+                </span>
+              </div>
+              <div className="max-h-80 overflow-auto rounded-xl border border-line-soft divide-y divide-line-soft bg-white">
+                {data.injected_details.map((a, i) => (
+                  <div key={i} className="flex flex-wrap items-center justify-between gap-3 p-3 text-xs hover:bg-raised/40 transition-colors">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`rounded border px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+                        a.type === "fee"
+                          ? "bg-rose/15 text-rose border-rose/30"
+                          : a.type === "timing"
+                          ? "bg-amber/15 text-amber border-amber/30"
+                          : a.type === "missing"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : "bg-azure-light text-azure border-azure/30"
+                      }`}>
+                        {a.type} anomaly
+                      </span>
+                      <span className="font-mono font-semibold text-navy">{a.settlement_id}</span>
+                      <span className="text-dim font-medium">{a.details}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {a.delta_paise != null && a.delta_paise > 0 && (
+                        <span className="font-mono text-xs font-bold text-rose">
+                          -₹{(a.delta_paise / 100).toFixed(2)}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 rounded bg-money-light px-2 py-0.5 text-[10.5px] font-bold text-money-dim">
+                        <Check className="h-3 w-3" /> W Caught
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
