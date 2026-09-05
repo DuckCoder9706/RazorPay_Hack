@@ -138,6 +138,15 @@ export interface AuditResponse {
   events: AuditEvent[];
 }
 
+export interface VerifyResponse {
+  seed: number;
+  n: number;
+  hash_a: string;
+  hash_b: string;
+  identical: boolean;
+  algo: string;
+}
+
 export interface RazorpayLink {
   ok: boolean;
   live?: boolean;
