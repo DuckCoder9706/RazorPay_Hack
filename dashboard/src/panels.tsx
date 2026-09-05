@@ -26,6 +26,7 @@ import {
 import { Gauge } from "@/components/charts/gauge";
 import { FunnelChart } from "@/components/charts/funnel-chart";
 import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip, type SankeyData } from "@/components/charts/sankey";
+import { ReconBenchmarkVisualizer } from "@/components/charts/recon-radar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { rupees, pct, signed, useApi, useBatchStream, useReveal, type StreamFlows } from "./lib";
 import type {
@@ -445,9 +446,9 @@ function buildSankey(flows: StreamFlows): SankeyData {
   const nodes = order.map((k) => {
     const kind = k[0];
     const name = k.slice(2);
-    if (kind === "c") return { name: CAUSE_LABEL[name] ?? name, category: "source" as const };
-    if (kind === "m") return { name: TIMING_LABEL[name] ?? name, category: "landing" as const };
-    return { name: name === "recovered" ? "Recovered & Reconciled" : "Unrecovered", category: "outcome" as const };
+    if (kind === "c") return { rawKey: name, kind, name: CAUSE_LABEL[name] ?? name, category: "source" as const };
+    if (kind === "m") return { rawKey: name, kind, name: TIMING_LABEL[name] ?? name, category: "landing" as const };
+    return { rawKey: name, kind, name: name === "recovered" ? "Recovered & Reconciled" : "Unrecovered", category: "outcome" as const };
   });
   const links = [
     ...causeMid.map(([k, v]) => {
@@ -473,8 +474,45 @@ function nodeColor(node: { category?: string; name?: string }): string {
   return "#64748B";
 }
 
-export function SankeyPanel({ seed, n, runId = 0, delay }: SeedProps & { runId?: number }) {
+export function SankeyPanel({
+  seed,
+  n,
+  runId = 0,
+  delay,
+  onNavigateToLedger,
+}: SeedProps & {
+  runId?: number;
+  onNavigateToLedger?: (query: string, actor?: "all" | "R" | "W" | "sim") => void;
+}) {
   const stream = useBatchStream(seed, n, runId);
+
+  const handleNodeClick = (node: any) => {
+    if (!onNavigateToLedger) return;
+    const rawKey = node.rawKey || "";
+    const name = (node.name || "").toLowerCase();
+    if (name.includes("reconciled") || (name.includes("recovered") && !name.includes("unrecovered"))) {
+      onNavigateToLedger("recovered", "W");
+    } else if (name.includes("unrecovered")) {
+      onNavigateToLedger("unrecovered", "R");
+    } else if (node.category === "source") {
+      onNavigateToLedger(rawKey || node.name, "all");
+    } else if (node.category === "landing") {
+      onNavigateToLedger(rawKey || node.name, "R");
+    } else {
+      onNavigateToLedger(node.name, "all");
+    }
+  };
+
+  const handleLinkClick = (link: any) => {
+    if (!onNavigateToLedger) return;
+    const targetNode = typeof link.target === "object" ? link.target : null;
+    const sourceNode = typeof link.source === "object" ? link.source : null;
+    if (targetNode) {
+      handleNodeClick(targetNode);
+    } else if (sourceNode) {
+      handleNodeClick(sourceNode);
+    }
+  };
 
   if (!stream || !stream.flows)
     return (
@@ -506,8 +544,8 @@ export function SankeyPanel({ seed, n, runId = 0, delay }: SeedProps & { runId?:
           revealSignature={`${seed}-${n}-${runId}`}
           margin={{ top: 24, right: 180, bottom: 24, left: 150 }}
         >
-          <SankeyLink />
-          <SankeyNode getNodeColor={nodeColor} showValueLabels />
+          <SankeyLink onLinkClick={handleLinkClick} />
+          <SankeyNode getNodeColor={nodeColor} showValueLabels onNodeClick={handleNodeClick} />
           <SankeyTooltip />
         </SankeyChart>
       </div>
@@ -518,9 +556,14 @@ export function SankeyPanel({ seed, n, runId = 0, delay }: SeedProps & { runId?:
           <Legend swatch="bg-money" label="Recovered & Reconciled" />
           <Legend swatch="bg-rose" label="Unrecovered" />
         </div>
-        <div className="hidden sm:block text-[11px] text-slate-500 font-medium">
-          Deterministic ledger stream · Verified three-way settlement
-        </div>
+        <button
+          type="button"
+          onClick={() => onNavigateToLedger?.("recovered", "W")}
+          className="flex items-center gap-1 font-mono text-[11px] font-semibold text-azure hover:text-navy transition-colors cursor-pointer"
+        >
+          <span>Click any node/flow to inspect verified ledger audit</span>
+          <span>→</span>
+        </button>
       </div>
     </Panel>
   );
@@ -803,7 +846,6 @@ const INFRA_BADGE: Record<string, { label: string; cls: string; bar: string }> =
 };
 
 export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
-  const [activeMetric, setActiveMetric] = useState<"rate" | "leakage" | "latency">("rate");
   const [selectedId, setSelectedId] = useState<string>("tijori");
 
   // Fetch live batch and exceptions data to drive all numbers dynamically
@@ -928,9 +970,6 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
     ])
   );
 
-  const maxLeakage = Math.max(1, ...Object.values(leakageMap));
-  const maxLatency = Math.max(1, ...infrastructures.map((i) => i.latency_hours));
-
   const defaultLeakage = leakageMap["razorpay_default"] ?? 0;
   const tijoriLeakage = leakageMap["tijori"] ?? 0;
   const tijoriSavingsVsDefault = defaultLeakage - tijoriLeakage;
@@ -976,204 +1015,16 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
           </div>
         </div>
 
-        {/* 2. Interactive Control Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-line-soft bg-raised/50 p-2.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs font-semibold text-navy mr-1">Comparison Metric:</span>
-            <button
-              type="button"
-              onClick={() => setActiveMetric("rate")}
-              className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
-                activeMetric === "rate"
-                  ? "bg-azure text-white shadow-sm"
-                  : "border border-line bg-surface text-dim hover:bg-raised"
-              }`}
-            >
-              1. Auto-Reconciliation Rate (%)
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMetric("leakage")}
-              className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
-                activeMetric === "leakage"
-                  ? "bg-azure text-white shadow-sm"
-                  : "border border-line bg-surface text-dim hover:bg-raised"
-              }`}
-            >
-              2. Revenue Leakage Drag (₹)
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMetric("latency")}
-              className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
-                activeMetric === "latency"
-                  ? "bg-azure text-white shadow-sm"
-                  : "border border-line bg-surface text-dim hover:bg-raised"
-              }`}
-            >
-              3. Settlement Latency (Hours)
-            </button>
-          </div>
-          <div className="font-mono text-[11px] text-faint px-2 text-right">
-            Active Batch Volume: <span className="font-bold text-navy">{rupees(totalVolumePaise)}</span>
-          </div>
-        </div>
-
-        {/* 3. Main Stage: Left Animated Progress Comparison + Right Architectural Diagnostic */}
-        <div className="grid gap-5 lg:grid-cols-12 items-start">
-          {/* Left Column: Animated Comparison Tracks */}
-          <div className="lg:col-span-7 space-y-3">
-            {infrastructures.map((infra) => {
-              const badge = INFRA_BADGE[infra.category] || INFRA_BADGE.baseline;
-              const isSelected = infra.id === selectedId;
-              const leakage = leakageMap[infra.id] ?? 0;
-
-              // Compute percentage fill based on activeMetric
-              let widthPct = 0;
-              let metricValueText = "";
-              let deltaBadgeText = "";
-              let deltaTone = "text-dim";
-
-              if (activeMetric === "rate") {
-                widthPct = (infra.reconciliation_rate / 1.0) * 100;
-                metricValueText = pct(infra.reconciliation_rate);
-                if (infra.id === "tijori") {
-                  deltaBadgeText = "Industry Benchmark";
-                  deltaTone = "text-money-dim font-bold";
-                } else {
-                  const diff = Math.round((infra.reconciliation_rate - tijoriRate) * 100);
-                  deltaBadgeText = `${diff}% vs Tijori`;
-                  deltaTone = "text-rose font-medium";
-                }
-              } else if (activeMetric === "leakage") {
-                widthPct = maxLeakage > 0 ? (leakage / maxLeakage) * 100 : 0;
-                metricValueText = leakage === 0 ? "₹0 (0 bps)" : `${rupees(leakage)} (${infra.leakage_basis_points} bps)`;
-                if (infra.id === "tijori") {
-                  deltaBadgeText = "Zero Leakage Guaranteed";
-                  deltaTone = "text-money-dim font-bold";
-                } else {
-                  deltaBadgeText = `+${rupees(leakage)} drag`;
-                  deltaTone = "text-rose font-medium";
-                }
-              } else {
-                widthPct = maxLatency > 0 ? (infra.latency_hours / maxLatency) * 100 : 0;
-                metricValueText = infra.latency_label;
-                deltaBadgeText = `${infra.manual_touch_pct}% manual touch`;
-                deltaTone = infra.manual_touch_pct <= 1 ? "text-money-dim font-bold" : "text-amber font-medium";
-              }
-
-              return (
-                <div
-                  key={infra.id}
-                  onClick={() => setSelectedId(infra.id)}
-                  className={`cursor-pointer rounded-xl border p-3.5 transition-all ${
-                    isSelected
-                      ? "border-azure/50 bg-azure-light/20 shadow-sm ring-1 ring-azure/30"
-                      : "border-line-soft bg-white hover:border-line hover:bg-raised/40 shadow-xs"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2 text-xs mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider border ${badge.cls}`}>
-                        {badge.label}
-                      </span>
-                      <span className={`text-xs ${isSelected ? "font-bold text-navy" : "font-semibold text-ink"}`}>
-                        {infra.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-navy tabular-nums">
-                        {metricValueText}
-                      </span>
-                      <span className={`font-mono text-[10.5px] ${deltaTone}`}>
-                        {deltaBadgeText}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Animated Progress Bar Track */}
-                  <div className="relative h-2.5 overflow-hidden rounded-full bg-line/70">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ease-out ${badge.bar}`}
-                      style={{ width: `${Math.max(2, Math.min(100, widthPct))}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Right Column: Interactive Diagnostic Card for Selected Infrastructure */}
-          <div className="lg:col-span-5 rounded-2xl border border-line-soft bg-surface/80 p-4 sm:p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-line-soft pb-3">
-              <div>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-azure">
-                  Diagnostic Profile
-                </span>
-                <h4 className="text-sm font-bold text-navy mt-0.5">{selectedInfra.name}</h4>
-              </div>
-              <span className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
-                (INFRA_BADGE[selectedInfra.category] || INFRA_BADGE.baseline).cls
-              }`}>
-                {(INFRA_BADGE[selectedInfra.category] || INFRA_BADGE.baseline).label}
-              </span>
-            </div>
-
-            {/* Micro Stats Grid */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-lg bg-raised p-2 border border-line-soft">
-                <p className="text-[9.5px] uppercase font-semibold text-faint">Auto-Match</p>
-                <p className="font-mono text-sm font-bold text-navy mt-0.5">{pct(selectedInfra.reconciliation_rate)}</p>
-              </div>
-              <div className="rounded-lg bg-raised p-2 border border-line-soft">
-                <p className="text-[9.5px] uppercase font-semibold text-faint">Leakage Drag</p>
-                <p className="font-mono text-sm font-bold text-navy mt-0.5">
-                  {selectedInfra.leakage_basis_points === 0 ? "0 bps" : `${selectedInfra.leakage_basis_points} bps`}
-                </p>
-              </div>
-              <div className="rounded-lg bg-raised p-2 border border-line-soft">
-                <p className="text-[9.5px] uppercase font-semibold text-faint">Latency</p>
-                <p className="font-mono text-xs font-bold text-navy mt-1 truncate">{selectedInfra.latency_label.split(" ")[0]}</p>
-              </div>
-            </div>
-
-            {/* Architectural Strength */}
-            <div className="space-y-1">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-azure">
-                Architectural Strength
-              </p>
-              <p className="text-xs text-dim leading-snug">
-                {selectedInfra.strengths}
-              </p>
-            </div>
-
-            {/* Vulnerability in Indian Payment Infrastructure */}
-            <div className="space-y-1 rounded-xl border border-line-soft bg-canvas/60 p-3">
-              <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-navy">
-                <ShieldAlert className="h-3.5 w-3.5 text-amber" />
-                Vulnerability in Indian Banking Rails
-              </div>
-              <p className="text-xs text-dim leading-snug">
-                {selectedInfra.vulnerability}
-              </p>
-            </div>
-
-            {/* Key Features */}
-            <div className="space-y-1.5 border-t border-line-soft pt-3">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint">
-                Reconciliation Capabilities
-              </p>
-              <ul className="space-y-1 text-xs text-dim">
-                {selectedInfra.features.map((feat, idx) => (
-                  <li key={idx} className="flex items-start gap-1.5">
-                    <Check className="h-3.5 w-3.5 shrink-0 text-money-dim mt-0.5" />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
+        {/* 2. Interactive Multidimensional Architecture Visualizer (3D Isometric Radar & Velocity Trend) */}
+        <ReconBenchmarkVisualizer
+          infrastructures={infrastructures}
+          selectedId={selectedId}
+          onSelectId={setSelectedId}
+          totalVolumePaise={totalVolumePaise}
+          seed={seed}
+          n={n}
+          tijoriSavingsVsDefault={tijoriSavingsVsDefault}
+        />
 
         {/* 4. Bottom Authoritative Infrastructure Statement */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft pt-4 text-xs text-dim">
@@ -1438,10 +1289,29 @@ function AuditLogRow({ event }: { event: AuditEvent }) {
   );
 }
 
-export function AuditPanel({ seed, n, delay }: SeedProps) {
+export function AuditPanel({
+  seed,
+  n,
+  delay,
+  initialSearch = "",
+  initialActor = "all",
+  onClearFilters,
+}: SeedProps & {
+  initialSearch?: string;
+  initialActor?: "all" | "R" | "W" | "sim";
+  onClearFilters?: () => void;
+}) {
   const { data, error } = useApi<AuditResponse>(`/audit?seed=${seed}&n=${n}&limit=200`, [seed, n]);
-  const [actorFilter, setActorFilter] = useState<"all" | "R" | "W" | "sim">("all");
-  const [search, setSearch] = useState("");
+  const [actorFilter, setActorFilter] = useState<"all" | "R" | "W" | "sim">(initialActor);
+  const [search, setSearch] = useState(initialSearch);
+
+  useEffect(() => {
+    if (initialSearch !== undefined) setSearch(initialSearch);
+  }, [initialSearch]);
+
+  useEffect(() => {
+    if (initialActor !== undefined) setActorFilter(initialActor);
+  }, [initialActor]);
 
   if (!data)
     return (
@@ -1514,6 +1384,41 @@ export function AuditPanel({ seed, n, delay }: SeedProps) {
 
       {/* SECTION 2: INTERACTIVE EVENT LOG EXPLORER */}
       <div className="p-4 sm:p-5 space-y-3">
+        {/* Active Filter Notification Banner if linked from Sankey */}
+        {(search || actorFilter !== "all") && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-azure/30 bg-azure-light/60 px-3.5 py-2 text-xs font-semibold text-azure animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-azure opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-azure"></span>
+              </span>
+              <span>
+                Filtered by Sankey selection:{" "}
+                {search && <span className="font-mono text-navy font-bold">"{search}"</span>}
+                {actorFilter !== "all" && (
+                  <span className="ml-1 text-[11px] text-slate-600">
+                    (Actor: {actorFilter === "W" ? "Recon Sensor (W)" : actorFilter === "R" ? "Recovery Policy (R)" : actorFilter})
+                  </span>
+                )}
+              </span>
+              <span className="font-mono text-[11px] text-navy font-bold ml-1">
+                · {filteredEvents.length} event{filteredEvents.length === 1 ? "" : "s"} found
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setActorFilter("all");
+                onClearFilters?.();
+              }}
+              className="flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-[11px] font-bold text-navy shadow-xs border border-azure/20 hover:bg-slate-50 transition-colors"
+            >
+              Clear Filter ✕
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-semibold text-navy mr-1">Filter Actor:</span>

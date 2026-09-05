@@ -195,3 +195,16 @@ def test_pipeline_endpoint():
     assert len(body["sample_substrate"]) > 0
     assert len(body["injected_details"]) > 0
 
+
+def test_reconciliation_benchmarks():
+    r = client.get("/reconciliation/benchmarks", params={"seed": _SEED, "n": _N})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["seed"] == _SEED
+    assert body["n"] == _N
+    assert "infrastructures" in body
+    infras = {i["id"]: i for i in body["infrastructures"]}
+    assert set(infras) == {"tijori", "razorpay_default", "stripe", "adyen", "legacy_erp"}
+    assert infras["tijori"]["reconciliation_rate"] > infras["razorpay_default"]["reconciliation_rate"]
+    assert infras["tijori"]["leakage_basis_points"] == 0
+
