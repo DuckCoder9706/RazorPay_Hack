@@ -231,3 +231,24 @@ export interface PipelineResponse {
   injected_details: InjectedAnomaly[];
 }
 
+export interface ReconInfrastructure {
+  id: string;
+  name: string;
+  category: "active" | "baseline" | "competitor" | "legacy";
+  reconciliation_rate: number;
+  latency_label: string;
+  latency_hours: number;
+  leakage_basis_points: number; // bps of total volume
+  manual_touch_pct: number;
+  strengths: string;
+  vulnerability: string;
+  features: string[];
+}
+
+export interface ReconBenchmarkResponse {
+  seed: number;
+  n: number;
+  total_volume_paise: number;
+  infrastructures: ReconInfrastructure[];
+}
+

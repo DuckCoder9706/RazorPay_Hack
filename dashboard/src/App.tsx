@@ -34,6 +34,7 @@ import {
   VerifyPanel,
   PipelinePanel,
   PipelineSummaryCard,
+  ReconBenchmarkPanel,
 } from "./panels";
 
 const N_OPTIONS = [100, 200, 500, 1000, 2000];
@@ -322,7 +323,7 @@ export default function App() {
           {/* RECONCILE TAB */}
           <TabsContent value="reconcile" className="mt-0 space-y-5 focus-visible:outline-none">
             <ExceptionsPanel seed={seed} n={n} />
-            <SankeyPanel seed={seed} n={n} runId={runId} delay={40} />
+            <ReconBenchmarkPanel seed={seed} n={n} delay={40} />
             <OutcomeModelPanel delay={60} />
           </TabsContent>
 
