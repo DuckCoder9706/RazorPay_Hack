@@ -3,8 +3,9 @@ import { QRCodeSVG } from "qrcode.react";
 import { Check, Fingerprint, Info, Lightbulb, ShieldCheck, Zap } from "lucide-react";
 import { Gauge } from "@/components/charts/gauge";
 import { FunnelChart } from "@/components/charts/funnel-chart";
+import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip, type SankeyData } from "@/components/charts/sankey";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { rupees, pct, signed, useApi, useBatchStream, useReveal } from "./lib";
+import { rupees, pct, signed, useApi, useBatchStream, useReveal, type StreamFlows } from "./lib";
 import type {
   BatchResponse,
   ChurnResponse,
@@ -330,6 +331,115 @@ export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
         </p>
       </div>
     </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// R · routing — live bklit Sankey: cause → timing/action → outcome
+// --------------------------------------------------------------------------- //
+const CAUSE_LABEL: Record<string, string> = {
+  insufficient_funds: "insufficient",
+  issuer_soft_decline: "issuer soft",
+  authentication_failed: "auth failed",
+  user_dropped: "user dropped",
+  technical_transient: "transient",
+  limit_exceeded: "limit",
+  hard_decline: "hard decline",
+  risk_blocked: "risk",
+};
+const CAUSE_ORDER = Object.keys(CAUSE_LABEL);
+const MID_ORDER = ["fast", "short", "aligned", "dun", "stop"];
+const OUT_ORDER = ["recovered", "unrecovered"];
+
+function buildSankey(flows: StreamFlows): SankeyData {
+  const causeMid = Object.entries(flows.cause_mid);
+  const midOut = Object.entries(flows.mid_out);
+  const present = new Set<string>();
+  causeMid.forEach(([k]) => {
+    const [c, m] = k.split("|");
+    present.add("c:" + c);
+    present.add("m:" + m);
+  });
+  midOut.forEach(([k]) => {
+    const [m, o] = k.split("|");
+    present.add("m:" + m);
+    present.add("o:" + o);
+  });
+  const order = [
+    ...CAUSE_ORDER.filter((c) => present.has("c:" + c)).map((c) => "c:" + c),
+    ...MID_ORDER.filter((m) => present.has("m:" + m)).map((m) => "m:" + m),
+    ...OUT_ORDER.filter((o) => present.has("o:" + o)).map((o) => "o:" + o),
+  ];
+  const idx = new Map(order.map((k, i) => [k, i]));
+  const nodes = order.map((k) => {
+    const kind = k[0];
+    const name = k.slice(2);
+    if (kind === "c") return { name: CAUSE_LABEL[name] ?? name, category: "source" as const };
+    if (kind === "m") return { name, category: "landing" as const };
+    return { name, category: "outcome" as const };
+  });
+  const links = [
+    ...causeMid.map(([k, v]) => {
+      const [c, m] = k.split("|");
+      return { source: idx.get("c:" + c)!, target: idx.get("m:" + m)!, value: v };
+    }),
+    ...midOut.map(([k, v]) => {
+      const [m, o] = k.split("|");
+      return { source: idx.get("m:" + m)!, target: idx.get("o:" + o)!, value: v };
+    }),
+  ].filter((l) => l.source != null && l.target != null && l.value > 0);
+  return { nodes, links };
+}
+
+function nodeColor(node: { category?: string; name?: string }): string {
+  if (node.category === "outcome") return node.name === "recovered" ? "#16a34a" : "#e11d48";
+  if (node.category === "landing") return "#3b82f6";
+  return "#94a3b8";
+}
+
+export function SankeyPanel({ seed, n, runId = 0, delay }: SeedProps & { runId?: number }) {
+  const stream = useBatchStream(seed, n, runId);
+
+  if (!stream || !stream.flows)
+    return (
+      <Panel delay={delay}>
+        <Head kicker="R · routing" title="Cause → timing → outcome" tag="live sankey" tagTone="money" />
+        <Loading error={null} label="streaming flows…" />
+      </Panel>
+    );
+
+  const data = buildSankey(stream.flows);
+  const live = stream.phase === "streaming";
+
+  return (
+    <Panel delay={delay}>
+      <Head
+        kicker="R · routing"
+        title="Cause → timing → outcome"
+        note="Smart's routing, built live as the batch scores: which causes go to which retry timing, and how many recover."
+        tag={live ? "● live" : "sankey"}
+        tagTone="money"
+      />
+      <div className="px-3 py-4">
+        <SankeyChart
+          data={data}
+          aspectRatio="2 / 1"
+          nodePadding={18}
+          revealSignature={`${seed}-${n}-${runId}`}
+          margin={{ top: 22, right: 104, bottom: 22, left: 104 }}
+        >
+          <SankeyLink />
+          <SankeyNode getNodeColor={nodeColor} showValueLabels />
+          <SankeyTooltip />
+        </SankeyChart>
+      </div>
+      <div className="flex flex-wrap gap-4 border-t border-line-soft px-5 py-3 font-mono text-[10.5px] text-faint">
+        <Legend swatch="bg-[#94a3b8]" label="cause" />
+        <Legend swatch="bg-[#3b82f6]" label="timing / action" />
+        <Legend swatch="bg-money" label="recovered" />
+        <Legend swatch="bg-rose" label="unrecovered" />
+      </div>
+    </Panel>
   );
 }
 

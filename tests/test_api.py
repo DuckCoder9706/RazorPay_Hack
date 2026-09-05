@@ -147,6 +147,25 @@ def test_batch_stream_ends_on_exact_batch_totals():
     assert done["oracle_paise"] == batch["oracle_paise"]
 
 
+def test_batch_stream_carries_sankey_flows():
+    r = client.get("/batch/stream", params={"seed": _SEED, "n": _N, "secs": 0})
+    done = None
+    for block in r.text.strip().split("\n\n"):
+        if block.startswith("event: done"):
+            done = json.loads(block.split("data: ", 1)[1])
+    assert done is not None
+    flows = done["flows"]
+    # cause|timing and timing|outcome maps, all counts positive
+    assert flows["cause_mid"] and flows["mid_out"]
+    assert all("|" in k for k in flows["cause_mid"])
+    assert all(v > 0 for v in flows["mid_out"].values())
+    # recoveries in the flow tally to the batch's recovered count
+    recovered = sum(v for k, v in flows["mid_out"].items() if k.endswith("|recovered"))
+    batch = client.get("/batch", params={"seed": _SEED, "n": _N}).json()
+    smart = next(p for p in batch["policies"] if p["policy"] == "smart")
+    assert recovered == smart["n_recovered"]
+
+
 def test_razorpay_link_falls_back_to_fixture(monkeypatch):
     # Force the live path to fail so we exercise the recorded-object fallback (no network).
     import tijori.razorpay_client.client as rc
