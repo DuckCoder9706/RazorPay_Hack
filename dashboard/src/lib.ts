@@ -44,6 +44,36 @@ export function useCountUp(target: number, ms = 700): number {
   return value;
 }
 
+// ---- scroll reveal ----------------------------------------------------------
+// Adds `reveal-in` when the element first scrolls into view (IntersectionObserver).
+// Reduced-motion is handled in CSS (the .reveal transition is neutralized there).
+export function useReveal<T extends HTMLElement = HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || shown) return;
+    if (!("IntersectionObserver" in window)) {
+      setShown(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setShown(true);
+            io.disconnect();
+          }
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.06 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shown]);
+  return { ref, shown };
+}
+
 // ---- streamed batch playback (SSE) ------------------------------------------
 export interface StreamCum {
   gross: number;

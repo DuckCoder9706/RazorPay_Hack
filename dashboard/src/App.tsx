@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   BatchPanel,
+  InsightCard,
   RecoveryFlowPanel,
   LearnPanel,
   ExceptionsPanel,
@@ -218,25 +219,28 @@ export default function App() {
 
           <TabsContent value="overview" className="mt-0 space-y-4 focus-visible:outline-none">
             <BatchPanel seed={seed} n={n} runId={runId} />
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <DrawerTile icon={ScanSearch} title="Reconcile · W" desc="3-way exceptions + netting" tint="text-sky">
-                <ExceptionsPanel seed={seed} n={n} />
-              </DrawerTile>
-              <DrawerTile icon={GraduationCap} title="Learn · F1" desc="belief recalibrates, regret → 0" tint="text-money">
-                <LearnPanel seed={seed} n={n} />
-              </DrawerTile>
-              <DrawerTile icon={TrendingUp} title="Churn · F3" desc="net-value ranking is robust" tint="text-amber">
-                <ChurnPanel seed={seed} n={n} />
-              </DrawerTile>
-              <DrawerTile icon={IndianRupee} title="Live · Razorpay" desc="real test-mode Payment Link" tint="text-money">
-                <RazorpayPanel />
-              </DrawerTile>
-              <DrawerTile icon={ShieldCheck} title="Verify" desc="reproducible · no-LLM · bounded" tint="text-money">
-                <VerifyPanel seed={seed} n={n} />
-              </DrawerTile>
-              <DrawerTile icon={ScrollText} title="Ledger" desc="append-only audit trail" tint="text-dim">
-                <AuditPanel seed={seed} n={n} />
-              </DrawerTile>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <InsightCard seed={seed} n={n} delay={60} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DrawerTile icon={ScanSearch} title="Reconcile · W" desc="3-way exceptions + netting" tint="text-sky">
+                  <ExceptionsPanel seed={seed} n={n} />
+                </DrawerTile>
+                <DrawerTile icon={GraduationCap} title="Learn · F1" desc="belief recalibrates, regret → 0" tint="text-money">
+                  <LearnPanel seed={seed} n={n} />
+                </DrawerTile>
+                <DrawerTile icon={TrendingUp} title="Churn · F3" desc="net-value ranking is robust" tint="text-amber">
+                  <ChurnPanel seed={seed} n={n} />
+                </DrawerTile>
+                <DrawerTile icon={IndianRupee} title="Live · Razorpay" desc="real test-mode link" tint="text-money">
+                  <RazorpayPanel />
+                </DrawerTile>
+                <DrawerTile icon={ShieldCheck} title="Verify" desc="reproducible · bounded" tint="text-money">
+                  <VerifyPanel seed={seed} n={n} />
+                </DrawerTile>
+                <DrawerTile icon={ScrollText} title="Ledger" desc="append-only audit" tint="text-dim">
+                  <AuditPanel seed={seed} n={n} />
+                </DrawerTile>
+              </div>
             </div>
           </TabsContent>
 

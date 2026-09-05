@@ -11,22 +11,24 @@ export default {
         mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       colors: {
-        // --- Terminal palette (authoritative; each token has one job) ------------
-        canvas: "#0a0c10",
-        surface: "#12151c",
-        raised: "#171b24",
-        line: "#232833",
-        "line-soft": "#1b1f28",
-        ink: "#e7eaf0", // primary text
-        dim: "#9aa3b2", // secondary text (renamed from `muted` — shadcn owns `muted`)
-        faint: "#7d8798", // meta text
-        money: "#34d399",
-        "money-dim": "#10b981",
-        azure: "#6ea8fe",
-        amber: "#f5b544",
-        rose: "#fb7185",
-        violet: "#a78bfa",
-        sky: "#56ccf2",
+        // --- Light "product" palette (authoritative; each token has one job) ------
+        // Soft off-white canvas, white cards, readable signals (each ≥4.4:1 on white
+        // so it works as text AND as a fill). Deeper than neon = calm/premium.
+        canvas: "#edeef1", // page ground (soft gray)
+        surface: "#ffffff", // cards
+        raised: "#f5f6f8", // insets / hovers
+        line: "#e4e7ec", // hairline borders
+        "line-soft": "#eef0f3",
+        ink: "#1a1d23", // primary text
+        dim: "#565e6b", // secondary text (~7:1)
+        faint: "#737b88", // meta text (~4.6:1)
+        money: "#167c3c",
+        "money-dim": "#0f6a30",
+        azure: "#2563eb",
+        amber: "#c2740c",
+        rose: "#e11d48",
+        violet: "#7c3aed",
+        sky: "#0284c7",
         // --- shadcn/ui semantic set (CSS vars → mapped onto the palette) ----------
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,7 +49,9 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        panel: "0 1px 0 0 rgba(255,255,255,0.02) inset, 0 8px 30px -12px rgba(0,0,0,0.6)",
+        // Soft, Zentra-style elevation on white.
+        card: "0 1px 2px rgba(16,24,40,0.04), 0 6px 16px -8px rgba(16,24,40,0.10)",
+        panel: "0 1px 3px rgba(16,24,40,0.06), 0 12px 32px -12px rgba(16,24,40,0.16)",
       },
       letterSpacing: { tighter2: "-0.04em" },
       keyframes: {
