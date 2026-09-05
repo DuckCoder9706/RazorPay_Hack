@@ -98,18 +98,7 @@ function getNodeLabelLayouts({
         initialX,
         initialY: centerY,
       },
-      value: showValueLabels
-        ? {
-            x: labelX,
-            y: centerY + VALUE_LABEL_GAP,
-            textAnchor,
-            dy: "0.35em",
-            textLocalX: 0,
-            rotate: 0,
-            initialX,
-            initialY: centerY + VALUE_LABEL_GAP,
-          }
-        : null,
+      value: null,
     };
   }
 
@@ -278,28 +267,29 @@ function AnimatedNode({
         y={y}
       />
       {showLabels ? (
-        <>
-          <NodeLabel
-            className="fill-navy font-semibold text-[13px]"
-            key={`name-${index}-${revealEpoch}`}
-            layout={labelLayouts.name}
-            opacity={nameOpacity}
-            transition={nameEnter}
-          >
-            {name}
-          </NodeLabel>
-          {labelLayouts.value ? (
-            <NodeLabel
-              className="fill-dim font-mono text-[11px] font-medium"
-              key={`value-${index}-${revealEpoch}`}
-              layout={labelLayouts.value}
-              opacity={valueOpacity}
-              transition={valueEnter}
+        <NodeLabel
+          className="fill-navy font-semibold text-xs"
+          key={`name-${index}-${revealEpoch}`}
+          layout={labelLayouts.name}
+          opacity={nameOpacity}
+          transition={nameEnter}
+        >
+          <tspan className="fill-navy font-semibold text-xs">{name}</tspan>
+          {showValueLabels ? (
+            <tspan
+              className={
+                name.toLowerCase().includes("recovered") && !name.toLowerCase().includes("unrecovered")
+                  ? "fill-money-dim font-mono text-[11px] font-bold"
+                  : name.toLowerCase().includes("unrecovered")
+                  ? "fill-rose font-mono text-[11px] font-bold"
+                  : "fill-slate-700 font-mono text-[11px] font-bold"
+              }
+              dx={6}
             >
-              {intFmt(value)} payments
-            </NodeLabel>
+              · {intFmt(value)} payments
+            </tspan>
           ) : null}
-        </>
+        </NodeLabel>
       ) : null}
     </motion.g>
   );

@@ -123,13 +123,11 @@ type TagTone = "muted" | "money" | "azure";
 function Head({
   kicker,
   title,
-  note,
   tag,
   tagTone = "muted",
 }: {
   kicker?: ReactNode;
   title: ReactNode;
-  note?: ReactNode;
   tag?: ReactNode;
   tagTone?: TagTone;
 }) {
@@ -142,11 +140,6 @@ function Head({
     <header className="flex items-center justify-between gap-3 border-b border-line-soft px-5 py-3.5">
       <div className="flex items-center gap-2 min-w-0">
         <h2 className="text-sm font-semibold tracking-tight text-ink">{title}</h2>
-        {note && (
-          <span className="hidden sm:inline-block text-xs text-faint truncate max-w-sm" title={typeof note === "string" ? note : undefined}>
-            · {note}
-          </span>
-        )}
       </div>
       {tag && (
         <span className={`shrink-0 rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${tones[tagTone]}`}>
@@ -160,17 +153,31 @@ function Head({
 function Loading({ error, label = "computing…" }: { error: string | null; label?: string }) {
   if (error)
     return (
-      <p className="px-5 py-8 text-sm text-rose">
-        API error: {error} — is <code className="font-mono">uvicorn</code> up on :8000?
-      </p>
+      <div className="p-5 font-mono text-xs text-rose">
+        <span>API error: </span>
+        <span className="text-ink">{error}</span>
+      </div>
     );
   return (
-    <div className="px-5 py-8">
-      <p className="font-mono text-xs text-faint">{label}</p>
-      <div className="mt-3 h-1 w-24 overflow-hidden rounded-full bg-raised">
-        <div className="h-full w-1/3 animate-pulse rounded-full bg-money/50" />
-      </div>
+    <div className="flex items-center gap-2 p-5 font-mono text-xs text-faint">
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-azure" />
+      <span>{label}</span>
     </div>
+  );
+}
+
+function Legend({ swatch, dot, label, dashed }: { swatch?: string; dot?: string; label: string; dashed?: boolean }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      {swatch && (
+        <span
+          className={`inline-block h-2.5 w-2.5 rounded-xs ${swatch} ${dashed ? "opacity-70" : ""}`}
+          style={dashed ? { borderTop: "2px dashed #cbd5e1", background: "transparent", height: 0, width: 16 } : {}}
+        />
+      )}
+      {dot && <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />}
+      <span className="text-[11px] font-medium text-dim">{label}</span>
+    </span>
   );
 }
 
@@ -481,17 +488,16 @@ export function SankeyPanel({ seed, n, runId = 0, delay }: SeedProps & { runId?:
     <Panel delay={delay}>
       <Head
         title="Revenue Recovery & 3-Way Reconciliation Flow"
-        note="Live causal routing: how gateway declines navigate autonomous timing policies into 100% verified settlement reconciliation."
         tag={live ? "● Live Stream" : "Recovered & Reconciled"}
         tagTone="money"
       />
       <div className="px-3 py-4">
         <SankeyChart
           data={data}
-          aspectRatio="2.2 / 1"
-          nodePadding={18}
+          aspectRatio="1.9 / 1"
+          nodePadding={24}
           revealSignature={`${seed}-${n}-${runId}`}
-          margin={{ top: 24, right: 180, bottom: 24, left: 140 }}
+          margin={{ top: 24, right: 260, bottom: 24, left: 240 }}
         >
           <SankeyLink />
           <SankeyNode getNodeColor={nodeColor} showValueLabels />
@@ -541,7 +547,6 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
     <Panel delay={delay}>
       <Head
         title="Recovery Funnel & Benchmark"
-        note="Volume cascade from at-risk failure to verified settlement"
         tag="Benchmark"
         tagTone="azure"
       />
@@ -615,7 +620,6 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
     <Panel delay={delay}>
       <Head
         title="Continuous Learning & Policy Calibration"
-        note="Realized settlements recalibrate probability beliefs to optimal retry timing"
         tag="Adaptive Loop"
         tagTone="azure"
       />
@@ -680,20 +684,6 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
   );
 }
 
-function Legend({ swatch, dot, label, dashed }: { swatch?: string; dot?: string; label: string; dashed?: boolean }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      {swatch && (
-        <i
-          className={`inline-block h-[3px] w-4 ${swatch} ${dashed ? "opacity-70" : ""}`}
-          style={dashed ? { borderTop: "2px dashed #cbd5e1", background: "transparent", height: 0, width: 16 } : {}}
-        />
-      )}
-      {dot && <i className={`inline-block h-2 w-2 rounded-full ${dot}`} />}
-      <span className="text-[11px] font-medium text-dim">{label}</span>
-    </span>
-  );
-}
 
 function RowKV({ term, children }: { term: string; children: ReactNode }) {
   return (
@@ -728,7 +718,6 @@ export function ExceptionsPanel({ seed, n, delay }: SeedProps) {
     <Panel delay={delay} className="flex flex-col">
       <Head
         title="Three-Way Reconciliation (W)"
-        note="Gateway ↔ Settlement ↔ Bank accounts · Exact & tolerance matching"
         tag="Reconciled"
         tagTone="money"
       />
@@ -806,7 +795,6 @@ export function ChurnPanel({ seed, n, delay }: SeedProps) {
     <Panel delay={delay}>
       <Head
         title="Cost & Churn Sensitivity Analysis"
-        note="Smart policy achieves higher net value across all friction scenarios"
         tag={data.smart_always_wins_net ? "Robust Dominance ✓" : "Sensitivity Check"}
         tagTone={data.smart_always_wins_net ? "azure" : "muted"}
       />
@@ -895,7 +883,6 @@ export function OutcomeModelPanel({ delay }: { delay?: number }) {
     <Panel delay={delay}>
       <Head
         title="Decline Cause & Retry Timing Matrix"
-        note="Razorpay decline taxonomy mapped to calibrated success probabilities"
         tag="Calibrated Model"
         tagTone="azure"
       />
@@ -1064,7 +1051,6 @@ export function AuditPanel({ seed, n, delay }: SeedProps) {
     <Panel delay={delay}>
       <Head
         title="Audit Trail & Ledger Report"
-        note="Append-only immutable record with deterministic state replay"
         tag={`${data.total} Verified Events`}
         tagTone="azure"
       />
@@ -1245,7 +1231,6 @@ export function RazorpayPanel({
     <Panel delay={delay} hero={heroMode} className="h-full flex flex-col justify-between">
       <Head
         title="Live Razorpay Sandbox"
-        note="Real rzp_test_ API link & QR code"
         tag={link ? (link.status === "paid" ? "settled ✓" : link.live ? "live api" : "replayed") : "test-mode"}
         tagTone={link?.status === "paid" ? "money" : link?.live ? "azure" : "muted"}
       />
@@ -1462,7 +1447,6 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
     <Panel delay={delay}>
       <Head
         title="Verification Assurances"
-        note="Cryptographic proofs and invariants"
         tag="Provable"
         tagTone="money"
       />
@@ -1628,7 +1612,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
       {/* 1. Header & Determinism Info */}
       <Head
         title="Data Ingestion & Infrastructure Pipeline"
-        note="Visualizing how synthetic users, gateway decline streams, and banking feeds are injected into Tijori's SQLite ledger"
         tag={`Seed ${seed} · ${n} Ingested`}
         tagTone="azure"
       />
