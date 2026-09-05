@@ -57,8 +57,6 @@ pip install -e ".[dev]"
 cp .env.example .env        # add Razorpay TEST-MODE keys if you want live Payment Links
 ```
 
-The LLM key is optional. It's only used for narration and dunning copy, and it sits outside the scored path, so recovery numbers never depend on a model call.
-
 ## Running it
 
 The CLI is the fastest way to watch the loop run end to end.

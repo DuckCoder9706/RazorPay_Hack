@@ -20,9 +20,6 @@ data/*.db
 .env
 .env.local
 
-# LLM response cache
-.llm_cache/
-
 # Node / dashboard
 node_modules/
 dashboard/dist/
@@ -34,3 +31,4 @@ dashboard/.vite/
 Thumbs.db
 .idea/
 .vscode/
+.claude/
