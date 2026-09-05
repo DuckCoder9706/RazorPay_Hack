@@ -80,6 +80,10 @@ export interface StreamCum {
   recovered: number;
   attempts: number;
 }
+export interface StreamFlows {
+  cause_mid: Record<string, number>;
+  mid_out: Record<string, number>;
+}
 export interface BatchStreamView {
   oracle: number;
   baseline: StreamCum;
@@ -87,6 +91,7 @@ export interface BatchStreamView {
   phase: "streaming" | "done";
   final: PolicyMetrics[] | null;
   progress: number; // 0..1
+  flows: StreamFlows | null;
 }
 
 const ZERO: StreamCum = { gross: 0, recovered: 0, attempts: 0 };
@@ -104,13 +109,13 @@ export function useBatchStream(seed: number, n: number, runId = 0): BatchStreamV
 
     es.addEventListener("meta", (e) => {
       oracle = JSON.parse((e as MessageEvent).data).oracle_paise;
-      setView({ oracle, baseline: ZERO, smart: ZERO, phase: "streaming", final: null, progress: 0 });
+      setView({ oracle, baseline: ZERO, smart: ZERO, phase: "streaming", final: null, progress: 0, flows: null });
     });
     es.addEventListener("progress", (e) => {
       const p = JSON.parse((e as MessageEvent).data);
       setView({
         oracle, baseline: p.baseline, smart: p.smart,
-        phase: "streaming", final: null, progress: p.i / p.total,
+        phase: "streaming", final: null, progress: p.i / p.total, flows: p.flows ?? null,
       });
     });
     es.addEventListener("done", (e) => {
@@ -121,7 +126,7 @@ export function useBatchStream(seed: number, n: number, runId = 0): BatchStreamV
         oracle: d.oracle_paise,
         baseline: { gross: bl.gross_recovered_paise, recovered: bl.n_recovered, attempts: bl.n_attempts },
         smart: { gross: sm.gross_recovered_paise, recovered: sm.n_recovered, attempts: sm.n_attempts },
-        phase: "done", final: d.policies, progress: 1,
+        phase: "done", final: d.policies, progress: 1, flows: d.flows ?? null,
       });
       es.close();
     });

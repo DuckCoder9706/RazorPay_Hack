@@ -350,6 +350,11 @@ async def _batch_stream(seed: int, n: int, frames: int = 40, secs: float = 1.6):
     step = max(1, total // max(1, frames))
     delay = secs / max(1, min(frames, total))
     cum = {p: {"gross": 0, "recovered": 0, "attempts": 0} for p in ("baseline", "smart")}
+    # Smart's routing, accumulated for the live Sankey: cause → timing/action → outcome.
+    from collections import defaultdict
+    cause_mid: dict[str, int] = defaultdict(int)
+    mid_out: dict[str, int] = defaultdict(int)
+
     for i in range(total):
         for pol, acts in (("baseline", base), ("smart", smart)):
             a = acts[i]
@@ -357,13 +362,22 @@ async def _batch_stream(seed: int, n: int, frames: int = 40, secs: float = 1.6):
             cum[pol]["attempts"] += a["attempts"]
             if a["outcome"] == "recovered":
                 cum[pol]["recovered"] += 1
+        s = smart[i]
+        mid = s["timing_bucket"] or s["strategy"]  # fast/short/aligned, else dun/stop
+        outc = "recovered" if s["outcome"] == "recovered" else "unrecovered"
+        cause_mid[f"{s['cause']}|{mid}"] += 1
+        mid_out[f"{mid}|{outc}"] += 1
         if i % step == 0 or i == total - 1:
-            yield _sse("progress", {"i": i + 1, "total": total,
-                                    "baseline": dict(cum["baseline"]), "smart": dict(cum["smart"])})
+            yield _sse("progress", {
+                "i": i + 1, "total": total,
+                "baseline": dict(cum["baseline"]), "smart": dict(cum["smart"]),
+                "flows": {"cause_mid": dict(cause_mid), "mid_out": dict(mid_out)},
+            })
             await asyncio.sleep(delay)
     yield _sse("done", {
         "seed": seed, "n": total, "oracle_paise": oracle,
         "policies": [_metrics_dict(metrics["baseline"]), _metrics_dict(metrics["smart"])],
+        "flows": {"cause_mid": dict(cause_mid), "mid_out": dict(mid_out)},
     })
 
 

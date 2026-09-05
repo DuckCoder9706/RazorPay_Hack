@@ -11,6 +11,7 @@ import {
   BatchPanel,
   InsightCard,
   RecoveryFlowPanel,
+  SankeyPanel,
   LearnPanel,
   ExceptionsPanel,
   ChurnPanel,
@@ -247,6 +248,7 @@ export default function App() {
           <TabsContent value="recover" className="mt-0 space-y-4 focus-visible:outline-none">
             <BatchPanel seed={seed} n={n} runId={runId} />
             <RecoveryFlowPanel seed={seed} n={n} delay={60} />
+            <SankeyPanel seed={seed} n={n} runId={runId} delay={90} />
             <ChurnPanel seed={seed} n={n} delay={120} />
           </TabsContent>
 
