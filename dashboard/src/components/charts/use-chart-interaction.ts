@@ -311,7 +311,6 @@ export function useChartInteraction({
     setSelection(null);
   }, []);
 
-  // Re-anchor tooltip/crosshair when x-scale or visible data changes (e.g. brush zoom commit).
   useEffect(() => {
     if (!canInteract || lastHoveredXRef.current === null) {
       return;

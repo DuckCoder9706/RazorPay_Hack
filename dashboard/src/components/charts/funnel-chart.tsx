@@ -14,8 +14,6 @@ import { cn } from "@/lib/utils";
 import { useEnterComplete } from "./use-enter-complete";
 import { useMountProgress } from "./use-mount-progress";
 
-// ─── Public types ───────────────────────────────────────────────────
-
 export interface FunnelGradientStop {
   offset: string | number;
   color: string;
@@ -25,14 +23,9 @@ export interface FunnelStage {
   label: string;
   value: number;
   displayValue?: string;
-  /** Override the chart-level color for this segment */
+
   color?: string;
-  /**
-   * Apply a linear gradient to this segment.
-   * Provide an array of color stops, e.g. `[{ offset: "0%", color: "#8B5CF6" }, { offset: "100%", color: "#3B82F6" }]`.
-   * When set, this takes priority over the segment and chart-level `color` for the innermost ring.
-   * Outer halo rings use the first stop color as their solid color.
-   */
+
   gradient?: FunnelGradientStop[];
 }
 
@@ -46,82 +39,52 @@ export interface FunnelChartProps {
   showPercentage?: boolean;
   showValues?: boolean;
   showLabels?: boolean;
-  /** Controlled hover state — index of the hovered segment */
+
   hoveredIndex?: number | null;
-  /** Callback when hover state changes */
+
   onHoverChange?: (index: number | null) => void;
   formatPercentage?: (pct: number) => string;
   formatValue?: (value: number) => string;
-  /** Stagger delay between segments in seconds. Default 0.12 */
+
   staggerDelay?: number;
-  /** Framer Motion transition for segment enter animation */
+
   enterTransition?: Transition;
-  /** Gap between segments in pixels. Default 4 */
+
   gap?: number;
-  /**
-   * Render a visx pattern definition. Receives a unique `id` string per segment
-   * and the resolved `color`. Return a `<PatternLines>` (or any visx pattern)
-   * inside an SVG `<defs>`. The component will use `fill="url(#id)"` on the
-   * innermost ring while keeping outer halo rings as solid color.
-   */
+
   renderPattern?: (id: string, color: string) => ReactNode;
-  /** Edge style for the funnel segments. Default "curved" */
+
   edges?: "curved" | "straight";
-  /**
-   * Controls how segment labels (value, percentage, stage name) are arranged.
-   * - "spread": Value/percentage/label are spread apart (top/center/bottom for horizontal,
-   *   left/center/right for vertical). This is the default.
-   * - "grouped": All label items stack together in a tight group.
-   *
-   * When "grouped", use `labelOrientation` and `labelAlign` for full control.
-   */
+
   labelLayout?: "spread" | "grouped";
-  /**
-   * Stack direction of the label group. Only applies when `labelLayout="grouped"`.
-   * - "vertical": Items stack top-to-bottom. Default for horizontal funnels.
-   * - "horizontal": Items stack left-to-right. Default for vertical funnels.
-   */
+
   labelOrientation?: "vertical" | "horizontal";
-  /**
-   * Where the label group sits within the segment cell.
-   * - "center" (default), "start", "end"
-   * For horizontal funnel: start=top, end=bottom.
-   * For vertical funnel: start=left, end=right.
-   */
+
   labelAlign?: "center" | "start" | "end";
-  /** Grid configuration. Pass `true` for default bands + lines, or an object for fine control. */
+
   grid?:
     | boolean
     | {
-        /** Show alternating background bands behind each segment. Default true */
+
         bands?: boolean;
-        /** Color of the background bands. Default "var(--color-muted)" */
+
         bandColor?: string;
-        /** Show grid lines at each gap between segments. Default true */
+
         lines?: boolean;
-        /** Color of the grid lines. Default "var(--chart-grid)" */
+
         lineColor?: string;
-        /** Opacity of the grid lines. Default 1 */
+
         lineOpacity?: number;
-        /** Width of the grid lines in pixels. Default 1 */
+
         lineWidth?: number;
       };
 }
-
-// ─── Defaults ───────────────────────────────────────────────────────
 
 import { intFmt } from "./chart-formatters";
 
 const fmtPct = (p: number) => `${Math.round(p)}%`;
 const fmtVal = intFmt;
 
-// ─── SVG helpers ────────────────────────────────────────────────────
-
-/**
- * Builds a single segment path for one stage in the funnel.
- * Each segment is a smooth trapezoid-like shape transitioning from
- * the height of the current norm to the next norm.
- */
 function hSegmentPath(
   normStart: number,
   normEnd: number,
@@ -165,8 +128,6 @@ function vSegmentPath(
   const right = `L ${mx + w1} ${segH} C ${mx + w1} ${segH - cy}, ${mx + w0} ${cy}, ${mx + w0} 0`;
   return `${left} ${right} Z`;
 }
-
-// ─── Animated Segment ───────────────────────────────────────────────
 
 function HRing({
   d,
@@ -590,8 +551,6 @@ function VSegment({
   );
 }
 
-// ─── Label overlay ──────────────────────────────────────────────────
-
 function SegmentLabel({
   stage,
   pct,
@@ -639,7 +598,6 @@ function SegmentLabel({
     </span>
   );
 
-  // ── Spread layout (default): items pushed to edges with center element ──
   if (layout === "spread") {
     return (
       <motion.div
@@ -684,12 +642,10 @@ function SegmentLabel({
     );
   }
 
-  // ── Grouped layout: items stacked tightly together ──
   const resolvedOrientation =
     orientation ?? (isHorizontal ? "vertical" : "horizontal");
   const isVerticalStack = resolvedOrientation === "vertical";
 
-  // Map align to flexbox alignment on the cross axes
   const justifyMap = {
     start: "justify-start",
     center: "justify-center",
@@ -701,15 +657,12 @@ function SegmentLabel({
     end: "items-end",
   } as const;
 
-  // The outer container uses the chart orientation to position the group,
-  // and the inner group uses the label orientation for stacking.
   return (
     <motion.div
       animate={{ opacity: 1 }}
       className={cn(
         "absolute inset-0 flex",
-        // For horizontal funnel, align controls vertical placement
-        // For vertical funnel, align controls horizontal placement
+
         isHorizontal
           ? cn("flex-col items-center", justifyMap[align])
           : cn("flex-row items-center", justifyMap[align])
@@ -739,8 +692,6 @@ function SegmentLabel({
     </motion.div>
   );
 }
-
-// ─── Main Component ─────────────────────────────────────────────────
 
 export function FunnelChart({
   data,
@@ -822,7 +773,6 @@ export function FunnelChart({
   const segW = (W - (horiz ? totalGap : 0)) / n;
   const segH = (H - (horiz ? 0 : totalGap)) / n;
 
-  // Resolve grid config
   const gridEnabled = gridProp !== false;
   const gridCfg = typeof gridProp === "object" ? gridProp : {};
   const showBands = gridEnabled && (gridCfg.bands ?? true);
@@ -843,7 +793,6 @@ export function FunnelChart({
     >
       {W > 0 && H > 0 && (
         <>
-          {/* Grid layer: background bands + grid lines */}
           {gridEnabled && (
             <svg
               aria-hidden="true"
@@ -852,7 +801,6 @@ export function FunnelChart({
               role="presentation"
               viewBox={`0 0 ${W} ${H}`}
             >
-              {/* Background bands — alternating on even segments */}
               {showBands &&
                 data.map((stage, i) => {
                   if (i % 2 !== 0) {
@@ -886,7 +834,6 @@ export function FunnelChart({
             </svg>
           )}
 
-          {/* Segments container — overflow-visible so hover scale is not clipped */}
           <div
             className={cn(
               "absolute inset-0 flex overflow-visible",
@@ -942,7 +889,6 @@ export function FunnelChart({
             })}
           </div>
 
-          {/* Grid lines — rendered above segments so they're visible */}
           {gridEnabled && showGridLines && (
             <svg
               aria-hidden="true"
@@ -986,8 +932,6 @@ export function FunnelChart({
             </svg>
           )}
 
-          {/* Label overlays — one per segment, positioned over each segment cell.
-              These are the hover triggers for each segment. */}
           {data.map((stage, i) => {
             const pct = (stage.value / max) * 100;
             const posStyle: CSSProperties = horiz

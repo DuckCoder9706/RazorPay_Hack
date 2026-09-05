@@ -48,10 +48,6 @@ import type {
   ReconBenchmarkResponse,
 } from "./types";
 
-// --------------------------------------------------------------------------- //
-// Provenance popover — turns any number into a click-through CITED/MODELED/
-// PREFERENCE claim with its source. The honesty doctrine, in the UI.
-// --------------------------------------------------------------------------- //
 type Tier = "cited" | "modeled" | "preference";
 const TIER: Record<Tier, { label: string; cls: string }> = {
   cited: { label: "CITED", cls: "text-money-dim border-money/30 bg-money-light" },
@@ -91,9 +87,6 @@ interface SeedProps {
   delay?: number;
 }
 
-// --------------------------------------------------------------------------- //
-// Shared primitives — clean cards, crisp borders, subtle elevation.
-// --------------------------------------------------------------------------- //
 export function Panel({
   children,
   className = "",
@@ -196,10 +189,6 @@ function Legend({ swatch, dot, label, dashed }: { swatch?: string; dot?: string;
   );
 }
 
-// --------------------------------------------------------------------------- //
-// HERO — the persuade moment: one enormous recovered figure, the three-way
-// gauge (baseline · smart · oracle ceiling), and the metrics that frame it.
-// --------------------------------------------------------------------------- //
 export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number }) {
   const stream = useBatchStream(seed, n, runId);
   const staticState = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
@@ -212,7 +201,6 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
       </Panel>
     );
 
-  // Prefer the live stream; fall back to the static fetch only if SSE never produced.
   let oracle: number, baseGross: number, smartGross: number, baseAtt: number, smartAtt: number;
   let finalBase: PolicyMetrics | undefined, finalSmart: PolicyMetrics | undefined;
   let streaming = false, progress = 1;
@@ -241,7 +229,6 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
   return (
     <Panel hero className="h-full flex flex-col justify-between">
       <div className="p-5 sm:p-6 flex flex-col justify-between h-full gap-5">
-        {/* Top: Header & Hero Value */}
         <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -269,7 +256,6 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
                 format={{ style: "currency", currency: "INR", maximumFractionDigits: 0 }}
               />
             </div>
-            {/* Playback progress */}
             <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-line" hidden={!streaming}>
               <div
                 className="h-full rounded-full bg-azure transition-[width] duration-150 ease-out"
@@ -287,9 +273,7 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
           </div>
         </div>
 
-        {/* Middle: Performance Comparison Bars (Classic Razorpay Styling) */}
         <div className="space-y-3.5 rounded-xl border border-line-soft bg-canvas/60 p-4">
-          {/* Baseline Bar (Neutral Slate - No Amber) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
@@ -306,7 +290,6 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
             </div>
           </div>
 
-          {/* Tijori Smart Bar (Razorpay Signature Emerald Mint) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
@@ -323,7 +306,6 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
             </div>
           </div>
 
-          {/* Clean Benchmark Row */}
           <div className="flex items-center justify-between border-t border-line-soft pt-2.5 text-[11px]">
             <span className="flex items-center gap-1.5 text-faint font-medium">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-azure" />
@@ -333,7 +315,6 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
           </div>
         </div>
 
-        {/* Bottom: 3 Executive KPI Mini Cards */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <div className="card-hover-lift rounded-xl border border-line-soft bg-white p-3 shadow-xs hover:border-line transition-all">
             <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-faint truncate">Recovery Rate</p>
@@ -370,9 +351,6 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
   );
 }
 
-// --------------------------------------------------------------------------- //
-// Insight — one gradient narrative card (the F1 / efficiency story)
-// --------------------------------------------------------------------------- //
 export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
   const batch = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
   const learn = useApi<LearnResponse>(`/learn?seed=${seed}&n=${n}&batches=5`, [seed, n]);
@@ -431,9 +409,6 @@ export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
   );
 }
 
-// --------------------------------------------------------------------------- //
-// R · routing — live bklit Sankey: cause → timing/action → outcome
-// --------------------------------------------------------------------------- //
 const CAUSE_LABEL: Record<string, string> = {
   insufficient_funds: "Insufficient Funds",
   issuer_soft_decline: "Issuer Soft Decline",
@@ -593,9 +568,6 @@ export function SankeyPanel({
   );
 }
 
-// --------------------------------------------------------------------------- //
-// R · recovery flow — bklit Funnel (₹ cascade) + Gauge (efficiency dial)
-// --------------------------------------------------------------------------- //
 export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
   const { data, error } = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
   if (!data)
@@ -667,9 +639,6 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
   );
 }
 
-// --------------------------------------------------------------------------- //
-// F1 — reconciliation as ground truth. The novel core → given prominence.
-// --------------------------------------------------------------------------- //
 export function LearnPanel({ seed, n, delay }: SeedProps) {
   const { data, error } = useApi<LearnResponse>(`/learn?seed=${seed}&n=${n}&batches=5`, [seed, n]);
   if (!data)
@@ -758,7 +727,6 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
   );
 }
 
-
 function RowKV({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between py-2.5">
@@ -768,9 +736,6 @@ function RowKV({ term, children }: { term: string; children: ReactNode }) {
   );
 }
 
-// --------------------------------------------------------------------------- //
-// W — 3-way reconciliation: typed exceptions + netting
-// --------------------------------------------------------------------------- //
 const EXC: Record<ExceptionType, { dot: string; text: string; bg: string }> = {
   fee: { dot: "bg-azure", text: "text-azure", bg: "bg-azure-light" },
   timing: { dot: "bg-violet", text: "text-violet", bg: "bg-violet/10" },
@@ -843,9 +808,6 @@ export function ExceptionsPanel({ seed, n, delay }: SeedProps) {
   );
 }
 
-// --------------------------------------------------------------------------- //
-// W · Multi-Infrastructure Reconciliation & Competitor Benchmark
-// --------------------------------------------------------------------------- //
 const INFRA_BADGE: Record<string, { label: string; cls: string; bar: string }> = {
   active: {
     label: "ACTIVE SYSTEM",
@@ -872,9 +834,6 @@ const INFRA_BADGE: Record<string, { label: string; cls: string; bar: string }> =
 export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
   const [selectedId, setSelectedId] = useState<string>("tijori");
 
-  // Single source of truth: the backend benchmark endpoint. Every competitor number it
-  // returns is researched + cited (see each row's basis / source_note); the trend is
-  // measured across real sub-batches. No competitor data is invented in the frontend.
   const benchmarkApi = useApi<ReconBenchmarkResponse>(`/reconciliation/benchmarks?seed=${seed}&n=${n}`, [seed, n]);
 
   if (!benchmarkApi.data) {
@@ -897,7 +856,6 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
 
   const selectedInfra = infrastructures.find((i) => i.id === selectedId) || infrastructures[0];
 
-  // Derive leakage amounts for each infrastructure from live volume + its (cited) bps.
   const leakageMap: Record<string, number> = Object.fromEntries(
     infrastructures.map((i) => [
       i.id,
@@ -909,7 +867,6 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
   const tijoriLeakage = leakageMap["tijori"] ?? 0;
   const tijoriSavingsVsDefault = defaultLeakage - tijoriLeakage;
 
-  // Live-derived captions (previously hardcoded "+15.2%", "−96%", "0.6% vs 15.8%", "1.42%").
   const recRateDeltaPP = defaultInfra ? (tijoriRate - defaultInfra.reconciliation_rate) * 100 : 0;
   const manualReducedPct = defaultInfra && defaultInfra.manual_touch_pct
     ? Math.round((1 - tijoriInfra.manual_touch_pct / defaultInfra.manual_touch_pct) * 100)
@@ -925,7 +882,6 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
       />
 
       <div className="px-5 sm:px-6 space-y-6">
-        {/* 1. Top Executive Summary KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
@@ -959,7 +915,6 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
           </div>
         </div>
 
-        {/* 2. Interactive Multidimensional Architecture Visualizer (3D Isometric Radar & Velocity Trend) */}
         <ReconBenchmarkVisualizer
           infrastructures={infrastructures}
           selectedId={selectedId}
@@ -971,7 +926,6 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
           tijoriSavingsVsDefault={tijoriSavingsVsDefault}
         />
 
-        {/* 4. Bottom Authoritative Infrastructure Statement */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft pt-4 text-xs text-dim">
           <p className="text-[11.5px] text-faint leading-relaxed max-w-3xl">
             Tijori’s three-way reconciliation sensor matches <strong className="text-navy font-semibold">Gateway Telemetry ↔ Bank Statements ↔ Merchant Orders</strong> deterministically and in-process (no network or model call in the scored path), eliminating the {defaultLeakagePctText}% revenue leakage modeled for standard T+2 batch reconciliation.
@@ -985,9 +939,6 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
   );
 }
 
-// --------------------------------------------------------------------------- //
-// F3 — cost/churn sensitivity sweep (Clean Razorpay Comparison Styling)
-// --------------------------------------------------------------------------- //
 export function ChurnPanel({ seed, n, delay }: SeedProps) {
   const { data, error } = useApi<ChurnResponse>(`/churn?seed=${seed}&n=${n}`, [seed, n]);
   if (!data)
@@ -1032,7 +983,6 @@ export function ChurnPanel({ seed, n, delay }: SeedProps) {
                 </div>
               </div>
               <div className="space-y-1.5">
-                {/* Baseline bar (neutral Slate) */}
                 <div className="flex items-center gap-2">
                   <span className="w-16 shrink-0 font-mono text-[10px] uppercase text-faint">Baseline</span>
                   <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-line/60">
@@ -1045,7 +995,6 @@ export function ChurnPanel({ seed, n, delay }: SeedProps) {
                     {rupees(r.baseline_net)}
                   </span>
                 </div>
-                {/* Smart bar (Razorpay Blue) */}
                 <div className="flex items-center gap-2">
                   <span className="w-16 shrink-0 font-mono text-[10px] font-semibold uppercase text-azure">Tijori</span>
                   <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-line/60">
@@ -1082,9 +1031,6 @@ export function ChurnPanel({ seed, n, delay }: SeedProps) {
   );
 }
 
-// --------------------------------------------------------------------------- //
-// Outcome model — WORLD vs BELIEF, the injected wrong prior highlighted
-// --------------------------------------------------------------------------- //
 export function OutcomeModelPanel({ delay }: { delay?: number }) {
   const { data, error } = useApi<OutcomeModelResponse>(`/outcome-model`, []);
   if (!data)
@@ -1144,9 +1090,6 @@ export function OutcomeModelPanel({ delay }: { delay?: number }) {
   );
 }
 
-// --------------------------------------------------------------------------- //
-// Append-only audit trail — Executive Report + Interactive Log Explorer
-// --------------------------------------------------------------------------- //
 const ACTOR_META: Record<string, { label: string; badge: string }> = {
   R: { label: "Recovery Actuator", badge: "text-azure border-azure/30 bg-azure-light font-semibold" },
   W: { label: "Recon Sensor", badge: "text-money-dim border-money/30 bg-money-light font-semibold" },
@@ -1176,7 +1119,6 @@ function AuditLogRow({ event }: { event: AuditEvent }) {
         </span>
         <span className="font-semibold text-navy text-xs shrink-0">{event.event}</span>
 
-        {/* Formatted payload chips */}
         <div className="flex-1 flex flex-wrap items-center gap-1.5 min-w-0">
           {amountPaise != null && (
             <span className="rounded bg-navy/5 px-1.5 py-0.5 font-mono text-[11px] font-bold text-navy">
@@ -1290,7 +1232,6 @@ export function AuditPanel({
         tagTone="azure"
       />
 
-      {/* SECTION 1: EXECUTIVE AUDIT REPORT */}
       <div className="border-b border-line-soft bg-surface/60 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
@@ -1331,9 +1272,7 @@ export function AuditPanel({
         </div>
       </div>
 
-      {/* SECTION 2: INTERACTIVE EVENT LOG EXPLORER */}
       <div className="p-4 sm:p-5 space-y-3">
-        {/* Active Filter Notification Banner if linked from Sankey */}
         {(search || actorFilter !== "all") && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-azure/30 bg-azure-light/60 px-3.5 py-2 text-xs font-semibold text-azure animate-in fade-in slide-in-from-top-1">
             <div className="flex items-center gap-2">
@@ -1389,7 +1328,6 @@ export function AuditPanel({
               </button>
             ))}
           </div>
-          {/* Search box */}
           <div className="relative w-full sm:w-56">
             <input
               type="text"
@@ -1401,7 +1339,6 @@ export function AuditPanel({
           </div>
         </div>
 
-        {/* Log table */}
         <div className="max-h-80 overflow-auto rounded-xl border border-line-soft bg-white shadow-sm">
           {filteredEvents.length === 0 ? (
             <div className="p-8 text-center text-xs text-faint">No matching audit events found.</div>
@@ -1416,9 +1353,6 @@ export function AuditPanel({
   );
 }
 
-// --------------------------------------------------------------------------- //
-// D3 · the one live test-mode path — a real Razorpay Payment Link, polled
-// --------------------------------------------------------------------------- //
 function LinkRow({ k, children }: { k: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline gap-3">
@@ -1484,7 +1418,6 @@ export function RazorpayPanel({
     } catch {}
   };
 
-  // Poll status until the link is paid (the created → paid moment, live on screen).
   useEffect(() => {
     if (!link?.id || link.status === "paid") return;
     const t = setInterval(async () => {
@@ -1493,7 +1426,7 @@ export function RazorpayPanel({
         const d: RazorpayLink = await r.json();
         if (d.ok) setLink((prev) => (prev ? { ...prev, status: d.status, live: d.live } : d));
       } catch {
-        /* transient */
+
       }
     }, 2500);
     return () => clearInterval(t);
@@ -1519,7 +1452,6 @@ export function RazorpayPanel({
                 </p>
               </div>
 
-              {/* Quick / Custom Amount Selector */}
               <div className="pt-2">
                 <label className="block text-[11px] font-semibold uppercase tracking-wide text-faint mb-1.5">
                   Amount
@@ -1700,9 +1632,6 @@ export function RazorpayPanel({
   );
 }
 
-// --------------------------------------------------------------------------- //
-// Verification — "see for yourself": determinism proof & bounds
-// --------------------------------------------------------------------------- //
 function Assurance({ icon: Icon, title, children }: { icon: typeof Check; title: string; children: ReactNode }) {
   return (
     <div className="flex gap-3 p-4">
@@ -1795,9 +1724,6 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
   );
 }
 
-// --------------------------------------------------------------------------- //
-// Front-Page Ingestion Summary Card (Navigates to dedicated tab upon click)
-// --------------------------------------------------------------------------- //
 export function PipelineSummaryCard({
   seed,
   n,
@@ -1873,9 +1799,6 @@ export function PipelineSummaryCard({
   );
 }
 
-// --------------------------------------------------------------------------- //
-// Dedicated Data Ingestion & Backend Pipeline Surface
-// --------------------------------------------------------------------------- //
 const COHORT_BADGE: Record<string, { label: string; cls: string }> = {
   high: { label: "High Value (15%)", cls: "bg-amber/15 text-amber border-amber/30 font-bold" },
   mid: { label: "Mid Value (35%)", cls: "bg-azure-light text-azure border-azure/30 font-semibold" },
@@ -1904,7 +1827,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
 
   return (
     <Panel delay={delay} className="space-y-6">
-      {/* 1. Header & Determinism Info */}
       <Head
         title="Data Ingestion & Ledger Pipeline"
         tag={`Seed ${seed} · ${n} Transactions Ingested`}
@@ -1912,7 +1834,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
       />
 
       <div className="px-5 sm:px-6 space-y-6">
-        {/* 2. Infrastructure Provenance KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
@@ -1940,7 +1861,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
           </div>
         </div>
 
-        {/* 3. Interactive Infrastructure Architecture Map */}
         <div className="rounded-2xl border border-line-soft bg-canvas/60 p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -1955,7 +1875,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-3">
-            {/* Column 1: Source Ingestion Streams */}
             <div className="space-y-2 rounded-xl border border-line-soft bg-white p-3.5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-line-soft pb-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded bg-azure text-white text-[10px] font-bold">1</span>
@@ -1989,7 +1908,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
               </div>
             </div>
 
-            {/* Column 2: Tijori Storage & Ledger */}
             <div className="space-y-2 rounded-xl border border-azure/30 bg-azure-light/20 p-3.5 shadow-sm flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-2 border-b border-azure/20 pb-2">
@@ -2017,7 +1935,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
               </div>
             </div>
 
-            {/* Column 3: Processing Engines */}
             <div className="space-y-2 rounded-xl border border-line-soft bg-white p-3.5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-line-soft pb-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded bg-money text-white text-[10px] font-bold">3</span>
@@ -2041,7 +1958,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
           </div>
         </div>
 
-        {/* 4. Interactive Stream Inspector */}
         <div className="rounded-2xl border border-line-soft bg-white p-4 sm:p-5 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line-soft pb-3">
             <div className="flex items-center gap-2 flex-wrap">
@@ -2101,10 +2017,8 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
             )}
           </div>
 
-          {/* Sub-view 1: Customer Cohorts & Failures */}
           {activeSubTab === "cohorts" && (
             <div className="space-y-3">
-              {/* Cohort Distribution Bar */}
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-xl border border-amber/30 bg-amber/5 p-3">
                   <div className="flex items-center justify-between">
@@ -2129,7 +2043,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
                 </div>
               </div>
 
-              {/* Data Table */}
               <div className="max-h-80 overflow-auto rounded-xl border border-line-soft">
                 <table className="w-full text-left font-mono text-[11px]">
                   <thead className="sticky top-0 bg-raised text-[10px] uppercase tracking-wide text-faint border-b border-line-soft">
@@ -2172,7 +2085,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
             </div>
           )}
 
-          {/* Sub-view 2: Bank Statement & Settlement Substrate */}
           {activeSubTab === "substrate" && (
             <div className="space-y-3">
               <p className="text-xs text-dim">
@@ -2225,7 +2137,6 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
             </div>
           )}
 
-          {/* Sub-view 3: Ground-Truth Injected Anomalies */}
           {activeSubTab === "anomalies" && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
@@ -2274,4 +2185,3 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
     </Panel>
   );
 }
-

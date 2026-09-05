@@ -113,9 +113,16 @@ export default function App() {
     window.history.replaceState(null, "", `?${p.toString()}`);
   }, [seed, n, tab]);
 
-  const apply = () => {
+  const applyTyped = () => {
     const s = parseInt(draftSeed, 10);
     if (!Number.isNaN(s)) setSeed(s);
+    setRunId((r) => r + 1);
+  };
+
+  const run = () => {
+    const s = Math.floor(Math.random() * 1_000_000);
+    setSeed(s);
+    setDraftSeed(String(s));
     setRunId((r) => r + 1);
   };
 
@@ -131,13 +138,11 @@ export default function App() {
     <div className="min-h-screen bg-canvas text-ink">
       {!entered && <IntroSplash onEnter={() => setEntered(true)} />}
 
-      {/* Top Scroll-driven Progress Indicator */}
       <motion.div
         className="fixed top-0 left-0 right-0 z-50 h-[2.5px] origin-left bg-gradient-to-r from-azure via-emerald-500 to-azure pointer-events-none"
         style={{ scaleX }}
       />
 
-      {/* Primary Clean Enterprise Header with Dynamic Scroll Elevation */}
       <header
         className={`sticky top-0 z-30 transition-all duration-250 ${
           isScrolled
@@ -146,7 +151,6 @@ export default function App() {
         }`}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5">
-          {/* Brand Identity & Live API Status */}
           <div className="flex items-center gap-3 shrink-0">
             <motion.span
               whileHover={{ rotate: 10, scale: 1.06 }}
@@ -167,7 +171,6 @@ export default function App() {
                 Autonomous Revenue Recovery
               </span>
             </div>
-            {/* Live API status cleanly anchored next to brand */}
             <div className="flex items-center gap-1.5 rounded-full border border-line bg-slate-50/90 px-2.5 py-0.5 text-xs">
               <span
                 className={`h-2 w-2 rounded-full ${
@@ -180,11 +183,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Unified Simulation Toolbar & Actions */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Grouped Seed + Batch + Run Toolbar */}
             <div className="inline-flex items-center rounded-xl border border-line/90 bg-slate-50/90 p-1 shadow-xs">
-              {/* Seed */}
               <div className="flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 border border-line/80 shadow-2xs">
                 <label htmlFor="seed" className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Seed
@@ -193,7 +193,7 @@ export default function App() {
                   id="seed"
                   value={draftSeed}
                   onChange={(e) => setDraftSeed(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && apply()}
+                  onKeyDown={(e) => e.key === "Enter" && applyTyped()}
                   inputMode="numeric"
                   className="w-10 bg-transparent text-center font-mono text-xs font-bold text-navy outline-none"
                 />
@@ -201,7 +201,6 @@ export default function App() {
 
               <div className="mx-1 h-4 w-px bg-slate-200" />
 
-              {/* Batch Size */}
               <div className="flex items-center gap-0.5">
                 <span className="hidden xl:inline px-1 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Batch
@@ -224,18 +223,17 @@ export default function App() {
 
               <div className="mx-1 h-4 w-px bg-slate-200" />
 
-              {/* Run Button with Micro-tap Physics */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.96 }}
-                onClick={apply}
+                onClick={run}
+                title="Run a fresh batch on a new random seed"
                 className="rounded-lg bg-navy hover:bg-navy-light px-3.5 py-1 text-xs font-semibold text-white shadow-xs transition-colors"
               >
                 Run
               </motion.button>
             </div>
 
-            {/* Copy Permalink */}
             <motion.button
               whileTap={{ scale: 0.92 }}
               onClick={copyLink}
@@ -245,7 +243,6 @@ export default function App() {
               {copied ? <Check className="h-3.5 w-3.5 text-money" /> : <Link2 className="h-3.5 w-3.5" />}
             </motion.button>
 
-            {/* Glossary Popover */}
             <Popover>
               <PopoverTrigger asChild>
                 <button
@@ -273,10 +270,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Container */}
       <main className="mx-auto max-w-7xl px-5 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          {/* Condensed tab bar with animated sliding active pill */}
           <div className="mb-6 w-full">
             <TabsList className="relative flex h-auto w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-line/80 bg-white/95 p-1.5 shadow-sm backdrop-blur-md">
               {TABS.map((t) => {
@@ -318,7 +313,6 @@ export default function App() {
             </TabsList>
           </div>
 
-          {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="mt-0 space-y-6 focus-visible:outline-none">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -326,7 +320,6 @@ export default function App() {
               transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-6"
             >
-              {/* Top Stage: Recovery Performance (Left 7) + Live Sandbox Testing (Right 5) */}
               <div className="grid gap-5 lg:grid-cols-12 items-stretch">
                 <div className="lg:col-span-7 flex flex-col">
                   <BatchPanel seed={seed} n={n} runId={runId} />
@@ -336,7 +329,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* LIVE SANKEY ROUTING & SETTLEMENT RECONCILIATION FLOW */}
               <SankeyPanel
                 seed={seed}
                 n={n}
@@ -345,15 +337,12 @@ export default function App() {
                 onNavigateToLedger={handleNavigateToLedger}
               />
 
-              {/* Ingestion Pipeline Interactive Summary Card */}
               <PipelineSummaryCard seed={seed} n={n} onNavigate={() => setTab("pipeline")} />
 
-              {/* Lower Analytics Stage */}
               <div className="grid gap-5 lg:grid-cols-12">
                 <div className="lg:col-span-5 flex">
                   <InsightCard seed={seed} n={n} delay={40} />
                 </div>
-                {/* Staggered Drawer Tiles Container */}
                 <motion.div
                   initial="hidden"
                   whileInView="visible"
@@ -381,7 +370,6 @@ export default function App() {
             </motion.div>
           </TabsContent>
 
-          {/* DEDICATED LIVE SANDBOX TAB */}
           <TabsContent value="live" className="mt-0 focus-visible:outline-none">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -393,7 +381,6 @@ export default function App() {
             </motion.div>
           </TabsContent>
 
-          {/* DEDICATED DATA INGESTION & PIPELINE TAB */}
           <TabsContent value="pipeline" className="mt-0 focus-visible:outline-none">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -405,7 +392,6 @@ export default function App() {
             </motion.div>
           </TabsContent>
 
-          {/* RECOVER TAB */}
           <TabsContent value="recover" className="mt-0 focus-visible:outline-none">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -419,7 +405,6 @@ export default function App() {
             </motion.div>
           </TabsContent>
 
-          {/* RECONCILE TAB */}
           <TabsContent value="reconcile" className="mt-0 focus-visible:outline-none">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -433,7 +418,6 @@ export default function App() {
             </motion.div>
           </TabsContent>
 
-          {/* LEARN TAB */}
           <TabsContent value="learn" className="mt-0 focus-visible:outline-none">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -444,7 +428,6 @@ export default function App() {
             </motion.div>
           </TabsContent>
 
-          {/* VERIFY TAB */}
           <TabsContent value="verify" className="mt-0 focus-visible:outline-none">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -455,7 +438,6 @@ export default function App() {
             </motion.div>
           </TabsContent>
 
-          {/* LEDGER TAB */}
           <TabsContent value="ledger" className="mt-0 focus-visible:outline-none">
             <motion.div
               initial={{ opacity: 0, y: 12 }}

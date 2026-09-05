@@ -1,11 +1,3 @@
-"""Build + persist the seeded populations.
-
-`build_batch` is the pure data step (uses independent RNG substreams — reproducibility
-#1). `seed_ledger` persists it and logs one append-only audit event. `batch_fingerprint`
-gives a stable content hash for golden-snapshot testing (#2). Same seed -> identical
-everything.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -23,10 +15,7 @@ from tijori.simulator.generator import (
 )
 from tijori.simulator.rng import make_streams
 
-
 def build_batch(seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, n_mandate: int | None = None) -> dict:
-    """Pure data build — no DB. Each population draws from its OWN substream (#1),
-    so adding a draw in one population never perturbs the others."""
     streams = make_streams(seed)
     n_mandate = n_mandate if n_mandate is not None else max(10, n // 10)
     return {
@@ -37,9 +26,7 @@ def build_batch(seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, n_mandate
         "substrate": generate_settlement_substrate(n, streams.substrate),
     }
 
-
 def summarise(batch: dict) -> dict:
-    """Deterministic summary of a built batch (counts, cause mix, ₹ at risk, injected)."""
     failures = batch["failures"]
     cause_mix = Counter(f["cause"] for f in failures)
     return {
@@ -53,14 +40,11 @@ def summarise(batch: dict) -> dict:
         "injected_exceptions": {k: len(v) for k, v in batch["substrate"]["injected"].items()},
     }
 
-
 def batch_fingerprint(seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE) -> str:
-    """Stable SHA-256 over the built batch content (golden-snapshot anchor, #2)."""
     batch = build_batch(seed, n)
     payload = {k: batch[k] for k in ("seed", "n", "failures", "mandates", "substrate")}
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
-
 
 def seed_ledger(
     conn: sqlite3.Connection,
@@ -70,7 +54,6 @@ def seed_ledger(
     n_mandate: int | None = None,
     commit: bool = True,
 ) -> dict:
-    """Populate the ledger for one reproducible batch. Returns the summary dict."""
     batch = build_batch(seed, n, n_mandate)
     failures, mandates, substrate = batch["failures"], batch["mandates"], batch["substrate"]
 

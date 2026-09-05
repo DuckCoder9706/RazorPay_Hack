@@ -1,14 +1,3 @@
-"""Executor: run a policy over the failure batch, draw outcomes from WORLD, persist
-recovery_actions + audit.
-
-R plans on BELIEF but the realized outcome is drawn from WORLD via a policy-independent
-keyed uniform (simulator.rng.uniform) — so baseline and smart face identical luck.
-One recovery_actions row per failure records the terminal path (cause, timing used,
-predicted prob, outcome, ₹ recovered, net value).
-
-Scope: one-time failures (HERO). The mandate branch (DEMO) reuses this loop later.
-"""
-
 from __future__ import annotations
 
 import sqlite3
@@ -32,7 +21,6 @@ from tijori.simulator.rng import uniform
 
 _TS = EPOCH.isoformat()
 
-
 def _load_onetime_failures(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute(
         "SELECT p.id AS pid, p.amount AS amount, p.reason_code AS reason,"
@@ -43,27 +31,21 @@ def _load_onetime_failures(conn: sqlite3.Connection) -> list[dict]:
     ).fetchall()
     return [dict(r) for r in rows]
 
-
 def _decide(policy: str, cause: Cause, amount: int, attempt: int, cv: str,
             c_retry: int, c_churn: int, belief: dict[Cause, dict[Timing, float]]) -> Decision:
     if policy == "smart":
         return choose_smart(cause, amount, attempt, cv, belief=belief, c_retry=c_retry, c_churn=c_churn)
     return choose_baseline(cause, attempt)
 
-
 def run_policy(
     conn: sqlite3.Connection, *, seed: int, policy: str,
     c_retry: int = C_RETRY_PAISE, c_churn: int = C_CHURN_PAISE,
     belief: dict[Cause, dict[Timing, float]] | None = None, commit: bool = True,
 ) -> list[dict]:
-    """Execute `policy` ('baseline'|'smart') over the one-time failure batch. Returns
-    the recovery_action rows and persists them. c_churn overridable for the F3 sweep;
-    belief overridable so F1 can feed a recalibrated table across batches."""
     belief = belief if belief is not None else BELIEF_TABLE
     failures = _load_onetime_failures(conn)
     actions: list[dict] = []
 
-    # Record the effective (possibly env-overridden) policy config — nothing hidden.
     audit_append(conn, ts=_TS, actor="R", event=f"policy_config:{policy}",
                  payload={"c_retry_paise": c_retry, "c_churn_paise": c_churn,
                           "net_value_floor_paise": NET_VALUE_FLOOR_PAISE,
@@ -93,8 +75,7 @@ def run_policy(
                     recovered = True
                     break
                 continue
-            # terminal decision
-            strategy = decision.action.value  # dun | stop
+            strategy = decision.action.value
             break
 
         if recovered:
@@ -137,7 +118,5 @@ def run_policy(
         conn.commit()
     return actions
 
-
-# --- DEMO branch placeholder (reuses the same loop over subscriptions) ---
 def run_mandate_policy(conn: sqlite3.Connection, *, seed: int, policy: str) -> list[dict]:
     raise NotImplementedError("Week 2b · mandate DEMO branch (reuses run_policy loop)")

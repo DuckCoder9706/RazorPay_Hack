@@ -1,14 +1,3 @@
-"""Multi-seed sweep (increase to more batches).
-
-Runs the seeded batch across a fixed list of seeds, in-memory for speed, and aggregates
-data-level metrics: ₹-at-risk distribution, cause-mix stability, retryable/terminal
-split, and pooled per-cause counts (which tell us whether F1 calibration cells will be
-dense enough at scale). The seed list is fixed, so the whole sweep is reproducible.
-
-NOTE: this reports DATA metrics (what exists pre-R/W). Scored business metrics
-(₹ recovered, regret, calibration drift) arrive once R and W run in Week 2-3.
-"""
-
 from __future__ import annotations
 
 import statistics
@@ -17,20 +6,15 @@ from collections import Counter, defaultdict
 from tijori.config.constants import DEFAULT_BATCH_SIZE, Cause, is_retryable
 from tijori.simulator.seed import build_batch, summarise
 
-
 def default_seeds(k: int) -> list[int]:
-    """A fixed, reproducible seed list: 1000, 1001, ... 1000+k-1."""
     return list(range(1000, 1000 + k))
-
 
 def _mean_std(xs: list[float]) -> tuple[float, float]:
     if not xs:
         return 0.0, 0.0
     return statistics.fmean(xs), (statistics.pstdev(xs) if len(xs) > 1 else 0.0)
 
-
 def run_sweep(seeds: list[int], n: int = DEFAULT_BATCH_SIZE) -> dict:
-    """Build a batch per seed and aggregate data metrics. Pure/in-memory — no DB writes."""
     summaries: list[dict] = []
     pooled_causes: Counter = Counter()
     per_cause_counts: dict[str, list[int]] = defaultdict(list)
@@ -44,9 +28,8 @@ def run_sweep(seeds: list[int], n: int = DEFAULT_BATCH_SIZE) -> dict:
             per_cause_counts[cause].append(cnt)
 
     at_risk = [s["total_at_risk_paise"] for s in summaries]
-    ar_mean, ar_std = _mean_std([x / 100 for x in at_risk])  # rupees
+    ar_mean, ar_std = _mean_std([x / 100 for x in at_risk])
 
-    # cause-mix share stability across seeds
     cause_share_stats: dict[str, dict] = {}
     total_fail = sum(s["n_onetime_failures"] for s in summaries)
     for cause in (c.value for c in Cause):

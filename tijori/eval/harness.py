@@ -1,10 +1,3 @@
-"""The batch runner.
-
-run_batch(seed, n): seed the ledger, run baseline + smart over the SAME failures with the
-SAME keyed WORLD luck, compute the distributional-oracle ceiling (F2), and return the
-metrics table. Fully reproducible: same (seed, n) -> identical numbers.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -23,7 +16,6 @@ from tijori.recover.diagnose import diagnose
 from tijori.recover.executor import run_policy
 from tijori.simulator.seed import seed_ledger
 
-
 @dataclass(slots=True)
 class BatchResult:
     seed: int
@@ -32,9 +24,7 @@ class BatchResult:
     at_risk_paise: int = 0
     metrics: dict[str, BatchMetrics] = field(default_factory=dict)
 
-
 def _oracle_ceiling(conn, seed: int) -> int:
-    """Clairvoyant-timing reachable maximum under identical luck (F2). A true ceiling."""
     rows = conn.execute(
         "SELECT p.id AS pid, p.amount AS amount, p.reason_code AS reason "
         "FROM payments p WHERE p.status='failed' AND p.id LIKE 'pay_f%'"
@@ -45,12 +35,10 @@ def _oracle_ceiling(conn, seed: int) -> int:
             total += r["amount"]
     return total
 
-
 def run_batch(
     seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, *, db_path: str | None = None,
     c_retry: int = C_RETRY_PAISE, c_churn: int = C_CHURN_PAISE,
 ) -> BatchResult:
-    """Run one fully-reproducible scored batch. Persists to db_path if given, else memory."""
     if db_path is None:
         conn = memory_db()
     else:
@@ -72,15 +60,10 @@ def run_batch(
     finally:
         conn.close()
 
-
 def learning_run(
     seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, batches: int = 5,
     *, recalibrate_on: bool = True,
 ) -> list[dict]:
-    """F1 demo: run `batches` cohorts, threading one BELIEF that W recalibrates from
-    reconciled outcomes after each batch. Returns a per-batch trajectory showing the
-    issuer_soft timing flipping back to optimal and regret shrinking as BELIEF -> WORLD.
-    """
     from tijori.config.constants import Cause
     from tijori.simulator.belief import Belief
     from tijori.where.calibration import build_report, mean_brier, recalibrate
@@ -89,7 +72,7 @@ def learning_run(
     belief = Belief()
     traj: list[dict] = []
     for b in range(batches):
-        s = seed + b  # a fresh cohort each batch = accumulating real experience
+        s = seed + b
         conn = memory_db()
         try:
             seed_ledger(conn, seed=s, n=n)
@@ -112,12 +95,9 @@ def learning_run(
             conn.close()
     return traj
 
-
 def churn_sweep(
     seed: int = DEFAULT_SEED, n: int = DEFAULT_BATCH_SIZE, churns: tuple[int, ...] | None = None
 ) -> list[dict]:
-    """F3 sensitivity: run the scored batch across a range of churn costs and report the
-    smart-vs-baseline outcome at each. Shows the ranking is robust, not tuned to one guess."""
     from tijori.config.constants import CHURN_SWEEP_PAISE
 
     churns = churns if churns is not None else CHURN_SWEEP_PAISE

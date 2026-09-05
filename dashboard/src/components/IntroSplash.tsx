@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 
-// Full-screen branded entrance. Presenter-controlled: the boot steps tick through real
-// system stages, then an "Enter Dashboard" CTA reveals. Skip is always available for
-// re-records. On enter it fades/scales out, then unmounts (onEnter) to reveal the app.
 const STEPS = [
   "Seeding deterministic ledger",
   "Scoring recovery batch",
@@ -11,7 +8,7 @@ const STEPS = [
   "Verifying SHA-256 determinism",
 ];
 
-const STEP_MS = 520; // per-step cadence
+const STEP_MS = 520;
 
 export function IntroSplash({ onEnter }: { onEnter: () => void }) {
   const [step, setStep] = useState(0);
@@ -26,7 +23,7 @@ export function IntroSplash({ onEnter }: { onEnter: () => void }) {
 
   const enter = () => {
     setLeaving(true);
-    setTimeout(onEnter, 620); // match the fade-out duration below
+    setTimeout(onEnter, 620);
   };
 
   return (
@@ -38,11 +35,9 @@ export function IntroSplash({ onEnter }: { onEnter: () => void }) {
       role="dialog"
       aria-label="Tijori — entering dashboard"
     >
-      {/* Ambient glow orbs */}
       <div className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/20 blur-3xl" />
 
-      {/* Skip */}
       <button
         onClick={enter}
         className="absolute right-5 top-5 rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm transition-colors hover:bg-white/20"
@@ -51,14 +46,12 @@ export function IntroSplash({ onEnter }: { onEnter: () => void }) {
       </button>
 
       <div className="relative flex w-full max-w-md flex-col items-center px-6 text-center">
-        {/* Logo mark */}
         <div
           className="grid h-16 w-16 place-items-center rounded-2xl bg-white/15 font-mono text-3xl font-bold text-white shadow-2xl ring-1 ring-inset ring-white/30 backdrop-blur-sm animate-in zoom-in-75 fade-in duration-700"
         >
           ₹
         </div>
 
-        {/* Wordmark + tagline */}
         <h1 className="mt-5 text-4xl font-bold tracking-tight animate-in slide-in-from-bottom-2 fade-in duration-700" style={{ animationDelay: "120ms" }}>
           Tijori
         </h1>
@@ -66,7 +59,6 @@ export function IntroSplash({ onEnter }: { onEnter: () => void }) {
           Autonomous Revenue Recovery for Razorpay
         </p>
 
-        {/* Boot steps */}
         <ul className="mt-8 w-full space-y-2.5 text-left">
           {STEPS.map((label, i) => {
             const done = i < step;
@@ -99,7 +91,6 @@ export function IntroSplash({ onEnter }: { onEnter: () => void }) {
           })}
         </ul>
 
-        {/* Enter CTA — appears once boot completes */}
         <div className="mt-8 h-12 w-full">
           {ready && (
             <button

@@ -11,7 +11,6 @@ import {
   useSankey,
 } from "./sankey-context";
 
-// Helper to get node index from link source/target
 type NodeOrIndex = SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum> | number;
 
 export type SankeyLabelOrientation = "horizontal" | "vertical";
@@ -24,28 +23,24 @@ function getNodeIndex(nodeOrIndex: NodeOrIndex): number | undefined {
 }
 
 export interface SankeyNodeProps {
-  /** Fill color for nodes. Default: uses theme colors */
+
   fill?: string;
-  /** Corner radius for nodes. Default: 4 */
+
   lineCap?: number;
-  /** Opacity when another node/link is hovered. Default: 0.4 */
+
   fadedOpacity?: number;
-  /** Show node labels. Default: true */
+
   showLabels?: boolean;
-  /** Show value labels under node names. Default: true */
+
   showValueLabels?: boolean;
-  /**
-   * Label reading direction for outside node labels.
-   * - "horizontal": labels sit left/right of nodes (default).
-   * - "vertical": labels rotate 90° and read along the node edge.
-   */
+
   labelOrientation?: SankeyLabelOrientation;
-  /** Custom node color function */
+
   getNodeColor?: (
     node: SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum>,
     index: number
   ) => string;
-  /** Click handler for node selection */
+
   onNodeClick?: (
     node: SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum>,
     index: number
@@ -360,7 +355,6 @@ export function SankeyNode({
     animationDuration,
   } = useSankey();
 
-  // Default colors using CSS variables
   const defaultColors = useMemo(
     () => [
       "var(--chart-1)",
@@ -372,7 +366,6 @@ export function SankeyNode({
     []
   );
 
-  // Get color for a node
   const getColor = useCallback(
     (
       node: SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum>,
@@ -390,7 +383,6 @@ export function SankeyNode({
     [fill, getNodeColorProp, defaultColors]
   );
 
-  // Check if a node is connected to the hovered element
   const isNodeConnected = useCallback(
     (nodeIndex: number) => {
       if (hoveredNodeIndex !== null) {

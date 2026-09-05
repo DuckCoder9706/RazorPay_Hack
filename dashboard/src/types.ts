@@ -1,6 +1,3 @@
-// Typed shapes for every read-only endpoint the dashboard consumes. Kept in one
-// place so panels and hooks share one contract with tijori/api/app.py.
-
 export interface HealthResponse {
   status: string;
   version: string;
@@ -241,9 +238,9 @@ export interface ReconInfrastructure {
   reconciliation_rate: number;
   latency_label: string;
   latency_hours: number;
-  leakage_basis_points: number; // bps of total volume
+  leakage_basis_points: number;
   manual_touch_pct: number;
-  first_pass_match_rate?: number; // Tijori only: clean match before exception diagnosis
+  first_pass_match_rate?: number;
   basis: "measured" | "cited" | "industry_estimate";
   source_url: string;
   source_note: string;
@@ -276,4 +273,3 @@ export interface ReconBenchmarkResponse {
   trend_note: string;
   infrastructures: ReconInfrastructure[];
 }
-

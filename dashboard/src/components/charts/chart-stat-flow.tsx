@@ -4,7 +4,6 @@ import NumberFlow from "@number-flow/react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
-/** Subset of `Intl.NumberFormatOptions` supported by NumberFlow */
 export interface ChartStatFlowFormat {
   notation?: "standard" | "compact";
   compactDisplay?: "short" | "long";
@@ -73,10 +72,6 @@ export interface ChartStatFlowProps {
   icon?: ReactNode;
 }
 
-/**
- * Shared value + label stack using NumberFlow (same layout as pie / ring centers).
- * Parent should provide flex alignment and sizing when needed.
- */
 export function ChartStatFlow({
   value,
   label,

@@ -1,14 +1,6 @@
-"""Scored metrics.
-
-Gross ₹ recovered (headline, D7), net value (F3), efficiency = policy_₹ / oracle_₹,
-and regret = oracle_₹ - policy_₹. Pure functions over recovery_action rows.
-(Calibration / Brier is computed in Week 3 with F1.)
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
-
 
 @dataclass(slots=True)
 class BatchMetrics:
@@ -19,12 +11,10 @@ class BatchMetrics:
     gross_recovered_paise: int
     net_value_paise: int
     recovery_rate: float
-    efficiency: float | None = None   # gross_₹ / oracle_₹ (recoverable ceiling)
+    efficiency: float | None = None
     regret_paise: int | None = None
 
-
 def summarise(policy: str, action_rows: list[dict], oracle_paise: int | None = None) -> BatchMetrics:
-    """Aggregate one policy's recovery_action rows into a BatchMetrics."""
     n = len(action_rows)
     n_recovered = sum(1 for a in action_rows if a["outcome"] == "recovered")
     gross = sum(a["amount_recovered"] for a in action_rows)

@@ -1,22 +1,3 @@
-"""FastAPI app — read-only projections of the scored ledger for the dashboard.
-
-Every endpoint is a thin, deterministic wrapper over the eval harness / ledger: no
-endpoint mutates state that outlives the request, and each computes its result from an
-in-memory ledger seeded on the fly, so (seed, n) fully determines the response. Results
-are cached because the scored core is a pure function of its arguments.
-
-The scored path stays exactly as the CLI runs it — this module only reshapes the same
-numbers into JSON. No LLM and no wall clock in the scored path.
-
-Two endpoints reach past pure projection, both quarantined and honest:
-  · /batch/stream replays a fully-computed deterministic batch as SSE frames (pacing is
-    presentational; the final totals equal /batch byte-for-byte).
-  · /razorpay/* is the ONE live test-mode path (D3) — falls back to the recorded real
-    object when keys are absent, so the demo stays reproducible offline.
-
-Run:  uvicorn tijori.api.app:app --reload      (defaults to http://localhost:8000)
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -53,8 +34,6 @@ app = FastAPI(
     description="Closed detect→act→audit→reconcile loop — read-only API for the dashboard.",
 )
 
-# The dashboard dev server (Vite) proxies /health, /batch, … to :8000, but allowing
-# localhost origins lets it also run un-proxied. Read-only API, local demo → safe.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -66,24 +45,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Clamp n so a stray query can't ask for a million-failure batch on the demo box.
 _N_MAX = 5000
 _BATCHES_MAX = 20
-
 
 def _clamp(v: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, v))
 
-
-# --------------------------------------------------------------------------- #
-# Serialisation helpers — paise stay integers; the frontend formats ₹.
-# --------------------------------------------------------------------------- #
 def _metrics_dict(m) -> dict:
     d = asdict(m)
     d["gross_recovered_rupees"] = round(m.gross_recovered_paise / 100, 2)
     d["net_value_rupees"] = round(m.net_value_paise / 100, 2)
     return d
-
 
 @lru_cache(maxsize=256)
 def _batch_payload(seed: int, n: int) -> dict:
@@ -111,7 +83,6 @@ def _batch_payload(seed: int, n: int) -> dict:
         },
     }
 
-
 @lru_cache(maxsize=256)
 def _exceptions_payload(seed: int, n: int) -> dict:
     from tijori.ledger.db import memory_db
@@ -130,7 +101,6 @@ def _exceptions_payload(seed: int, n: int) -> dict:
         conn.close()
     return {"seed": seed, "n": n, "summary": summary, "exceptions": [dict(r) for r in rows]}
 
-
 @lru_cache(maxsize=256)
 def _learn_payload(seed: int, n: int, batches: int) -> dict:
     from tijori.eval.harness import learning_run
@@ -143,10 +113,9 @@ def _learn_payload(seed: int, n: int, batches: int) -> dict:
         "batches": batches,
         "n_min": CALIBRATION_N_MIN,
         "ema_alpha": CALIBRATION_EMA_ALPHA,
-        "on": on,   # recalibration on — BELIEF flips issuer_soft fast→short, regret→0
-        "off": off,  # control — never learns; the ablation that proves F1 is the cause
+        "on": on,
+        "off": off,
     }
-
 
 @lru_cache(maxsize=256)
 def _churn_payload(seed: int, n: int) -> dict:
@@ -159,7 +128,6 @@ def _churn_payload(seed: int, n: int) -> dict:
         "rows": rows,
         "smart_always_wins_net": all(r["smart_wins_net"] for r in rows),
     }
-
 
 @lru_cache(maxsize=128)
 def _audit_payload(seed: int, n: int, limit: int) -> dict:
@@ -193,10 +161,8 @@ def _audit_payload(seed: int, n: int, limit: int) -> dict:
     total = len(events)
     return {"seed": seed, "n": n, "total": total, "events": events[:limit]}
 
-
 @lru_cache(maxsize=1)
 def _outcome_model_payload() -> dict:
-    """WORLD vs BELIEF tables + the cited cause distribution (a static reference panel)."""
     causes = []
     for c in Cause:
         world = {t.value: WORLD_TABLE[c][t] for t in Timing}
@@ -211,7 +177,7 @@ def _outcome_model_payload() -> dict:
             "belief": belief,
             "world_best_timing": world_best,
             "belief_best_timing": belief_best,
-            "belief_wrong": belief_best != world_best,  # the arm F1 must flip back
+            "belief_wrong": belief_best != world_best,
         })
     return {
         "timings": [t.value for t in Timing],
@@ -222,32 +188,23 @@ def _outcome_model_payload() -> dict:
         "c_churn_paise": C_CHURN_PAISE,
     }
 
-
-# --------------------------------------------------------------------------- #
-# Endpoints
-# --------------------------------------------------------------------------- #
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "version": __version__}
-
 
 @app.get("/batch")
 def get_batch(
     seed: int = Query(constants.DEFAULT_SEED),
     n: int = Query(constants.DEFAULT_BATCH_SIZE),
 ) -> dict:
-    """Headline scored batch: baseline vs smart vs oracle, gross + net + efficiency (D7, F2, F3)."""
     return _batch_payload(seed, _clamp(n, 1, _N_MAX))
-
 
 @app.get("/exceptions")
 def get_exceptions(
     seed: int = Query(constants.DEFAULT_SEED),
     n: int = Query(constants.DEFAULT_BATCH_SIZE),
 ) -> dict:
-    """W's 3-way reconciliation output: typed fee/timing/missing exceptions + netting (D4)."""
     return _exceptions_payload(seed, _clamp(n, 1, _N_MAX))
-
 
 @app.get("/learn")
 def get_learn(
@@ -255,18 +212,14 @@ def get_learn(
     n: int = Query(constants.DEFAULT_BATCH_SIZE),
     batches: int = Query(5),
 ) -> dict:
-    """F1 learning curve: BELIEF recalibrates across batches (on vs off ablation)."""
     return _learn_payload(seed, _clamp(n, 1, _N_MAX), _clamp(batches, 1, _BATCHES_MAX))
-
 
 @app.get("/churn")
 def get_churn(
     seed: int = Query(constants.DEFAULT_SEED),
     n: int = Query(constants.DEFAULT_BATCH_SIZE),
 ) -> dict:
-    """F3 sensitivity: smart beats baseline on net value across the whole c_churn sweep."""
     return _churn_payload(seed, _clamp(n, 1, _N_MAX))
-
 
 @app.get("/audit")
 def get_audit(
@@ -274,38 +227,18 @@ def get_audit(
     n: int = Query(constants.DEFAULT_BATCH_SIZE),
     limit: int = Query(200),
 ) -> dict:
-    """The append-only trail for one full loop (both policies + reconciliation)."""
     return _audit_payload(seed, _clamp(n, 1, _N_MAX), _clamp(limit, 1, 2000))
 
-
-# --------------------------------------------------------------------------- #
-# Competitive reconciliation benchmarks — grounded in public sources (Sep 2026).
-#
-# HONESTY BOUNDARY (encoded per-row in `basis`):
-#   · "measured"          — computed live from Tijori's own scored ledger this request.
-#   · "cited"             — a documented public fact (settlement timing from provider docs).
-#   · "industry_estimate" — a value placed inside a CITED published industry RANGE, because
-#                           no provider discloses a per-rail "auto-reconciliation rate";
-#                           the range and its source are carried on the row, not hidden.
-#
-# Ranges used (see source_url on each row):
-#   · Modern automated settlement reconciliation reaches 90–95% straight-through auto-match
-#     (95%+ mature), routing only 5–15% to manual review.        [nilus / kosh.ai / solvexia]
-#   · Revenue leakage from imperfect reconciliation runs 0.05–0.5% of GPV in typical
-#     multi-channel retail, rising to 2–3% in complex/marketplace settlement. [optimus / osfin]
-#   · Settlement timing is a documented fact per provider (T+2 default; RBI PA Directions
-#     2025 cap merchant credit at T+1; instant T+0 available).   [razorpay / stripe / adyen docs]
-# --------------------------------------------------------------------------- #
 _BENCHMARK_INFRA: list[dict] = [
     {
         "id": "razorpay_default",
         "name": "Standard Razorpay Settlement (Default)",
         "category": "baseline",
-        "reconciliation_rate": 0.90,           # industry_estimate: dashboard CSV + manual fee/timing matching
+        "reconciliation_rate": 0.90,
         "latency_label": "T+2 Batch Settlement",
-        "latency_hours": 48.0,                 # cited: cards T+2 (UPI T+1); RBI PA Directions 2025 cap T+1
-        "leakage_basis_points": 90,            # industry_estimate: ~0.9% of GPV, mid of complex-settlement range
-        "manual_touch_pct": 12.0,              # industry_estimate: ~5–15% routed to manual review
+        "latency_hours": 48.0,
+        "leakage_basis_points": 90,
+        "manual_touch_pct": 12.0,
         "basis": "industry_estimate",
         "source_url": "https://razorpay.com/docs/payments/settlements/",
         "source_note": "Settlement timing cited from Razorpay Settlements docs (T+2 default, T+1 UPI, T+0 instant). Auto-match/leakage placed within published industry ranges (90–95% straight-through; 0.05–0.5% typical leakage, up to 2–3% for complex settlement).",
@@ -321,9 +254,9 @@ _BENCHMARK_INFRA: list[dict] = [
         "id": "stripe",
         "name": "Stripe Sigma / Financial Connections",
         "category": "competitor",
-        "reconciliation_rate": 0.93,           # industry_estimate: strong SQL ledger, upper end of auto-match band
+        "reconciliation_rate": 0.93,
         "latency_label": "T+2 Rolling Payout",
-        "latency_hours": 48.0,                 # cited: T+2 in US, T+3–T+7 most international markets
+        "latency_hours": 48.0,
         "leakage_basis_points": 65,
         "manual_touch_pct": 8.0,
         "basis": "industry_estimate",
@@ -343,7 +276,7 @@ _BENCHMARK_INFRA: list[dict] = [
         "category": "competitor",
         "reconciliation_rate": 0.94,
         "latency_label": "T+2 Sales-Day Payout",
-        "latency_hours": 48.0,                 # cited: default 2-business-day delay (Amex ~7d); NOT T+1
+        "latency_hours": 48.0,
         "leakage_basis_points": 60,
         "manual_touch_pct": 7.0,
         "basis": "industry_estimate",
@@ -361,11 +294,11 @@ _BENCHMARK_INFRA: list[dict] = [
         "id": "legacy_erp",
         "name": "Legacy FinOps / Manual ERP (SAP / NetSuite)",
         "category": "legacy",
-        "reconciliation_rate": 0.72,           # industry_estimate: spreadsheet EOM matching, 5–10% error + intra-month backlog
+        "reconciliation_rate": 0.72,
         "latency_label": "T+7 to T+30 EOM Batch",
         "latency_hours": 240.0,
-        "leakage_basis_points": 250,           # industry_estimate: ~2.5%, complex/marketplace upper band
-        "manual_touch_pct": 28.0,              # industry_estimate: 40–60 hrs/month manual close before automation
+        "leakage_basis_points": 250,
+        "manual_touch_pct": 28.0,
         "basis": "industry_estimate",
         "source_url": "https://www.nilus.com/blog/reconciliation-automation-how-finance-teams-eliminate-40-hours-of-manual-matching-per-month/",
         "source_note": "Manual close effort (40–60 hrs/month) and 5–10% manual error rate cited from reconciliation-automation industry studies; leakage at upper end of the 2–3% complex-settlement band.",
@@ -379,45 +312,29 @@ _BENCHMARK_INFRA: list[dict] = [
     },
 ]
 
-#: Number of real sub-batches computed for Tijori's velocity trend.
 _TREND_POINTS: int = 6
 
-
 def _tijori_recon_rate(summary: dict, n: int) -> float:
-    """Straight-through AUTO-HANDLING rate: the fraction of settlements reconciled without any
-    manual review. W auto-matches the clean rows AND auto-diagnoses every injected fee/timing/
-    missing exception (100% detection recall in this substrate), so nothing falls to a human.
-    This is the apples-to-apples metric vs competitors, whose auto-match leaves exceptions to
-    manual review. Measured from the summary — tautologically ~1.0 here because detection is
-    complete, which is exactly Tijori's claim; the first-pass clean-match rate below is the
-    non-trivial companion number."""
-    clean = summary.get("reconciled", 0)          # already includes netting-resolved rows
-    exceptions = summary.get("total_exceptions", 0)  # detected + typed → auto-handled, not manual
+    clean = summary.get("reconciled", 0)
+    exceptions = summary.get("total_exceptions", 0)
     total = clean + exceptions
     return round(total / total, 4) if total else 1.0
 
-
 def _tijori_first_pass_rate(summary: dict) -> float:
-    """The honest companion to the auto-handling rate: fraction that matched cleanly on the
-    first pass, i.e. BEFORE exception diagnosis. This is genuinely < 1.0 (≈0.86 at n=500)."""
     clean = summary.get("reconciled", 0)
     exceptions = summary.get("total_exceptions", 0)
     total = clean + exceptions
     return round(clean / total, 4) if total else 1.0
 
-
 @lru_cache(maxsize=256)
 def _benchmark_trend(seed: int, n: int, points: int) -> list[dict]:
-    """Tijori's REAL per-batch reconciliation trend: run the 3-way sensor over `points`
-    deterministic sub-batches (seed offset per batch) and record the actual auto-match rate
-    each time. This replaces the frontend's old synthetic noise curve with computed data."""
     from tijori.ledger.db import memory_db
     from tijori.simulator.seed import seed_ledger
     from tijori.where.exceptions import run_reconciliation
 
     out: list[dict] = []
     for b in range(points):
-        sub_seed = seed + b * 101  # deterministic, well-separated sub-streams
+        sub_seed = seed + b * 101
         conn = memory_db()
         try:
             seed_ledger(conn, seed=sub_seed, n=n)
@@ -434,7 +351,6 @@ def _benchmark_trend(seed: int, n: int, points: int) -> list[dict]:
             "netting_reconciled": s.get("netting_reconciled", 0),
         })
     return out
-
 
 @lru_cache(maxsize=256)
 def _benchmarks_payload(seed: int, n: int) -> dict:
@@ -458,8 +374,8 @@ def _benchmarks_payload(seed: int, n: int) -> dict:
         "id": "tijori",
         "name": "Tijori Autonomous 3-Way Sensor",
         "category": "active",
-        "reconciliation_rate": tijori_rate,   # measured live: straight-through auto-handling
-        "first_pass_match_rate": tijori_first_pass,  # honest companion (~0.86): clean match before diagnosis
+        "reconciliation_rate": tijori_rate,
+        "first_pass_match_rate": tijori_first_pass,
         "latency_label": "Real-time Streaming (T+0)",
         "latency_hours": 0.05,
         "leakage_basis_points": 0,
@@ -486,15 +402,12 @@ def _benchmarks_payload(seed: int, n: int) -> dict:
         "infrastructures": [tijori, *_BENCHMARK_INFRA],
     }
 
-
 @app.get("/reconciliation/benchmarks")
 def get_benchmarks(
     seed: int = Query(constants.DEFAULT_SEED),
     n: int = Query(constants.DEFAULT_BATCH_SIZE),
 ) -> dict:
-    """Competitive multi-infrastructure reconciliation & impact benchmarks."""
     return _benchmarks_payload(seed, _clamp(n, 1, _N_MAX))
-
 
 @lru_cache(maxsize=128)
 def _pipeline_payload(seed: int, n: int) -> dict:
@@ -611,33 +524,22 @@ def _pipeline_payload(seed: int, n: int) -> dict:
         "injected_details": injected_details,
     }
 
-
 @app.get("/outcome-model")
 def get_outcome_model() -> dict:
-    """The WORLD/BELIEF tables + cited distribution — provenance for the demo."""
     return _outcome_model_payload()
-
 
 @app.get("/pipeline")
 def get_pipeline(
     seed: int = Query(constants.DEFAULT_SEED),
     n: int = Query(constants.DEFAULT_BATCH_SIZE),
 ) -> dict:
-    """Data Ingestion pipeline: Customer cohorts, gateway failures, bank substrate, and injected anomalies."""
     return _pipeline_payload(seed, _clamp(n, 1, _N_MAX))
-
 
 @app.get("/batch/{seed:int}")
 def get_batch_path(seed: int) -> dict:
-    """Back-compat: /batch/{seed} with the default batch size (int-only, so /batch/stream wins)."""
     return _batch_payload(seed, constants.DEFAULT_BATCH_SIZE)
 
-
-# --------------------------------------------------------------------------- #
-# P1 · live substrate — streamed playback, reproducibility hash, live Razorpay.
-# --------------------------------------------------------------------------- #
 def _compute_batch(seed: int, n: int):
-    """Run one deterministic scored batch; return (oracle, {policy: action_rows}, {policy: metrics})."""
     from tijori.eval.harness import _oracle_ceiling
     from tijori.eval.metrics import summarise
     from tijori.ledger.db import memory_db
@@ -654,10 +556,8 @@ def _compute_batch(seed: int, n: int):
         conn.close()
     return oracle, actions, metrics
 
-
 @lru_cache(maxsize=256)
 def _scored_digest(seed: int, n: int) -> str:
-    """SHA-256 over the canonical per-action scored output — the determinism fingerprint."""
     _oracle, actions, _m = _compute_batch(seed, n)
     rows = sorted(
         (a["policy"], a["ref"], a["outcome"], a["amount_recovered"], a["net_value"],
@@ -667,20 +567,14 @@ def _scored_digest(seed: int, n: int) -> str:
     payload = json.dumps({"seed": seed, "n": n, "rows": rows}, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-
 @app.get("/verify")
 def verify(seed: int = Query(constants.DEFAULT_SEED), n: int = Query(constants.DEFAULT_BATCH_SIZE)) -> dict:
-    """Run the scored batch twice and return both SHA-256 digests — provably identical (determinism).
-    Also returns a REAL, measured per-decision latency (no invented µs figure)."""
     import time
 
     n = _clamp(n, 1, _N_MAX)
-    # Two independent computations (the cache is bypassed for the second by clearing once).
-    a = _scored_digest.__wrapped__(seed, n)  # type: ignore[attr-defined]
-    b = _scored_digest.__wrapped__(seed, n)  # type: ignore[attr-defined]
+    a = _scored_digest.__wrapped__(seed, n)
+    b = _scored_digest.__wrapped__(seed, n)
 
-    # Measure the scored path live: time one full baseline+smart batch and divide by the
-    # number of scored decisions. This is a wall-clock measurement on the demo box, not a claim.
     t0 = time.perf_counter()
     _oracle, actions, _m = _compute_batch(seed, n)
     elapsed = time.perf_counter() - t0
@@ -695,14 +589,10 @@ def verify(seed: int = Query(constants.DEFAULT_SEED), n: int = Query(constants.D
         "decisions_per_sec": decisions_per_sec,
     }
 
-
 def _sse(event: str, obj: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(obj)}\n\n"
 
-
 async def _batch_stream(seed: int, n: int, frames: int = 40, secs: float = 1.6):
-    """Replay a fully-computed deterministic batch as SSE frames. Pacing is presentational;
-    the terminal `done` event equals /batch exactly."""
     oracle, actions, metrics = _compute_batch(seed, n)
     base, smart = actions["baseline"], actions["smart"]
     total = len(smart)
@@ -711,7 +601,6 @@ async def _batch_stream(seed: int, n: int, frames: int = 40, secs: float = 1.6):
     step = max(1, total // max(1, frames))
     delay = secs / max(1, min(frames, total))
     cum = {p: {"gross": 0, "recovered": 0, "attempts": 0} for p in ("baseline", "smart")}
-    # Smart's routing, accumulated for the live Sankey: cause → timing/action → outcome.
     from collections import defaultdict
     cause_mid: dict[str, int] = defaultdict(int)
     mid_out: dict[str, int] = defaultdict(int)
@@ -724,7 +613,7 @@ async def _batch_stream(seed: int, n: int, frames: int = 40, secs: float = 1.6):
             if a["outcome"] == "recovered":
                 cum[pol]["recovered"] += 1
         s = smart[i]
-        mid = s["timing_bucket"] or s["strategy"]  # fast/short/aligned, else dun/stop
+        mid = s["timing_bucket"] or s["strategy"]
         outc = "recovered" if s["outcome"] == "recovered" else "unrecovered"
         cause_mid[f"{s['cause']}|{mid}"] += 1
         mid_out[f"{mid}|{outc}"] += 1
@@ -741,24 +630,20 @@ async def _batch_stream(seed: int, n: int, frames: int = 40, secs: float = 1.6):
         "flows": {"cause_mid": dict(cause_mid), "mid_out": dict(mid_out)},
     })
 
-
 @app.get("/batch/stream")
 async def batch_stream(
     seed: int = Query(constants.DEFAULT_SEED),
     n: int = Query(constants.DEFAULT_BATCH_SIZE),
     secs: float = Query(1.6, ge=0.0, le=10.0),
 ) -> StreamingResponse:
-    """Server-sent events: watch a deterministic batch score, ending on the exact /batch totals."""
     return StreamingResponse(
         _batch_stream(seed, _clamp(n, 1, _N_MAX), secs=secs),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
-
 class LinkRequest(BaseModel):
     amount_paise: int = 50000
-
 
 def _norm_link(obj: dict, live: bool) -> dict:
     return {
@@ -769,26 +654,21 @@ def _norm_link(obj: dict, live: bool) -> dict:
         "created_at": obj.get("created_at"),
     }
 
-
 @app.post("/razorpay/link")
 def razorpay_create_link(req: LinkRequest = Body(default=LinkRequest())) -> dict:
-    """Create a real rzp_test_ Payment Link (D3). Falls back to the recorded real object
-    when keys are absent, so the demo works offline; returns ok=false only if neither exists."""
     from tijori.razorpay_client.client import create_payment_link, load_fixture
 
     try:
         obj = create_payment_link(_clamp(req.amount_paise, 100, 10_000_000))
         return _norm_link(obj, live=True)
-    except Exception as e:  # keys missing / offline / API error → replay the recorded object
+    except Exception as e:
         obj = load_fixture("payment_link")
         if obj:
             return _norm_link(obj, live=False)
         return {"ok": False, "reason": "no_keys_no_fixture", "detail": str(e)}
 
-
 @app.get("/razorpay/link/{plink_id}")
 def razorpay_fetch_link(plink_id: str) -> dict:
-    """Poll a Payment Link's status (created → paid). Falls back to the recorded status object."""
     from tijori.razorpay_client.client import fetch_payment_link, load_fixture
 
     try:
@@ -799,13 +679,6 @@ def razorpay_fetch_link(plink_id: str) -> dict:
             return _norm_link(obj, live=False)
         return {"ok": False, "reason": "no_keys_no_fixture", "detail": str(e)}
 
-
-# --------------------------------------------------------------------------- #
-# Serve the built dashboard (dashboard/dist) at the same origin, if present.
-# Mounted last so the JSON routes above win; then `uvicorn tijori.api.app:app`
-# alone serves both the SPA and its API — no proxy, no CORS. Absent in dev
-# (run `npm run dev` instead), so the mount is optional.
-# --------------------------------------------------------------------------- #
 def _mount_dashboard() -> None:
     from pathlib import Path
 
@@ -814,6 +687,5 @@ def _mount_dashboard() -> None:
     dist = Path(__file__).resolve().parents[2] / "dashboard" / "dist"
     if dist.is_dir():
         app.mount("/", StaticFiles(directory=str(dist), html=True), name="dashboard")
-
 
 _mount_dashboard()

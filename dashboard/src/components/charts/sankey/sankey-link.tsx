@@ -13,7 +13,6 @@ import {
   useSankey,
 } from "./sankey-context";
 
-// Helper to get node index from link source/target
 type NodeOrIndex = SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum> | number;
 
 function getNodeIndex(nodeOrIndex: NodeOrIndex): number | undefined {
@@ -32,7 +31,6 @@ function getNodeObject(
   return nodeOrIndex;
 }
 
-// Default node color palette using CSS variables
 const defaultColors = [
   "var(--chart-1)",
   "var(--chart-2)",
@@ -49,32 +47,32 @@ function getDefaultNodeColor(
 }
 
 export interface SankeyLinkProps {
-  /** Stroke color for links (overrides gradient). Default: uses gradient */
+
   stroke?: string;
-  /** Stroke opacity. Default: 0.5 */
+
   strokeOpacity?: number;
-  /** Opacity when another link/node is hovered. Default: 0.1 */
+
   fadedOpacity?: number;
-  /** Use gradient from source to target color. Default: true */
+
   useGradient?: boolean;
-  /** Custom function to get node color (for gradient) */
+
   getNodeColor?: (
     node: SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum>,
     index: number
   ) => string;
-  /** Custom link color function (overrides gradient) */
+
   getLinkColor?: (
     link: SankeyLinkType<SankeyNodeDatum, SankeyLinkDatum>,
     index: number
   ) => string;
-  /** Pattern definitions to render in defs. Use @visx/pattern components (PatternLines, PatternCircles, etc.) */
+
   patterns?: React.ReactNode;
-  /** Return pattern ID for a link, or null/undefined to use gradient/solid color */
+
   getLinkPattern?: (
     link: SankeyLinkType<SankeyNodeDatum, SankeyLinkDatum>,
     index: number
   ) => string | null | undefined;
-  /** Click handler for link selection */
+
   onLinkClick?: (
     link: SankeyLinkType<SankeyNodeDatum, SankeyLinkDatum>,
     index: number
@@ -116,7 +114,6 @@ function AnimatedLink({
   const pathRef = useRef<SVGPathElement>(null);
   const [pathLength, setPathLength] = useState(0);
 
-  // Links animate during the last 80% of total duration, starting at 20%
   const linkStartDelay = animationDuration * 0.2;
   const linkAnimDuration = animationDuration * 0.8;
   const staggerDelaySeconds =
@@ -136,7 +133,6 @@ function AnimatedLink({
   );
   const strokeDashoffset = useTransform(progress, [0, 1], [pathLength, 0]);
 
-  // Calculate target opacity
   const getTargetOpacity = () => {
     if (isFaded) {
       return fadedOpacity;
@@ -148,10 +144,8 @@ function AnimatedLink({
   };
   const targetOpacity = getTargetOpacity();
 
-  // Dasharray for path reveal
   const dashArray = pathLength > 0 ? `${pathLength} ${pathLength}` : "none";
 
-  // Ensure opacity values are always numbers
   const initialOpacity = strokeOpacity ?? 0.5;
   const animatedOpacity = targetOpacity ?? initialOpacity;
 
@@ -198,7 +192,6 @@ export function SankeyLink({
     createPath,
   } = useSankey();
 
-  // Get color for a node (for gradients)
   const getNodeColorFn = useCallback(
     (node: SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum>): string => {
       if (getNodeColor) {
@@ -209,7 +202,6 @@ export function SankeyLink({
     [getNodeColor]
   );
 
-  // Get color for a link (solid color, when not using gradient)
   const getLinkColorFn = useCallback(
     (link: SankeyLinkType<SankeyNodeDatum, SankeyLinkDatum>, index: number) => {
       if (getLinkColor) {
@@ -220,10 +212,8 @@ export function SankeyLink({
     [getLinkColor, stroke]
   );
 
-  // Check if any element is hovered
   const isAnyHovered = hoveredNodeIndex !== null || hoveredLinkIndex !== null;
 
-  // Build gradient definitions for all links
   const gradientDefs = useMemo(() => {
     if (!useGradient || stroke || getLinkColor) {
       return null;
@@ -233,8 +223,6 @@ export function SankeyLink({
       const sourceNode = getNodeObject(link.source as NodeOrIndex);
       const targetNode = getNodeObject(link.target as NodeOrIndex);
 
-      // Always define a gradient so `url(#...)` never points to a missing id.
-      // Use fallback colors if nodes can't be resolved
       const sourceColor = sourceNode
         ? getNodeColorFn(sourceNode)
         : "var(--chart-1)";
@@ -243,8 +231,6 @@ export function SankeyLink({
         : "var(--chart-1)";
       const gradientId = `link-gradient-${index}`;
 
-      // Get absolute x positions for gradient
-      // Use userSpaceOnUse to avoid issues with horizontal links (where bounding box has zero height)
       const x1 = sourceNode?.x1 ?? 0;
       const x2 = targetNode?.x0 ?? 100;
 
@@ -267,18 +253,15 @@ export function SankeyLink({
 
   return (
     <g className="sankey-links">
-      {/* Pattern and gradient definitions */}
       <defs>
         {patterns}
         {gradientDefs}
       </defs>
 
-      {/* Links */}
       {links.map((link, index) => {
         const path = createPath(link);
         const linkWidth = link.width ?? 1;
 
-        // Skip if path is empty
         if (!path || path.trim() === "") {
           return null;
         }
@@ -286,7 +269,6 @@ export function SankeyLink({
         const sIdx = getNodeIndex(link.source as NodeOrIndex);
         const tIdx = getNodeIndex(link.target as NodeOrIndex);
 
-        // Use fallback indices if we can't resolve
         const sourceIdx =
           sIdx ?? (typeof link.source === "number" ? link.source : -1);
         const targetIdx =
@@ -314,14 +296,13 @@ export function SankeyLink({
           setTooltipData(null);
         };
 
-        // Determine stroke color (pattern URL, gradient URL, or solid color)
         let linkStroke: string;
         const patternId = getLinkPattern?.(link, index);
         if (patternId) {
-          // Use pattern fill
+
           linkStroke = `url(#${patternId})`;
         } else if (useGradient && !stroke && !getLinkColor) {
-          // Use gradient
+
           linkStroke = `url(#link-gradient-${index})`;
         } else {
           linkStroke = getLinkColorFn(link, index);

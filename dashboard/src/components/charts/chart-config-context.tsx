@@ -8,11 +8,11 @@ export interface SpringConfig {
 }
 
 export interface ChartConfigValue {
-  /** Crosshair indicator, tooltip dot, date pill. */
+
   tooltipSpring: SpringConfig;
-  /** Floating tooltip panel. */
+
   tooltipBoxSpring: SpringConfig;
-  /** Line/area hover-highlight band (x + width). */
+
   highlightSpring: SpringConfig;
 }
 
@@ -55,7 +55,6 @@ export function useChartConfig(): ChartConfigValue {
 const DEFAULT_TOOLTIP_BOX_DAMPING =
   DEFAULT_CHART_CONFIG.tooltipBoxSpring.damping;
 
-/** Maps a damping slider to the floating tooltip panel follow spring. `0` = instant. */
 export function resolveTooltipBoxMotion(damping?: number): {
   animate: boolean;
   springConfig: SpringConfig;

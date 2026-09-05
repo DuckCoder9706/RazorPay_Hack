@@ -40,41 +40,35 @@ export interface SankeyTooltipData {
 }
 
 export interface SankeyContextValue {
-  // Layout data
+
   graph: SankeyGraph<SankeyNodeDatum, SankeyLinkDatum>;
   nodes: SankeyNode<SankeyNodeDatum, SankeyLinkDatum>[];
   links: SankeyLink<SankeyNodeDatum, SankeyLinkDatum>[];
 
-  // Dimensions
   width: number;
   height: number;
   innerWidth: number;
   innerHeight: number;
   margin: Margin;
 
-  // Hover state
   hoveredNodeIndex: number | null;
   hoveredLinkIndex: number | null;
   setHoveredNodeIndex: (index: number | null) => void;
   setHoveredLinkIndex: (index: number | null) => void;
 
-  // Tooltip
   tooltipData: SankeyTooltipData | null;
   setTooltipData: Dispatch<SetStateAction<SankeyTooltipData | null>>;
   containerRef: RefObject<HTMLDivElement | null>;
 
-  // Animation
   isLoaded: boolean;
   animationDuration: number;
-  /** Motion enter transition (spring or cubic-bezier tween). */
+
   enterTransition?: Transition;
-  /** Increments when enter animation should replay. */
+
   revealEpoch: number;
 
-  // Mouse position for dynamic tooltips
   mousePos: { x: number; y: number } | null;
 
-  // Link path generator
   createPath: (link: SankeyLink<SankeyNodeDatum, SankeyLinkDatum>) => string;
 }
 
@@ -100,7 +94,6 @@ export function useSankey(): SankeyContextValue {
   return context;
 }
 
-// CSS variables for sankey theming
 export const sankeyCssVars = {
   background: "var(--chart-background)",
   foreground: "var(--chart-foreground)",

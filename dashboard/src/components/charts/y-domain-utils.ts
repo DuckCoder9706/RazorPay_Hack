@@ -5,17 +5,12 @@ import { groupLinesByYAxisId, normalizeYAxisId } from "./y-axis-scales";
 
 export type YDomain = [number, number];
 
-/** Apply visx `nice()` to raw domain endpoints for stable grid ticks. */
 export function niceYDomain(domain: YDomain): YDomain {
   const scale = scaleLinear({ domain, range: [0, 1], nice: true });
   const niceDomain = scale.domain();
   return [niceDomain[0] ?? domain[0], niceDomain[1] ?? domain[1]];
 }
 
-/**
- * Skip Y tween when both endpoints move less than the threshold relative to span.
- * When in doubt callers should tween — beauty wins over micro-optimization.
- */
 export function shouldTweenYDomain(from: YDomain, to: YDomain): boolean {
   const span = Math.max(
     Math.abs(to[1] - to[0]),
@@ -30,24 +25,20 @@ export function shouldTweenYDomain(from: YDomain, to: YDomain): boolean {
   );
 }
 
-/** Phases where the chart shows loading chrome (shimmer, pulse, label). */
 export function isLoadingChromePhase(phase: ChartPhase): boolean {
   return phase === "loading" || phase === "revealingLoading";
 }
 
-/** Phases where grid lines use loading stroke styling (muted / dashed chrome). */
 export function isLoadingGridChromePhase(phase: ChartPhase): boolean {
   return (
     phase === "loading" || phase === "exiting" || phase === "gridTweenLoading"
   );
 }
 
-/** Phases where Y-domain tween runs after the series has exited. */
 export function isYDomainTweenPhase(phase: ChartPhase): boolean {
   return phase === "gridTweenLoading" || phase === "gridTweenReady";
 }
 
-/** Phases where {@link ReferenceArea} bands are shown (fade in/out on transitions). */
 export function isReferenceAreaVisiblePhase(phase: ChartPhase): boolean {
   return (
     phase === "ready" || phase === "revealing" || phase === "gridTweenReady"
@@ -96,7 +87,6 @@ export function computeYDomainsByAxis({
   return domains;
 }
 
-/** Merge domain maps, normalizing axis ids to strings. */
 export function mergeYDomainRecords(
   ...records: Record<string, YDomain>[]
 ): Record<string, YDomain> {

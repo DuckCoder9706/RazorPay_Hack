@@ -58,8 +58,7 @@ const RADAR_DIMENSIONS: RadarDimension[] = [
     name: "Many-to-Many Netting Recall",
     shortName: "Netting",
     description: "Resolution of batched bank-credit lumps into individual merchant settlements. Tijori is measured (100% on the ledger); other rails are a qualitative estimate scaled from their auto-match rate (none resolve NPCI-style circular netting natively).",
-    // Tijori: measured 100%. Others: derived from their (cited) auto-match rate, discounted
-    // because native many-to-many netting is not a standard gateway capability.
+
     getScore: (i) => (i.id === "tijori" ? 1.0 : Math.max(0.15, i.reconciliation_rate - 0.25)),
     getFormatted: (i) => (i.id === "tijori" ? "100% (measured)" : `~${Math.round(Math.max(0.15, i.reconciliation_rate - 0.25) * 100)}% (est.)`),
   },
@@ -68,11 +67,11 @@ const RADAR_DIMENSIONS: RadarDimension[] = [
     name: "Audit Reproducibility",
     shortName: "Determinism",
     description: "Byte-for-byte reproducibility of the audit trail under replay. Tijori is measured (SHA-256 dual-run identical, /verify); other rails are rated qualitatively by audit architecture (log/SQL vs manual CSV).",
-    // Tijori: measured SHA-256 determinism. Others: rule-based by category, not per-name literals.
+
     getScore: (i) => {
       if (i.id === "tijori") return 1.0;
-      if (i.category === "legacy") return 0.35;   // manual CSV / spreadsheet audit
-      return 0.8;                                  // gateway DB / SQL audit logs
+      if (i.category === "legacy") return 0.35;
+      return 0.8;
     },
     getFormatted: (i) => {
       if (i.id === "tijori") return "SHA-256 (measured)";
@@ -108,7 +107,7 @@ export function ReconBenchmarkVisualizer({
   n,
   tijoriSavingsVsDefault,
 }: ReconBenchmarkVisualizerProps) {
-  // Mode toggle: "radar" (Image 2 - 3D Isometric Hexagon) vs "trend" (Image 3 - Velocity Area Curve)
+
   const [viewMode, setViewMode] = useState<"radar" | "trend">("radar");
   const [hoveredDimIdx, setHoveredDimIdx] = useState<number | null>(null);
   const [showTijoriOverlay, setShowTijoriOverlay] = useState<boolean>(true);
@@ -119,12 +118,10 @@ export function ReconBenchmarkVisualizer({
   const tijoriInfra =
     infrastructures.find((i) => i.id === "tijori") || infrastructures[0];
 
-  // SVG Geometry for Image 2 (3D Isometric Hexagon)
   const cx = 230;
   const cy = 190;
   const maxR = 135;
 
-  // Compute 6 regular hexagon vertices on concentric grid
   const getHexCoords = (score: number, angleIdx: number) => {
     const theta = -Math.PI / 2 + (angleIdx * 2 * Math.PI) / 6;
     const r = maxR * score;
@@ -134,10 +131,8 @@ export function ReconBenchmarkVisualizer({
     };
   };
 
-  // Build grid rings at 25%, 50%, 75%, 100%
   const gridRings = [0.25, 0.5, 0.75, 1.0];
 
-  // Polygon for selected infrastructure
   const selectedPolygonPoints = useMemo(() => {
     return RADAR_DIMENSIONS.map((dim, idx) => {
       const score = dim.getScore(selectedInfra);
@@ -146,7 +141,6 @@ export function ReconBenchmarkVisualizer({
     }).join(" ");
   }, [selectedInfra]);
 
-  // Polygon for Tijori benchmark overlay (when a competitor is selected)
   const tijoriPolygonPoints = useMemo(() => {
     return RADAR_DIMENSIONS.map((dim, idx) => {
       const score = dim.getScore(tijoriInfra);
@@ -155,7 +149,6 @@ export function ReconBenchmarkVisualizer({
     }).join(" ");
   }, [tijoriInfra]);
 
-  // Coordinates for the 6 nodes of the active polygon
   const activeNodes = useMemo(() => {
     return RADAR_DIMENSIONS.map((dim, idx) => {
       const score = dim.getScore(selectedInfra);
@@ -171,9 +164,6 @@ export function ReconBenchmarkVisualizer({
     });
   }, [selectedInfra, tijoriInfra]);
 
-  // Real multi-batch trend. Tijori's series is MEASURED by the backend across real
-  // sub-batches (`trend`); competitors have no public per-rail time series, so their line
-  // is drawn flat at their steady-state reconciliation rate (honest, not fabricated).
   const trendPoints = useMemo(() => {
     const leakagePaise = Math.round(totalVolumePaise * (selectedInfra.leakage_basis_points / 10000));
     if (selectedInfra.id === "tijori" && trend.length) {
@@ -195,7 +185,6 @@ export function ReconBenchmarkVisualizer({
 
   return (
     <div className="rounded-2xl border border-line-soft bg-white/95 backdrop-blur-md shadow-card overflow-hidden">
-      {/* Visualizer Card Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-5 py-3.5 bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-azure/10 text-azure">
@@ -211,7 +200,6 @@ export function ReconBenchmarkVisualizer({
           </div>
         </div>
 
-        {/* View Mode Toggle: Image 2 (Isometric Radar) vs Image 3 (Velocity Trend) */}
         <div className="flex items-center gap-1.5">
           <div className="inline-flex items-center rounded-xl border border-line/90 bg-slate-100/90 p-0.5 shadow-2xs">
             <button
@@ -242,7 +230,6 @@ export function ReconBenchmarkVisualizer({
         </div>
       </div>
 
-      {/* Infrastructure Selector Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto border-b border-line-soft bg-surface/50 px-5 py-2.5 scrollbar-none">
         <span className="text-[11px] font-semibold text-slate-400 mr-1.5 shrink-0 uppercase tracking-wider font-mono">
           Compare:
@@ -290,14 +277,10 @@ export function ReconBenchmarkVisualizer({
         )}
       </div>
 
-      {/* Main Chart Stage */}
       <div className="p-5 sm:p-6 bg-gradient-to-b from-slate-50/40 to-white">
         {viewMode === "radar" ? (
-          /* ========================================================================= */
-          /* MODE 1: IMAGE 2 STYLE — 3D ISOMETRIC RADAR / HEXAGON COMPONENT            */
-          /* ========================================================================= */
+
           <div className="grid gap-6 lg:grid-cols-12 items-center">
-            {/* Left: Interactive SVG Radar */}
             <div className="lg:col-span-7 flex flex-col items-center justify-center">
               <div className="relative w-full max-w-[440px] aspect-[460/380] rounded-3xl bg-[#EDF4FC] border border-[#D5E3F5] shadow-inner p-2 sm:p-4 flex items-center justify-center">
                 <svg
@@ -305,7 +288,6 @@ export function ReconBenchmarkVisualizer({
                   className="w-full h-full overflow-visible select-none"
                 >
                   <defs>
-                    {/* Primary Shaded Polygon Gradient matching Image 2 */}
                     <linearGradient
                       id="radarPolygonGrad"
                       x1="0%"
@@ -317,7 +299,6 @@ export function ReconBenchmarkVisualizer({
                       <stop offset="100%" stopColor="#38BDF8" stopOpacity="0.25" />
                     </linearGradient>
 
-                    {/* Tijori Benchmark Ghost Gradient */}
                     <linearGradient
                       id="tijoriOverlayGrad"
                       x1="0%"
@@ -329,7 +310,6 @@ export function ReconBenchmarkVisualizer({
                       <stop offset="100%" stopColor="#10B981" stopOpacity="0.08" />
                     </linearGradient>
 
-                    {/* Node Glow Filter */}
                     <filter id="nodeGlow" x="-50%" y="-50%" width="200%" height="200%">
                       <feDropShadow
                         dx="0"
@@ -341,7 +321,6 @@ export function ReconBenchmarkVisualizer({
                     </filter>
                   </defs>
 
-                  {/* 1. Concentric Hexagon Grid Rings */}
                   {gridRings.map((rPct, rIdx) => {
                     const pts = [0, 1, 2, 3, 4, 5]
                       .map((aIdx) => {
@@ -361,7 +340,6 @@ export function ReconBenchmarkVisualizer({
                     );
                   })}
 
-                  {/* 2. Center to Vertex Spoke Lines (forming 3D isometric cube frame) */}
                   {[0, 1, 2, 3, 4, 5].map((aIdx) => {
                     const c = getHexCoords(1.0, aIdx);
                     const isCubeFold = aIdx === 0 || aIdx === 2 || aIdx === 4;
@@ -379,10 +357,8 @@ export function ReconBenchmarkVisualizer({
                     );
                   })}
 
-                  {/* Center Node */}
                   <circle cx={cx} cy={cy} r={2.5} fill="#64748B" opacity={0.6} />
 
-                  {/* 3. Tijori Benchmark Overlay (if comparing a competitor) */}
                   {selectedId !== "tijori" && showTijoriOverlay && (
                     <g className="transition-opacity duration-300">
                       <polygon
@@ -396,7 +372,6 @@ export function ReconBenchmarkVisualizer({
                     </g>
                   )}
 
-                  {/* 4. Active Selected Infrastructure Shaded Polygon */}
                   <motion.polygon
                     points={selectedPolygonPoints}
                     fill={selectedId === "tijori" ? "url(#radarPolygonGrad)" : "rgba(12, 131, 253, 0.35)"}
@@ -407,7 +382,6 @@ export function ReconBenchmarkVisualizer({
                     transition={{ duration: 0.5, ease: "easeOut" }}
                   />
 
-                  {/* 5. Glowing Circular Nodes at each of the 6 Vertices (Image 2 style) */}
                   {activeNodes.map((node) => {
                     const isHovered = hoveredDimIdx === node.idx;
                     return (
@@ -428,7 +402,6 @@ export function ReconBenchmarkVisualizer({
                           />
                         )}
 
-                        {/* Outer White Glow Circle matching Image 2 */}
                         <circle
                           cx={node.x}
                           cy={node.y}
@@ -440,7 +413,6 @@ export function ReconBenchmarkVisualizer({
                           className="transition-all duration-150"
                         />
 
-                        {/* Inner Dot */}
                         <circle
                           cx={node.x}
                           cy={node.y}
@@ -451,7 +423,6 @@ export function ReconBenchmarkVisualizer({
                     );
                   })}
 
-                  {/* 6. Axis Labels around Perimeter */}
                   {activeNodes.map((node) => {
                     const labelOffset = 22;
                     const theta = -Math.PI / 2 + (node.idx * 2 * Math.PI) / 6;
@@ -485,7 +456,6 @@ export function ReconBenchmarkVisualizer({
                 </svg>
               </div>
 
-              {/* Legend underneath Radar */}
               <div className="mt-3 flex items-center justify-center gap-5 text-xs">
                 <div className="flex items-center gap-1.5 font-medium text-slate-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-azure border border-white shadow-xs" />
@@ -500,7 +470,6 @@ export function ReconBenchmarkVisualizer({
               </div>
             </div>
 
-            {/* Right: Interactive Dimensional Breakdown & Inspector */}
             <div className="lg:col-span-5 space-y-3.5">
               <div className="rounded-xl border border-line-soft bg-surface/80 p-4 shadow-xs">
                 <div className="flex items-center justify-between gap-2 border-b border-line-soft pb-2.5 mb-2.5">
@@ -531,7 +500,6 @@ export function ReconBenchmarkVisualizer({
                     : "Six-axis comparison of settlement reconciliation architecture."}
                 </p>
 
-                {/* Dimensional Score Cards */}
                 <div className="grid grid-cols-2 gap-2 mt-3.5">
                   {activeNodes.map((node) => {
                     const isHovered = hoveredDimIdx === node.idx;
@@ -566,7 +534,6 @@ export function ReconBenchmarkVisualizer({
                 </div>
               </div>
 
-              {/* Architecture Competitive Callout */}
               <div className="rounded-xl border border-line-soft bg-slate-50/70 p-3.5 text-xs text-dim space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-navy">
@@ -585,7 +552,6 @@ export function ReconBenchmarkVisualizer({
                     {selectedInfra.vulnerability}
                   </div>
                 )}
-                {/* Provenance — every number on this row is sourced, not invented. */}
                 <div className="mt-2 flex items-start justify-between gap-2 border-t border-line-soft pt-2">
                   <span
                     className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase ${
@@ -620,11 +586,8 @@ export function ReconBenchmarkVisualizer({
             </div>
           </div>
         ) : (
-          /* ========================================================================= */
-          /* MODE 2: IMAGE 3 STYLE — MULTI-BATCH VELOCITY AREA TREND CHART             */
-          /* ========================================================================= */
+
           <div className="space-y-4">
-            {/* Top Controls: Metric Switcher + Range Pill */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-navy mr-1">Trend Metric:</span>
@@ -652,7 +615,6 @@ export function ReconBenchmarkVisualizer({
                 </button>
               </div>
 
-              {/* Provenance pill — measured vs steady-state */}
               <span
                 className={`rounded-full border px-2.5 py-1 font-mono text-[10.5px] font-semibold ${
                   selectedInfra.id === "tijori"
@@ -666,7 +628,6 @@ export function ReconBenchmarkVisualizer({
               </span>
             </div>
 
-            {/* SVG Area Chart Container matching Image 3 Card */}
             <div className="relative w-full aspect-[21/9] min-h-[220px] rounded-2xl bg-gradient-to-b from-[#F0F5FD] to-[#F8FAFD] border border-[#D8E6F8] p-4 sm:p-6 flex flex-col justify-between">
               <svg viewBox="0 0 600 200" className="w-full h-full overflow-visible">
                 <defs>
@@ -676,7 +637,6 @@ export function ReconBenchmarkVisualizer({
                   </linearGradient>
                 </defs>
 
-                {/* Horizontal Gridlines matching Image 3 */}
                 {[30, 75, 120, 165].map((yVal, gIdx) => (
                   <line
                     key={`hline-${gIdx}`}
@@ -690,7 +650,6 @@ export function ReconBenchmarkVisualizer({
                   />
                 ))}
 
-                {/* Calculate Path Points */}
                 {(() => {
                   const xStep = 540 / (trendPoints.length - 1);
                   const minVal = trendMetric === "rate" ? 0.6 : 0;
@@ -704,7 +663,6 @@ export function ReconBenchmarkVisualizer({
                     return { x, y, pt };
                   });
 
-                  // Build SVG Area Path
                   const pathD = points.reduce((acc, p, i) => {
                     return i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
                   }, "");
@@ -712,10 +670,8 @@ export function ReconBenchmarkVisualizer({
 
                   return (
                     <>
-                      {/* Area Fill */}
                       <path d={areaD} fill="url(#areaTrendGrad)" />
 
-                      {/* Stroke Line */}
                       <path
                         d={pathD}
                         fill="none"
@@ -725,7 +681,6 @@ export function ReconBenchmarkVisualizer({
                         strokeLinejoin="round"
                       />
 
-                      {/* Glowing White Circular Nodes matching Image 3 */}
                       {points.map((p, idx) => (
                         <g key={`pt-${idx}`} className="group cursor-pointer">
                           <circle
@@ -739,7 +694,6 @@ export function ReconBenchmarkVisualizer({
                           />
                           <circle cx={p.x} cy={p.y} r={2} fill="#0C83FD" />
 
-                          {/* Tooltip title on point */}
                           <title>
                             {`${p.pt.label}: ${
                               trendMetric === "rate"
@@ -753,7 +707,6 @@ export function ReconBenchmarkVisualizer({
                   );
                 })()}
 
-                {/* X-Axis Labels matching Image 3 */}
                 {trendPoints.map((pt, idx) => {
                   const xStep = 540 / (trendPoints.length - 1);
                   const x = 30 + idx * xStep;
@@ -772,7 +725,6 @@ export function ReconBenchmarkVisualizer({
               </svg>
             </div>
 
-            {/* Velocity Summary Footer */}
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 border-t border-line-soft pt-3">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-navy">{selectedInfra.name}:</span>

@@ -10,7 +10,6 @@ import {
   useSankey,
 } from "./sankey-context";
 
-// Helper to get node name from link source/target
 type NodeOrIndex = SankeyNode<SankeyNodeDatum, SankeyLinkDatum> | number;
 
 function getNodeName(nodeOrIndex: NodeOrIndex, fallbackIndex: number): string {
@@ -21,19 +20,19 @@ function getNodeName(nodeOrIndex: NodeOrIndex, fallbackIndex: number): string {
 }
 
 export interface SankeyTooltipProps {
-  /** Custom content renderer for node tooltips */
+
   nodeContent?: (props: {
     node: SankeyNode<SankeyNodeDatum, SankeyLinkDatum>;
     index: number;
   }) => React.ReactNode;
-  /** Custom content renderer for link tooltips */
+
   linkContent?: (props: {
     link: SankeyLink<SankeyNodeDatum, SankeyLinkDatum>;
     index: number;
   }) => React.ReactNode;
-  /** Value formatter function */
+
   formatValue?: (value: number) => string;
-  /** Custom class name */
+
   className?: string;
 }
 
@@ -58,21 +57,17 @@ export function SankeyTooltip({
     return null;
   }
 
-  // Use mouse position if available, otherwise fallback to anchor point
   const x = mousePos ? mousePos.x : tooltipData.x + margin.left;
   const y = mousePos ? mousePos.y : tooltipData.y + margin.top;
 
-  // Render node tooltip
   if (tooltipData.type === "node" && tooltipData.nodeIndex !== undefined) {
     const node = nodes[tooltipData.nodeIndex];
     if (!node) {
       return null;
     }
 
-    // Calculate total value flowing through this node
     const totalValue = node.value ?? 0;
 
-    // Custom content
     if (nodeContent) {
       return (
         <TooltipBox
@@ -89,7 +84,6 @@ export function SankeyTooltip({
       );
     }
 
-    // Default node tooltip
     const rows: TooltipRow[] = [
       {
         color: "var(--chart-line-primary)",
@@ -113,14 +107,12 @@ export function SankeyTooltip({
     );
   }
 
-  // Render link tooltip
   if (tooltipData.type === "link" && tooltipData.linkIndex !== undefined) {
     const link = links[tooltipData.linkIndex];
     if (!link) {
       return null;
     }
 
-    // Get source and target names
     const sourceName = getNodeName(
       link.source,
       typeof link.source === "number" ? link.source : 0
@@ -130,7 +122,6 @@ export function SankeyTooltip({
       typeof link.target === "number" ? link.target : 0
     );
 
-    // Custom content
     if (linkContent) {
       return (
         <TooltipBox
@@ -147,7 +138,6 @@ export function SankeyTooltip({
       );
     }
 
-    // Default link tooltip
     const rows: TooltipRow[] = [
       {
         color: "var(--chart-foreground-muted)",

@@ -29,8 +29,6 @@ export const staggerContainer = (stagger = 0.06) => ({
   },
 });
 
-// ---- formatting -------------------------------------------------------------
-// Paise are integers on the wire; the API also ships *_rupees convenience fields.
 export const rupees = (paise: number, opts: { decimals?: number } = {}): string =>
   (paise / 100).toLocaleString("en-IN", {
     style: "currency",
@@ -42,8 +40,6 @@ export const rupees = (paise: number, opts: { decimals?: number } = {}): string 
 export const pct = (x: number, d = 1): string => `${(x * 100).toFixed(d)}%`;
 export const signed = (x: number, d = 1): string => `${x >= 0 ? "+" : ""}${x.toFixed(d)}%`;
 
-// Count a value up on change — the hero's single authored moment. Falls straight
-// to the target under reduced-motion, and always lands exactly on `target`.
 export function useCountUp(target: number, ms = 700): number {
   const [value, setValue] = useState(target);
   const from = useRef(target);
@@ -57,7 +53,7 @@ export function useCountUp(target: number, ms = 700): number {
     let raf = 0;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / ms);
-      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
       setValue(a + (target - a) * eased);
       if (t < 1) raf = requestAnimationFrame(tick);
       else from.current = target;
@@ -68,9 +64,6 @@ export function useCountUp(target: number, ms = 700): number {
   return value;
 }
 
-// ---- scroll reveal ----------------------------------------------------------
-// Adds `reveal-in` when the element first scrolls into view (IntersectionObserver).
-// Reduced-motion is handled in CSS (the .reveal transition is neutralized there).
 export function useReveal<T extends HTMLElement = HTMLElement>() {
   const ref = useRef<T | null>(null);
   const [shown, setShown] = useState(false);
@@ -98,7 +91,6 @@ export function useReveal<T extends HTMLElement = HTMLElement>() {
   return { ref, shown };
 }
 
-// ---- streamed batch playback (SSE) ------------------------------------------
 export interface StreamCum {
   gross: number;
   recovered: number;
@@ -114,15 +106,12 @@ export interface BatchStreamView {
   smart: StreamCum;
   phase: "streaming" | "done";
   final: PolicyMetrics[] | null;
-  progress: number; // 0..1
+  progress: number;
   flows: StreamFlows | null;
 }
 
 const ZERO: StreamCum = { gross: 0, recovered: 0, attempts: 0 };
 
-// Replay a deterministic batch as it scores. Returns null until the first frame
-// arrives (caller falls back to a static /batch fetch if SSE never produces).
-// Re-runs whenever (seed, n, runId) change — runId lets "Run" replay in place.
 export function useBatchStream(seed: number, n: number, runId = 0): BatchStreamView | null {
   const [view, setView] = useState<BatchStreamView | null>(null);
   useEffect(() => {
@@ -154,22 +143,19 @@ export function useBatchStream(seed: number, n: number, runId = 0): BatchStreamV
       });
       es.close();
     });
-    es.onerror = () => es.close(); // leave view as-is; caller falls back if still null
+    es.onerror = () => es.close();
 
     return () => es.close();
   }, [seed, n, runId]);
   return view;
 }
 
-// ---- data fetching ----------------------------------------------------------
 export interface ApiState<T> {
   data: T | null;
   error: string | null;
   loading: boolean;
 }
 
-// Deterministic endpoints: (seed, n) fully determines the response, so a plain
-// fetch keyed on the query string is all we need. `deps` re-fetches on change.
 export function useApi<T>(path: string, deps: unknown[] = []): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({ data: null, error: null, loading: true });
   useEffect(() => {
@@ -187,7 +173,7 @@ export function useApi<T>(path: string, deps: unknown[] = []): ApiState<T> {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, deps);
   return state;
 }

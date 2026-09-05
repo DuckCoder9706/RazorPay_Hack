@@ -1,10 +1,3 @@
-"""Exception classifier + loop-closer.
-
-Persists W's residuals as typed exceptions (fee | timing | missing), and closes the loop
-by marking recovered money as reconciled once it lands — proving every recovered rupee
-actually settles (the whole thesis).
-"""
-
 from __future__ import annotations
 
 import sqlite3
@@ -16,10 +9,8 @@ from tijori.simulator.clock import EPOCH
 EXCEPTION_TYPES = ("fee", "timing", "missing")
 _TS = EPOCH.isoformat()
 
-
 def run_reconciliation(conn: sqlite3.Connection, *, seed: int, tolerance_paise: int = 0,
                        commit: bool = True) -> dict:
-    """Reconcile the settlement substrate, persist exceptions, return a summary."""
     from tijori.where.matcher import reconcile
 
     result = reconcile(conn, tolerance_paise=tolerance_paise)
@@ -48,15 +39,8 @@ def run_reconciliation(conn: sqlite3.Connection, *, seed: int, tolerance_paise: 
         conn.commit()
     return summary
 
-
 def reconcile_recoveries(conn: sqlite3.Connection, *, policy: str = "smart",
                          commit: bool = True) -> int:
-    """Close the loop: mark each recovered action as reconciled (money landed).
-
-    In the simulator a recovered retry always produces a matching credit, so recovery ==
-    reconciliation; this is the step that lets W confirm every recovered rupee settled.
-    Returns the number of actions marked reconciled.
-    """
     cur = conn.execute(
         "UPDATE recovery_actions SET reconciled = 1 "
         "WHERE policy = ? AND outcome = 'recovered'", (policy,))

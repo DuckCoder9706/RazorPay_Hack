@@ -1,5 +1,3 @@
-"""T1 acceptance tests for the ledger DDL + audit log."""
-
 from __future__ import annotations
 
 from tijori.ledger.audit import append, replay
@@ -10,7 +8,6 @@ EXPECTED_TABLES = {
     "exceptions", "recovery_actions", "calibration_report", "audit_log",
 }
 
-
 def test_init_db_creates_all_tables(tmp_path):
     db = tmp_path / "t.db"
     init_db(db, fresh=True)
@@ -20,17 +17,15 @@ def test_init_db_creates_all_tables(tmp_path):
     finally:
         conn.close()
 
-
 def test_init_db_idempotent(tmp_path):
     db = tmp_path / "t.db"
     init_db(db, fresh=True)
-    init_db(db)  # second run must not raise
+    init_db(db)
     conn = get_conn(db)
     try:
         assert EXPECTED_TABLES.issubset(set(table_names(conn)))
     finally:
         conn.close()
-
 
 def test_audit_append_is_ordered_and_readable(tmp_path):
     db = tmp_path / "t.db"

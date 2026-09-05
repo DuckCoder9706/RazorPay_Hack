@@ -31,7 +31,6 @@ function isReferenceAreaElement(child: ReactElement): boolean {
   return getChildComponentName(child) === "ReferenceArea";
 }
 
-/** Collect {@link ReferenceArea} props from chart children for axis label styling. */
 export function extractReferenceAreaConfigs(
   children: ReactNode
 ): ReferenceAreaConfig[] {

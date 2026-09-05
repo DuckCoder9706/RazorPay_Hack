@@ -1,12 +1,3 @@
-"""Tijori CLI.
-
-    tijori init-db [--path data/tijori.db] [--fresh]   create the ledger
-    tijori validate                                     check frozen constants
-    tijori run [--seed 42] [--n 500]                    run a scored batch (W2-3)
-
-Only `init-db` and `validate` are live at T1; `run` is wired as the eval harness fills in.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -15,7 +6,6 @@ import sys
 from tijori.config import constants
 from tijori.ledger.db import DEFAULT_DB_PATH, init_db, get_conn, table_names
 
-
 def _cmd_init_db(args: argparse.Namespace) -> int:
     path = init_db(args.path, fresh=args.fresh)
     with get_conn(path) as conn:
@@ -23,7 +13,6 @@ def _cmd_init_db(args: argparse.Namespace) -> int:
     print(f"ledger ready at {path}")
     print(f"tables ({len(tables)}): {', '.join(tables)}")
     return 0
-
 
 def _cmd_validate(_args: argparse.Namespace) -> int:
     constants.validate()
@@ -34,10 +23,8 @@ def _cmd_validate(_args: argparse.Namespace) -> int:
     print(f"  distribution sum: {dist_total}")
     return 0
 
-
 def _fmt_rupees(paise: int) -> str:
     return f"₹{paise / 100:,.2f}"
-
 
 def _cmd_generate(args: argparse.Namespace) -> int:
     from tijori.simulator.seed import seed_ledger
@@ -58,7 +45,6 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     for cause, cnt in s["cause_mix"].items():
         print(f"    {cause:<22} {cnt:>4}  ({cnt / s['n_onetime_failures']:.0%})")
     return 0
-
 
 def _cmd_sweep(args: argparse.Namespace) -> int:
     from tijori.eval.sweep import default_seeds, run_sweep
@@ -81,7 +67,6 @@ def _cmd_sweep(args: argparse.Namespace) -> int:
               f"   pooled {st['pooled_count']:>5}{flag}")
     return 0
 
-
 def _cmd_payment_link(args: argparse.Namespace) -> int:
     from tijori.razorpay_client.client import create_payment_link, fetch_payment_link
 
@@ -98,7 +83,6 @@ def _cmd_payment_link(args: argparse.Namespace) -> int:
               f"(pay it at the short_url with test card 4111 1111 1111 1111 to mark it paid)")
     return 0
 
-
 def _cmd_churn_sweep(args: argparse.Namespace) -> int:
     from tijori.eval.harness import churn_sweep
 
@@ -112,7 +96,6 @@ def _cmd_churn_sweep(args: argparse.Namespace) -> int:
     always = all(r["smart_wins_net"] for r in rows)
     print(f"  --> smart wins on net value across the ENTIRE churn range: {always}")
     return 0
-
 
 def _cmd_reconcile(args: argparse.Namespace) -> int:
     from tijori.ledger.db import get_conn, init_db
@@ -132,7 +115,6 @@ def _cmd_reconcile(args: argparse.Namespace) -> int:
     print(f"  exceptions detected: {s['total_exceptions']}  {s['detected']}")
     return 0
 
-
 def _cmd_learn(args: argparse.Namespace) -> int:
     from tijori.eval.harness import learning_run
 
@@ -149,22 +131,19 @@ def _cmd_learn(args: argparse.Namespace) -> int:
           f"Brier: {first['mean_brier']:.3f} → {last['mean_brier']:.3f} (better-calibrated)")
     return 0
 
-
 def _cmd_bench(args: argparse.Namespace) -> int:
     import time
     from tijori.config.constants import BELIEF_TABLE, Cause
     from tijori.recover.policy import choose_smart
     from tijori.eval.harness import run_batch
 
-    # Per-decision latency (the hot path: diagnose + net-value argmax, no I/O, no LLM).
     reps = 200_000
     t0 = time.perf_counter()
     for i in range(reps):
         choose_smart(Cause.INSUFFICIENT_FUNDS, 50000, (i % 3) + 1, "mid")
-    per = (time.perf_counter() - t0) / reps * 1e6  # microseconds
+    per = (time.perf_counter() - t0) / reps * 1e6
     print(f"per-decision latency : {per:.2f} µs  ({1e6 / per:,.0f} decisions/sec, single core)")
 
-    # End-to-end scored batch throughput.
     t0 = time.perf_counter()
     r = run_batch(seed=args.seed, n=args.n)
     dt = time.perf_counter() - t0
@@ -172,7 +151,6 @@ def _cmd_bench(args: argparse.Namespace) -> int:
           f"({args.n / dt:,.0f} failures/sec, both policies + oracle)")
     print(f"  (smart recovered ₹{r.metrics['smart'].gross_recovered_paise / 100:,.0f})")
     return 0
-
 
 def _cmd_run(args: argparse.Namespace) -> int:
     from tijori.eval.harness import run_batch
@@ -199,12 +177,10 @@ def _cmd_run(args: argparse.Namespace) -> int:
           f"(baseline {base.efficiency:.1%})")
     return 0
 
-
 def main(argv: list[str] | None = None) -> int:
-    # Windows consoles default to cp1252; force UTF-8 so ₹ and friends print.
     for stream in (sys.stdout, sys.stderr):
         try:
-            stream.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+            stream.reconfigure(encoding="utf-8")
         except (AttributeError, ValueError):
             pass
 
@@ -264,7 +240,6 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     return args.func(args)
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

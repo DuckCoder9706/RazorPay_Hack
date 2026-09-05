@@ -28,29 +28,29 @@ export interface SankeyData {
 }
 
 export interface SankeyChartProps {
-  /** Sankey data with nodes and links */
+
   data: SankeyData;
-  /** Chart margins */
+
   margin?: Partial<Margin>;
-  /** Animation duration in milliseconds. Default: 1100 */
+
   animationDuration?: number;
-  /** Motion enter transition (spring or cubic-bezier tween). */
+
   enterTransition?: Transition;
-  /** Signature of motion URL state — triggers enter replay when it changes. */
+
   revealSignature?: string;
-  /** Aspect ratio as "width / height". Default: "2 / 1" */
+
   aspectRatio?: string;
-  /** Node width in pixels. Default: 16 */
+
   nodeWidth?: number;
-  /** Node padding in pixels. Default: 24 */
+
   nodePadding?: number;
-  /** Additional class name for the container */
+
   className?: string;
-  /** Child components (SankeyNode, SankeyLink, SankeyTooltip) */
+
   children: ReactNode;
-  /** Controlled hovered node index (e.g. from ChartLegend). */
+
   hoveredNodeIndex?: number | null;
-  /** Called when node hover changes from the chart surface. */
+
   onNodeHoverChange?: (index: number | null) => void;
 }
 
@@ -126,7 +126,6 @@ const SankeyChartCore = memo(function SankeyChartCore({
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revealSignature
   useEffect(() => {
     setRevealEpoch((n) => n + 1);
     setIsLoaded(false);
@@ -156,7 +155,7 @@ const SankeyChartCore = memo(function SankeyChartCore({
   }, [data, sankeyGenerator]);
 
   const createPath = useCallback(
-    // biome-ignore lint/suspicious/noExplicitAny: d3-sankey types are complex
+
     (link: any) => {
       try {
         const pathGenerator = sankeyLinkHorizontal();
