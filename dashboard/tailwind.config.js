@@ -1,6 +1,5 @@
 import tailwindcssAnimate from "tailwindcss-animate";
 
-/** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
@@ -11,27 +10,27 @@ export default {
         mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       colors: {
-        // --- Classic Razorpay Palette (Clean, High-contrast, Enterprise Fintech) ---
-        canvas: "#f4f7fc", // Crisp tech pearl ground
-        surface: "#ffffff", // Pure white card surfaces
-        raised: "#f8fafc", // Insets / table headers / hover grounds
-        line: "#e2e8f0", // Clean hairline borders
+
+        canvas: "#f4f7fc",
+        surface: "#ffffff",
+        raised: "#f8fafc",
+        line: "#e2e8f0",
         "line-soft": "#edf2f7",
-        ink: "#0c2340", // Razorpay Navy — primary high-contrast text
-        dim: "#475569", // Slate secondary text
-        faint: "#64748b", // Slate meta text
-        navy: "#0c2340", // Brand Navy
-        azure: "#0c83fd", // Razorpay Electric Blue
+        ink: "#0c2340",
+        dim: "#475569",
+        faint: "#64748b",
+        navy: "#0c2340",
+        azure: "#0c83fd",
         "azure-hover": "#0265c8",
         "azure-light": "#ebf5ff",
-        money: "#00a878", // Razorpay accessible mint
+        money: "#00a878",
         "money-dim": "#008765",
         "money-light": "#e6faf5",
         amber: "#d97706",
         rose: "#e11d48",
         violet: "#7c3aed",
         sky: "#0284c7",
-        // --- shadcn/ui semantic set (CSS vars → mapped onto the palette) ----------
+
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

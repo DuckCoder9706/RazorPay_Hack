@@ -1,14 +1,3 @@
-# Pinned runtime deps (reproducibility #3). Requires Python 3.11 (see .python-version).
-#
-# NOTE: the DETERMINISTIC SCORED CORE (simulator, ledger, recover, where, eval) depends
-# on the Python STANDARD LIBRARY ONLY (sqlite3, random, hashlib, datetime, json). The
-# packages below are for the API and the live Razorpay Payment Link — neither of which
-# sits in the scored path. So reproducibility of the ₹ numbers does not
-# depend on any third-party version.
-#
-# Install: pip install -r requirements.txt
-# (For byte-for-byte supply-chain pinning, regenerate with `pip-compile --generate-hashes`.)
-
 fastapi==0.110.0
 uvicorn[standard]==0.29.0
 razorpay==1.4.2
