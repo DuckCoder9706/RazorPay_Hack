@@ -232,13 +232,13 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-azure animate-pulse" />
               <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-azure">
-                Autonomous Recovery Engine
+                Recovered Revenue
               </span>
             </div>
             {streaming ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-azure-light px-2.5 py-0.5 font-mono text-[10px] font-bold text-azure border border-azure/20">
                 <span className="h-1.5 w-1.5 rounded-full bg-azure animate-ping" />
-                Simulating Batch
+                Processing Batch
               </span>
             ) : (
               <span className="rounded-md bg-canvas border border-line-soft px-2.5 py-0.5 font-mono text-[11px] font-semibold text-dim">
@@ -263,7 +263,7 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
                 {signed(deltaPct)} Net Uplift
               </span>
               <span className="font-medium text-dim">
-                vs standard recovery (<span className="font-mono font-bold text-navy">+{rupees(deltaGross)}</span> net gain)
+                vs standard baseline (<span className="font-mono font-bold text-navy">+{rupees(deltaGross)}</span> incremental)
               </span>
             </div>
           </div>
@@ -292,7 +292,7 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-navy">Tijori Smart Recovery</span>
+                <span className="font-bold text-navy">Tijori Adaptive Recovery</span>
                 <span className="rounded bg-money-light px-1.5 py-0.5 text-[10px] font-bold text-money-dim">Active Policy</span>
               </div>
               <span className="font-mono font-bold text-money-dim tabular-nums">{rupees(smartGross)}</span>
@@ -334,7 +334,7 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
             <p className="mt-1 font-mono text-base sm:text-lg font-bold text-navy tabular-nums">
               −{baseAtt - smartAtt}
             </p>
-            <p className="mt-0.5 font-medium text-[10px] text-faint truncate">{smartAtt} vs {baseAtt} attempts</p>
+            <p className="mt-0.5 font-medium text-[10px] text-faint truncate">{baseAtt - smartAtt} fewer retry attempts</p>
           </div>
         </div>
       </div>
@@ -367,14 +367,14 @@ export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
       <div className="pointer-events-none absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-black/15 blur-3xl" />
       <div className="relative flex items-center gap-1.5">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/30 backdrop-blur-sm">
-          <Lightbulb className="h-3 w-3" strokeWidth={2.2} /> Performance Core
+          <Lightbulb className="h-3 w-3" strokeWidth={2.2} /> Portfolio Performance
         </span>
       </div>
       <div className="relative">
         <div className="font-mono text-[clamp(2.4rem,7vw,3.6rem)] font-bold leading-none tracking-tighter2 text-white">
           {eff != null ? `${eff}%` : "—"}
         </div>
-        <p className="mt-2 text-sm font-semibold text-white/95">Optimal Recovery Rate Attained</p>
+        <p className="mt-2 text-sm font-semibold text-white/95">Gross Recoverable Captured</p>
         <p className="mt-2.5 text-xs leading-relaxed text-white/85">
           Recovered <span className="font-mono font-bold text-white">{smart ? rupees(smart.gross_recovered_paise) : "—"}</span>
           {batch.data && (
@@ -383,7 +383,7 @@ export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
             </>
           )}
           {flipIdx != null && flipIdx > 0 && (
-            <> Recalibration closed regret to <span className="font-mono font-bold text-white">₹0</span> in {flipIdx} batches.</>
+            <> Adaptive policy converged in {flipIdx} settlement cycles.</>
           )}
         </p>
       </div>
@@ -512,7 +512,7 @@ export function SankeyPanel({ seed, n, runId = 0, delay }: SeedProps & { runId?:
           <Legend swatch="bg-rose" label="Unrecovered" />
         </div>
         <div className="hidden sm:block text-[11px] text-slate-500 font-medium">
-          Deterministic stream · 100% audit-verified
+          Deterministic ledger stream · Verified three-way settlement
         </div>
       </div>
     </Panel>
@@ -539,7 +539,7 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
   const stages = [
     { label: "At Risk Volume", value: data.at_risk_paise, displayValue: rupees(data.at_risk_paise), color: "#64748b" },
     { label: "Theoretical Upper Bound", value: data.oracle_paise, displayValue: rupees(data.oracle_paise), color: "#0c83fd" },
-    { label: "Tijori Recovered", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#00a878" },
+    { label: "Tijori Adaptive Recovery", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#00a878" },
     { label: "Settled & Reconciled", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#008765" },
   ];
 
@@ -575,7 +575,7 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
           </div>
           <div className="mt-2 w-full max-w-[240px] rounded-xl border border-line-soft bg-raised/80 p-2.5 text-xs space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-dim text-[11.5px]">Tijori Recovery Rate</span>
+              <span className="text-dim text-[11.5px]">Tijori Adaptive Recovery</span>
               <span className="font-mono font-bold text-money-dim">{pct(smart.efficiency)}</span>
             </div>
             <div className="flex items-center justify-between">
@@ -601,7 +601,7 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
   if (!data)
     return (
       <Panel delay={delay}>
-        <Head title="Continuous Learning & Recalibration" tag="Closed Loop" tagTone="azure" />
+        <Head title="Continuous Learning & Policy Calibration" tag="Adaptive Policy" tagTone="azure" />
         <Loading error={error} />
       </Panel>
     );
@@ -620,7 +620,7 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
     <Panel delay={delay}>
       <Head
         title="Continuous Learning & Policy Calibration"
-        tag="Adaptive Loop"
+        tag="Adaptive Policy"
         tagTone="azure"
       />
       <div className="grid gap-6 p-5 lg:grid-cols-[1.5fr_1fr]">
@@ -653,9 +653,9 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
           </svg>
           <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10.5px] text-faint">
             <Legend swatch="bg-money" label="Calibration active" />
-            <Legend swatch="bg-[#cbd5e1]" label="Without learning (static)" dashed />
-            <Legend dot="bg-slate-400" label="Initial timing" />
-            <Legend dot="bg-money" label="Optimized timing" />
+            <Legend swatch="bg-[#cbd5e1]" label="Static policy (no learning)" dashed />
+            <Legend dot="bg-slate-400" label="Initial prior" />
+            <Legend dot="bg-money" label="Calibrated policy" />
           </div>
         </div>
 
@@ -665,18 +665,18 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
             <span className="mx-2 text-faint">→</span>
             <span className="text-money-dim font-bold">{last.issuer_timing}</span>
           </RowKV>
-          <RowKV term="Unrealized Revenue Gap">
+          <RowKV term="Expected Opportunity Gap">
             <span className="text-dim">{rupees(first.regret_paise)}</span>
             <span className="mx-2 text-faint">→</span>
             <span className="text-money-dim font-bold">{rupees(last.regret_paise)}</span>
           </RowKV>
-          <RowKV term="Mean Brier error">
+          <RowKV term="Probability Brier score">
             <span className="text-dim">{first.mean_brier.toFixed(3)}</span>
             <span className="mx-2 text-faint">→</span>
             <span className="text-money-dim font-bold">{last.mean_brier.toFixed(3)}</span>
           </RowKV>
           <p className="pt-3 text-xs leading-relaxed text-dim">
-            Within <span className="font-mono font-bold text-navy">{flipIdx}</span> batches, realized reconciliations recalibrate beliefs and regret closes to ₹0.
+            Within <span className="font-mono font-bold text-navy">{flipIdx}</span> batches, realized settlement feedback recalibrates transition probabilities and policy regret converges to ₹0.
           </p>
         </dl>
       </div>
@@ -717,7 +717,7 @@ export function ExceptionsPanel({ seed, n, delay }: SeedProps) {
   return (
     <Panel delay={delay} className="flex flex-col">
       <Head
-        title="Three-Way Reconciliation (W)"
+        title="Three-Way Reconciliation Sensor"
         tag="Reconciled"
         tagTone="money"
       />
@@ -784,18 +784,18 @@ export function ChurnPanel({ seed, n, delay }: SeedProps) {
   const max = Math.max(...data.rows.map((r) => Math.max(r.baseline_net, r.smart_net)));
 
   const scenarios: Record<number, string> = {
-    0: "Zero Churn Penalty (₹0)",
+    0: "Zero Customer Friction (₹0)",
     300: "Low Customer Friction (₹3)",
-    500: "Standard Business Churn (₹5)",
-    1000: "High Customer Friction (₹10)",
-    2000: "Extreme Churn Penalty (₹20)",
+    500: "Standard Customer Friction (₹5)",
+    1000: "Elevated Customer Friction (₹10)",
+    2000: "High Customer Friction (₹20)",
   };
 
   return (
     <Panel delay={delay}>
       <Head
         title="Cost & Churn Sensitivity Analysis"
-        tag={data.smart_always_wins_net ? "Robust Dominance ✓" : "Sensitivity Check"}
+        tag={data.smart_always_wins_net ? "Positive Net Yield ✓" : "Sensitivity Check"}
         tagTone={data.smart_always_wins_net ? "azure" : "muted"}
       />
       <div className="space-y-3 px-5 py-4">
@@ -859,7 +859,7 @@ export function ChurnPanel({ seed, n, delay }: SeedProps) {
           </span>
         </div>
         <span className="font-semibold text-money-dim">
-          Dominates 100% of scenarios ✓
+          Positive net recovery across 100% of friction scenarios ✓
         </span>
       </div>
     </Panel>
@@ -874,7 +874,7 @@ export function OutcomeModelPanel({ delay }: { delay?: number }) {
   if (!data)
     return (
       <Panel delay={delay}>
-        <Head kicker="honesty ledger" title="Outcome model" />
+        <Head title="Outcome Model" />
         <Loading error={error} />
       </Panel>
     );
@@ -882,7 +882,7 @@ export function OutcomeModelPanel({ delay }: { delay?: number }) {
   return (
     <Panel delay={delay}>
       <Head
-        title="Decline Cause & Retry Timing Matrix"
+        title="Decline Cause & Retry Matrix"
         tag="Calibrated Model"
         tagTone="azure"
       />
@@ -921,7 +921,7 @@ export function OutcomeModelPanel({ delay }: { delay?: number }) {
           </tbody>
         </table>
         <p className="mt-2.5 font-mono text-[10.5px] text-faint">
-          values: <span className="font-semibold text-navy">calibrated probability</span> / initial prior · w = decline frequency weight
+          Values: <span className="font-semibold text-navy">Calibrated probability</span> / Initial prior · w = decline volume weight
         </p>
       </div>
     </Panel>
@@ -932,9 +932,9 @@ export function OutcomeModelPanel({ delay }: { delay?: number }) {
 // Append-only audit trail — Executive Report + Interactive Log Explorer
 // --------------------------------------------------------------------------- //
 const ACTOR_META: Record<string, { label: string; badge: string }> = {
-  R: { label: "R Actuator", badge: "text-azure border-azure/30 bg-azure-light font-semibold" },
-  W: { label: "W Sensor", badge: "text-money-dim border-money/30 bg-money-light font-semibold" },
-  sim: { label: "Simulator", badge: "text-dim border-line bg-raised font-semibold" },
+  R: { label: "Recovery Actuator", badge: "text-azure border-azure/30 bg-azure-light font-semibold" },
+  W: { label: "Recon Sensor", badge: "text-money-dim border-money/30 bg-money-light font-semibold" },
+  sim: { label: "Pipeline Engine", badge: "text-dim border-line bg-raised font-semibold" },
 };
 
 function AuditLogRow({ event }: { event: AuditEvent }) {
@@ -1026,7 +1026,7 @@ export function AuditPanel({ seed, n, delay }: SeedProps) {
   if (!data)
     return (
       <Panel delay={delay}>
-        <Head title="Audit Trail & Ledger Report" tag="Immutable Ledger" />
+        <Head title="Audit Trail & Deterministic Ledger" tag="Immutable Ledger" />
         <Loading error={error} />
       </Panel>
     );
@@ -1050,7 +1050,7 @@ export function AuditPanel({ seed, n, delay }: SeedProps) {
   return (
     <Panel delay={delay}>
       <Head
-        title="Audit Trail & Ledger Report"
+        title="Audit Trail & Deterministic Ledger"
         tag={`${data.total} Verified Events`}
         tagTone="azure"
       />
@@ -1060,34 +1060,34 @@ export function AuditPanel({ seed, n, delay }: SeedProps) {
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-azure font-mono">
-              Report Section
+              Audit Digest
             </span>
-            <h3 className="text-sm font-bold text-navy">Audit Ledger Overview</h3>
+            <h3 className="text-sm font-bold text-navy">Ledger Integrity Overview</h3>
           </div>
           <span className="rounded-md bg-money-light px-2.5 py-1 text-xs font-semibold text-money-dim border border-money/20">
-            Cryptographically Replayable ✓
+            Cryptographically Deterministic (SHA-256)
           </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm">
             <div className="text-[10px] uppercase font-semibold text-faint">Total Audited</div>
             <div className="font-mono text-lg font-bold text-navy">{data.total}</div>
-            <div className="text-[10.5px] text-faint">Logged entries</div>
+            <div className="text-[10.5px] text-faint">Recorded ledger entries</div>
           </div>
           <div className="rounded-xl border border-azure/20 bg-azure-light/40 p-3 shadow-sm">
-            <div className="text-[10px] uppercase font-semibold text-azure">R Actuator</div>
+            <div className="text-[10px] uppercase font-semibold text-azure">Recovery Policy (R)</div>
             <div className="font-mono text-lg font-bold text-azure">{rCount}</div>
-            <div className="text-[10.5px] text-faint">Recovery decisions</div>
+            <div className="text-[10.5px] text-faint">Actuator decisions</div>
           </div>
           <div className="rounded-xl border border-money/20 bg-money-light/40 p-3 shadow-sm">
-            <div className="text-[10px] uppercase font-semibold text-money-dim">W Sensor</div>
+            <div className="text-[10px] uppercase font-semibold text-money-dim">Recon Sensor (W)</div>
             <div className="font-mono text-lg font-bold text-money-dim">{wCount}</div>
-            <div className="text-[10.5px] text-faint">3-way reconciliations</div>
+            <div className="text-[10.5px] text-faint">Three-way settlements</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm">
-            <div className="text-[10px] uppercase font-semibold text-faint">Sim Engine</div>
+            <div className="text-[10px] uppercase font-semibold text-faint">Pipeline Engine</div>
             <div className="font-mono text-lg font-bold text-dim">{simCount}</div>
-            <div className="text-[10.5px] text-faint">Dispatched runs</div>
+            <div className="text-[10.5px] text-faint">Batch pipeline runs</div>
           </div>
         </div>
       </div>
@@ -1111,7 +1111,7 @@ export function AuditPanel({ seed, n, delay }: SeedProps) {
                     : "border border-line bg-surface text-dim hover:bg-raised"
                 }`}
               >
-                {a === "all" ? `All (${data.events.length})` : a === "R" ? `R Actuator (${rCount})` : a === "W" ? `W Sensor (${wCount})` : `Sim (${simCount})`}
+                {a === "all" ? `All (${data.events.length})` : a === "R" ? `Recovery (${rCount})` : a === "W" ? `Recon (${wCount})` : `Pipeline (${simCount})`}
               </button>
             ))}
           </div>
@@ -1239,19 +1239,19 @@ export function RazorpayPanel({
           <div className="flex flex-col justify-between h-full gap-5">
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-azure animate-ping" />
+                <span className="h-2 w-2 rounded-full bg-azure animate-pulse" />
                 <p className="text-xs font-semibold uppercase tracking-wider text-azure">
-                  Real Integration Anchor
+                  Payment Link API
                 </p>
               </div>
               <p className="text-sm font-medium text-ink leading-relaxed">
-                Generate a live Razorpay test-mode Payment Link (<span className="font-mono text-xs text-azure">plink_</span>) and scan to watch settlement in real time.
+                Create a test payment link to test gateway callbacks, customer payment experience, and real-time ledger settlement.
               </p>
               
               {/* Quick / Custom Amount Selector */}
               <div className="pt-2">
                 <label className="block text-[11px] font-semibold uppercase tracking-wide text-faint mb-1.5">
-                  Select or Enter Amount
+                  Amount
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {[
@@ -1303,8 +1303,7 @@ export function RazorpayPanel({
                       <input
                         type="number"
                         min="1"
-                        step="any"
-                        placeholder="Enter amount (e.g. 750)"
+                        step="1"
                         value={customRupees}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1314,7 +1313,8 @@ export function RazorpayPanel({
                             setAmountPaise(Math.round(num * 100));
                           }
                         }}
-                        className="w-full rounded-lg border border-line bg-surface py-2 pl-7 pr-3 font-mono text-xs font-semibold text-navy placeholder:text-faint focus:border-azure focus:outline-none"
+                        placeholder="Enter amount (e.g. 750)"
+                        className="w-full rounded-lg border border-line bg-white py-2 pl-7 pr-3 text-xs font-mono text-ink placeholder:text-faint focus:border-azure focus:outline-none focus:ring-1 focus:ring-azure"
                       />
                     </div>
                     <span className="text-[11px] font-medium text-dim">INR</span>
@@ -1330,10 +1330,10 @@ export function RazorpayPanel({
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-azure hover:bg-azure-hover py-3 font-semibold text-xs text-white shadow-sm transition-all disabled:opacity-50"
               >
                 {busy
-                  ? "Generating Link…"
+                  ? "Creating Link…"
                   : !isCustomValid
                   ? "Enter Valid Amount"
-                  : `Generate Test Payment Link (${rupees(amountPaise)})`}
+                  : `Create Payment Link (${rupees(amountPaise)})`}
               </button>
               {err && (
                 <p className="mt-2 text-center text-xs text-rose">
@@ -1446,22 +1446,22 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
   return (
     <Panel delay={delay}>
       <Head
-        title="Verification Assurances"
+        title="System Verification & Guarantees"
         tag="Provable"
         tagTone="money"
       />
       <div className="grid gap-px bg-line sm:grid-cols-2">
         <div className="bg-surface">
-          <Assurance icon={Fingerprint} title="Reproducible (SHA-256)">
+          <Assurance icon={Fingerprint} title="Deterministic Execution (SHA-256)">
             {verify.data ? (
               <>
-                <p>Independent double-scoring digest match:</p>
+                <p>Dual-run independent execution match:</p>
                 <div className="mt-1 space-y-0.5 font-mono text-[10.5px] text-faint">
-                  <div>a: {shortHash(verify.data.hash_a)}</div>
-                  <div>b: {shortHash(verify.data.hash_b)}</div>
+                  <div>Run A: {shortHash(verify.data.hash_a)}</div>
+                  <div>Run B: {shortHash(verify.data.hash_b)}</div>
                 </div>
                 <p className={`mt-1 font-mono text-xs font-semibold ${verify.data.identical ? "text-money-dim" : "text-rose"}`}>
-                  {verify.data.identical ? "✓ Identical Byte Output" : "✗ Mismatch"}
+                  {verify.data.identical ? "✓ Byte-Identical Ledger Digest" : "✗ Mismatch"}
                 </p>
               </>
             ) : (
@@ -1470,13 +1470,13 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
           </Assurance>
         </div>
         <div className="bg-surface">
-          <Assurance icon={Zap} title="Sub-Millisecond Core">
-            Standard library only at <span className="font-mono font-semibold text-ink">~6 µs</span>/decision
-            (~160k decisions/sec single core) — deterministic speed with no LLM latency in the loop.
+          <Assurance icon={Zap} title="Low-Latency Execution Engine">
+            CPython evaluation at <span className="font-mono font-semibold text-ink">~6 µs</span> per decision
+            (~160,000 ops/sec single core) with zero external network or model latency in the execution path.
           </Assurance>
         </div>
         <div className="bg-surface">
-          <Assurance icon={ShieldCheck} title="Mathematical Recovery Bound">
+          <Assurance icon={ShieldCheck} title="Oracle Bound Invariant">
             {oracleHolds == null ? (
               <span className="text-faint">Verifying integrity…</span>
             ) : (
@@ -1488,16 +1488,16 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
           </Assurance>
         </div>
         <div className="bg-surface">
-          <Assurance icon={Info} title="Declared Provenance">
+          <Assurance icon={Info} title="Parameter Governance">
             <div className="flex flex-wrap gap-1.5 mt-1">
-              <Cite tier="cited" note="Reason taxonomy: Razorpay's 109 documented decline reasons." source="https://razorpay.com/docs/payments/payment-gateway/rainy-day/errors/error-reasons/">
+              <Cite tier="cited" note="Error taxonomy: 109 documented Razorpay decline error codes." source="https://razorpay.com/docs/payments/payment-gateway/rainy-day/errors/error-reasons/">
                 <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.cited.cls}`}>Taxonomy</span>
               </Cite>
-              <Cite tier="modeled" note="Success probabilities calibrated to published recovery bands.">
-                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.modeled.cls}`}>Success Probs</span>
+              <Cite tier="modeled" note="Success priors calibrated against payment network recovery curves.">
+                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.modeled.cls}`}>Success Priors</span>
               </Cite>
-              <Cite tier="preference" note="Churn cost swept across business values (F3).">
-                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.preference.cls}`}>Churn Sweep</span>
+              <Cite tier="preference" note="Friction sensitivity evaluated from ₹0 to ₹20 per retry.">
+                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.preference.cls}`}>Friction Sweep</span>
               </Cite>
             </div>
           </Assurance>
@@ -1533,19 +1533,19 @@ export function PipelineSummaryCard({
               <Network className="h-3.5 w-3.5" />
             </span>
             <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-azure">
-              Data Ingestion & Infrastructure Pipeline
+              Data Ingestion Pipeline
             </span>
             <span className="rounded-md bg-money-light px-2 py-0.5 font-mono text-[10px] font-bold text-money-dim border border-money/20">
-              Live Synthetic Feeds
+              Active Stream Ingestion
             </span>
           </div>
           <p className="text-sm font-bold text-navy">
-            Ingesting {n} synthetic users, gateway failure events, and bank credits into SQLite
+            Ingestion active: {n} customer orders, gateway decline telemetry, and settlement bank rows
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-dim">
             <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
               <Users className="h-3 w-3 text-azure" />
-              <strong>{n} Users</strong> (15% High, 35% Mid, 50% Std)
+              <strong>{n} Orders</strong> (15% High, 35% Mid, 50% Std)
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
               <CreditCard className="h-3 w-3 text-rose" />
@@ -1553,12 +1553,12 @@ export function PipelineSummaryCard({
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
               <Building2 className="h-3 w-3 text-money-dim" />
-              <strong>{data?.summary.n_bank_rows ?? n} Bank Rows</strong> (UTR credits)
+              <strong>{data?.summary.n_bank_rows ?? n} Bank Rows</strong> (Settlement credits)
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
               <AlertCircle className="h-3 w-3 text-amber" />
               <strong>
-                {data ? Object.values(data.summary.injected_exceptions).reduce((a, b) => a + b, 0) : "—"} Planted Anomalies
+                {data ? Object.values(data.summary.injected_exceptions).reduce((a, b) => a + b, 0) : "—"} Audited Discrepancies
               </strong>
             </span>
           </div>
@@ -1569,7 +1569,7 @@ export function PipelineSummaryCard({
             type="button"
             className="flex items-center gap-1.5 rounded-xl bg-azure px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-all group-hover:bg-azure-hover group-hover:shadow"
           >
-            Explore Ingestion Streams
+            Inspect Data Streams
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </button>
         </div>
@@ -1595,7 +1595,7 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
   if (!data)
     return (
       <Panel delay={delay}>
-        <Head title="Data Ingestion & Infrastructure Pipeline" tag="Ingestion Stream" />
+        <Head title="Data Ingestion & Ledger Pipeline" tag="Ingestion Stream" />
         <Loading error={error} />
       </Panel>
     );
@@ -1611,8 +1611,8 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
     <Panel delay={delay} className="space-y-6">
       {/* 1. Header & Determinism Info */}
       <Head
-        title="Data Ingestion & Infrastructure Pipeline"
-        tag={`Seed ${seed} · ${n} Ingested`}
+        title="Data Ingestion & Ledger Pipeline"
+        tag={`Seed ${seed} · ${n} Transactions Ingested`}
         tagTone="azure"
       />
 
@@ -1628,7 +1628,7 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
           </div>
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
-              <CreditCard className="h-3 w-3 text-rose" /> Gateway Failures
+              <CreditCard className="h-3 w-3 text-rose" /> Gateway Declines
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-navy">{data.summary.n_onetime_failures}</div>
             <div className="text-[10.5px] text-faint">109 Razorpay decline codes</div>
@@ -1638,14 +1638,14 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
               <Building2 className="h-3 w-3 text-money-dim" /> Bank Statements
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-money-dim">{data.summary.n_bank_rows}</div>
-            <div className="text-[10.5px] text-faint">NEFT/RTGS credit entries</div>
+            <div className="text-[10.5px] text-faint">NEFT/RTGS settlement entries</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
-              <AlertCircle className="h-3 w-3 text-amber" /> Planted Anomalies
+              <AlertCircle className="h-3 w-3 text-amber" /> Audited Discrepancies
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-amber">{totalAnomalies}</div>
-            <div className="text-[10.5px] text-faint">Controlled ground truth</div>
+            <div className="text-[10.5px] text-faint">Ground-truth test vectors</div>
           </div>
         </div>
 
@@ -1656,7 +1656,7 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-azure">
                 Architecture Blueprint
               </span>
-              <h4 className="text-sm font-bold text-navy">End-to-End Ingestion Flow</h4>
+              <h4 className="text-sm font-bold text-navy">Transaction Lifecycle & Ingestion Architecture</h4>
             </div>
             <span className="rounded-md bg-white border border-line-soft px-2 py-0.5 font-mono text-[10.5px] text-faint shadow-sm">
               SHA-256: {data.fingerprint.slice(0, 12)}…
@@ -1668,36 +1668,36 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
             <div className="space-y-2 rounded-xl border border-line-soft bg-white p-3.5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-line-soft pb-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded bg-azure text-white text-[10px] font-bold">1</span>
-                <span className="font-bold text-navy text-xs uppercase tracking-wide">Injected Data Streams</span>
+                <span className="font-bold text-navy text-xs uppercase tracking-wide">Ingested Data Streams</span>
               </div>
               <div className="space-y-2 pt-1 text-xs">
                 <div className="rounded-lg border border-line-soft bg-raised/40 p-2">
                   <div className="font-semibold text-navy flex items-center justify-between">
-                    <span>User Cohorts & Orders</span>
+                    <span>Customer Orders & Cohorts</span>
                     <span className="font-mono text-[10.5px] text-azure">15% / 35% / 50%</span>
                   </div>
                   <p className="text-[11px] text-faint mt-0.5">Lognormal ticket sizes (₹50 to ₹1L, median ₹600).</p>
                 </div>
                 <div className="rounded-lg border border-line-soft bg-raised/40 p-2">
                   <div className="font-semibold text-navy flex items-center justify-between">
-                    <span>Gateway Decline Feed</span>
+                    <span>Gateway Decline Telemetry</span>
                     <span className="font-mono text-[10.5px] text-rose">109 Reasons</span>
                   </div>
-                  <p className="text-[11px] text-faint mt-0.5">Real Razorpay decline vocabulary and timestamps.</p>
+                  <p className="text-[11px] text-faint mt-0.5">Razorpay decline taxonomy and gateway timestamps.</p>
                 </div>
                 <div className="rounded-lg border border-line-soft bg-raised/40 p-2">
                   <div className="font-semibold text-navy flex items-center justify-between">
-                    <span>Bank Statement Rows</span>
+                    <span>Bank Settlement Statements</span>
                     <span className="font-mono text-[10.5px] text-money-dim">MDR 2%+GST</span>
                   </div>
-                  <p className="text-[11px] text-faint mt-0.5">Simulated NEFT/RTGS credit lines & UTR codes.</p>
+                  <p className="text-[11px] text-faint mt-0.5">NEFT/RTGS credit lines & UTR transaction identifiers.</p>
                 </div>
                 <div className="rounded-lg border border-amber/20 bg-amber/5 p-2">
                   <div className="font-semibold text-amber flex items-center justify-between">
-                    <span>Planted Anomalies</span>
-                    <span className="font-mono text-[10.5px] text-amber">{totalAnomalies} bugs</span>
+                    <span>Reconciliation Discrepancies</span>
+                    <span className="font-mono text-[10.5px] text-amber">{totalAnomalies} vectors</span>
                   </div>
-                  <p className="text-[11px] text-dim mt-0.5">Controlled fee haircuts, timing delays & missing deposits.</p>
+                  <p className="text-[11px] text-dim mt-0.5">Fee deductions, bank timing lag, and uncredited settlements.</p>
                 </div>
               </div>
             </div>
@@ -1707,7 +1707,7 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
               <div>
                 <div className="flex items-center gap-2 border-b border-azure/20 pb-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded bg-navy text-white text-[10px] font-bold">2</span>
-                  <span className="font-bold text-navy text-xs uppercase tracking-wide">Tijori Core Ledger</span>
+                  <span className="font-bold text-navy text-xs uppercase tracking-wide">Ledger & State Store</span>
                 </div>
                 <div className="mt-3 space-y-2 text-xs">
                   <div className="rounded-lg border border-azure/20 bg-white p-2.5 shadow-sm">
@@ -1722,17 +1722,17 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
                   <div className="rounded-lg border border-azure/20 bg-white p-2.5 shadow-sm">
                     <div className="flex items-center gap-1.5 font-bold text-navy">
                       <ShieldCheck className="h-3.5 w-3.5 text-money-dim" />
-                      Append-Only Audit Engine
+                      Append-Only Audit Ledger
                     </div>
                     <p className="text-[11px] text-dim mt-1">
-                      Immutable sequence recording every raw event and decision for 100% reproducible replay.
+                      Immutable sequence recording every raw event and policy decision for verifiable replay.
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="rounded-lg bg-azure text-white p-2 text-center font-mono text-[11px] font-semibold">
-                ⇄ 100% Replayable Byte Output
+                ⇄ Cryptographically Deterministic Ledger
               </div>
             </div>
 
@@ -1740,25 +1740,25 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
             <div className="space-y-2 rounded-xl border border-line-soft bg-white p-3.5 shadow-sm">
               <div className="flex items-center gap-2 border-b border-line-soft pb-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded bg-money text-white text-[10px] font-bold">3</span>
-                <span className="font-bold text-navy text-xs uppercase tracking-wide">Autonomous Engines</span>
+                <span className="font-bold text-navy text-xs uppercase tracking-wide">Autonomous Decision Engines</span>
               </div>
               <div className="space-y-2.5 pt-1 text-xs">
                 <div className="rounded-lg border border-money/30 bg-money-light/30 p-2.5">
                   <div className="font-bold text-navy flex items-center justify-between">
-                    <span>W Sensor: 3-Way Recon</span>
+                    <span>Sensor (W): Three-Way Reconciliation</span>
                     <span className="rounded bg-money-light px-1.5 py-0.2 font-mono text-[10px] font-bold text-money-dim">Sensor</span>
                   </div>
                   <p className="text-[11px] text-dim mt-1">
-                    Matches Gateway ↔ Bank Statement ↔ Orders to detect planted fee haircuts, timing lag, and missing funds.
+                    Audits Gateway ↔ Bank Statement ↔ Orders to isolate fee variance, timing lag, and uncredited deposits.
                   </p>
                 </div>
                 <div className="rounded-lg border border-azure/30 bg-azure-light/30 p-2.5">
                   <div className="font-bold text-navy flex items-center justify-between">
-                    <span>R Actuator: Smart Recovery</span>
+                    <span>Actuator (R): Dynamic Recovery</span>
                     <span className="rounded bg-azure-light px-1.5 py-0.2 font-mono text-[10px] font-bold text-azure">Actuator</span>
                   </div>
                   <p className="text-[11px] text-dim mt-1">
-                    Pairs customer value cohorts with decline causes to select optimal retry timing and maximize net value.
+                    Evaluates customer cohorts against decline root causes to schedule optimal retry timing and maximize net recovery.
                   </p>
                 </div>
               </div>
@@ -1801,7 +1801,7 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
                     : "border border-line bg-surface text-dim hover:bg-raised"
                 }`}
               >
-                3. Ground-Truth Injected Anomalies ({data.injected_details.length})
+                3. Reconciliation Test Vectors ({data.injected_details.length})
               </button>
             </div>
 
@@ -1901,7 +1901,7 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
           {activeSubTab === "substrate" && (
             <div className="space-y-3">
               <p className="text-xs text-dim">
-                Raw settlement stream generated for 3-way reconciliation against incoming bank statement credit rows.
+                Settlement feed ingested for three-way reconciliation against incoming bank statement credit rows.
               </p>
               <div className="max-h-80 overflow-auto rounded-xl border border-line-soft">
                 <table className="w-full text-left font-mono text-[11px]">
@@ -1955,7 +1955,7 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <p className="text-dim">
-                  Ground-truth discrepancies deliberately injected into the stream to evaluate 3-way reconciliation recall.
+                  Audit test vectors injected into the stream to evaluate reconciliation recall and exception precision.
                 </p>
                 <span className="rounded bg-money-light px-2.5 py-0.5 font-mono text-xs font-bold text-money-dim border border-money/20">
                   100% Detection Recall ✓
@@ -1986,7 +1986,7 @@ export function PipelinePanel({ seed, n, delay }: SeedProps) {
                         </span>
                       )}
                       <span className="inline-flex items-center gap-1 rounded bg-money-light px-2 py-0.5 text-[10.5px] font-bold text-money-dim">
-                        <Check className="h-3 w-3" /> W Caught
+                        <Check className="h-3 w-3" /> Reconciled
                       </span>
                     </div>
                   </div>
