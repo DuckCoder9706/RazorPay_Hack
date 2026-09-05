@@ -1,5 +1,5 @@
 [project]
-name = "tijori"
+name = "sonic"
 version = "0.1.0"
 description = "A closed loop that finds missing money, recovers it, proves it settled, and corrects its own recovery model. Razorpay AI Buildathon — Track 3 (Revenue Recovery)."
 requires-python = ">=3.11"
@@ -20,14 +20,14 @@ dev = [
 ]
 
 [project.scripts]
-tijori = "tijori.cli:main"
+sonic = "sonic.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["tijori*"]
+include = ["sonic*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

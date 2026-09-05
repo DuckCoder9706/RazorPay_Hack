@@ -293,7 +293,7 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-navy">Tijori Adaptive Recovery</span>
+                <span className="font-bold text-navy">Sonic Adaptive Recovery</span>
                 <span className="rounded bg-money-light px-1.5 py-0.5 text-[10px] font-bold text-money-dim">Active Policy</span>
               </div>
               <span className="font-mono font-bold text-money-dim tabular-nums">{rupees(smartGross)}</span>
@@ -585,7 +585,7 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
   const stages = [
     { label: "At Risk Volume", value: data.at_risk_paise, displayValue: rupees(data.at_risk_paise), color: "#64748b" },
     { label: "Theoretical Upper Bound", value: data.oracle_paise, displayValue: rupees(data.oracle_paise), color: "#0c83fd" },
-    { label: "Tijori Adaptive Recovery", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#00a878" },
+    { label: "Sonic Adaptive Recovery", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#00a878" },
     { label: "Settled & Reconciled", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#008765" },
   ];
 
@@ -621,7 +621,7 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
           </div>
           <div className="mt-2 w-full max-w-[240px] rounded-xl border border-line-soft bg-raised/80 p-2.5 text-xs space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-dim text-[11.5px]">Tijori Adaptive Recovery</span>
+              <span className="text-dim text-[11.5px]">Sonic Adaptive Recovery</span>
               <span className="font-mono font-bold text-money-dim">{pct(smart.efficiency)}</span>
             </div>
             <div className="flex items-center justify-between">
@@ -832,7 +832,7 @@ const INFRA_BADGE: Record<string, { label: string; cls: string; bar: string }> =
 };
 
 export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
-  const [selectedId, setSelectedId] = useState<string>("tijori");
+  const [selectedId, setSelectedId] = useState<string>("sonic");
 
   const benchmarkApi = useApi<ReconBenchmarkResponse>(`/reconciliation/benchmarks?seed=${seed}&n=${n}`, [seed, n]);
 
@@ -850,9 +850,9 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
   const totalVolumePaise = bench.total_volume_paise;
   const nettingMatches = bench.summary?.netting_reconciled ?? 0;
 
-  const tijoriInfra = infrastructures.find((i) => i.id === "tijori") ?? infrastructures[0];
+  const sonicInfra = infrastructures.find((i) => i.id === "sonic") ?? infrastructures[0];
   const defaultInfra = infrastructures.find((i) => i.id === "razorpay_default");
-  const tijoriRate = tijoriInfra.reconciliation_rate;
+  const sonicRate = sonicInfra.reconciliation_rate;
 
   const selectedInfra = infrastructures.find((i) => i.id === selectedId) || infrastructures[0];
 
@@ -864,12 +864,12 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
   );
 
   const defaultLeakage = leakageMap["razorpay_default"] ?? 0;
-  const tijoriLeakage = leakageMap["tijori"] ?? 0;
-  const tijoriSavingsVsDefault = defaultLeakage - tijoriLeakage;
+  const sonicLeakage = leakageMap["sonic"] ?? 0;
+  const sonicSavingsVsDefault = defaultLeakage - sonicLeakage;
 
-  const recRateDeltaPP = defaultInfra ? (tijoriRate - defaultInfra.reconciliation_rate) * 100 : 0;
+  const recRateDeltaPP = defaultInfra ? (sonicRate - defaultInfra.reconciliation_rate) * 100 : 0;
   const manualReducedPct = defaultInfra && defaultInfra.manual_touch_pct
-    ? Math.round((1 - tijoriInfra.manual_touch_pct / defaultInfra.manual_touch_pct) * 100)
+    ? Math.round((1 - sonicInfra.manual_touch_pct / defaultInfra.manual_touch_pct) * 100)
     : 0;
   const defaultLeakagePctText = defaultInfra ? (defaultInfra.leakage_basis_points / 100).toFixed(2) : "0";
 
@@ -885,16 +885,16 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
-              <ShieldCheck className="h-3 w-3 text-money-dim" /> Tijori Recon Rate
+              <ShieldCheck className="h-3 w-3 text-money-dim" /> Sonic Recon Rate
             </div>
-            <div className="mt-1 font-mono text-xl font-bold text-navy">{pct(tijoriRate)}</div>
+            <div className="mt-1 font-mono text-xl font-bold text-navy">{pct(sonicRate)}</div>
             <div className="text-[10.5px] text-money-dim font-medium">{signed(recRateDeltaPP)}pp vs standard default</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
             <div className="flex items-center gap-1.5 text-faint text-[10.5px] font-semibold uppercase tracking-wider">
               <TrendingUp className="h-3 w-3 text-azure" /> Recovered Leakage
             </div>
-            <div className="mt-1 font-mono text-xl font-bold text-azure">{rupees(tijoriSavingsVsDefault)}</div>
+            <div className="mt-1 font-mono text-xl font-bold text-azure">{rupees(sonicSavingsVsDefault)}</div>
             <div className="text-[10.5px] text-faint">Saved on {n} transactions</div>
           </div>
           <div className="rounded-xl border border-line-soft bg-surface/70 p-3.5 shadow-sm">
@@ -910,7 +910,7 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
             </div>
             <div className="mt-1 font-mono text-xl font-bold text-navy">−{manualReducedPct}%</div>
             <div className="text-[10.5px] text-faint">
-              {tijoriInfra.manual_touch_pct}% vs {defaultInfra?.manual_touch_pct ?? "—"}% manual review
+              {sonicInfra.manual_touch_pct}% vs {defaultInfra?.manual_touch_pct ?? "—"}% manual review
             </div>
           </div>
         </div>
@@ -923,12 +923,12 @@ export function ReconBenchmarkPanel({ seed, n, delay }: SeedProps) {
           trend={bench.trend}
           seed={seed}
           n={n}
-          tijoriSavingsVsDefault={tijoriSavingsVsDefault}
+          sonicSavingsVsDefault={sonicSavingsVsDefault}
         />
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft pt-4 text-xs text-dim">
           <p className="text-[11.5px] text-faint leading-relaxed max-w-3xl">
-            Tijori’s three-way reconciliation sensor matches <strong className="text-navy font-semibold">Gateway Telemetry ↔ Bank Statements ↔ Merchant Orders</strong> deterministically and in-process (no network or model call in the scored path), eliminating the {defaultLeakagePctText}% revenue leakage modeled for standard T+2 batch reconciliation.
+            Sonic’s three-way reconciliation sensor matches <strong className="text-navy font-semibold">Gateway Telemetry ↔ Bank Statements ↔ Merchant Orders</strong> deterministically and in-process (no network or model call in the scored path), eliminating the {defaultLeakagePctText}% revenue leakage modeled for standard T+2 batch reconciliation.
           </p>
           <span className="font-mono text-[11px] font-semibold text-money-dim bg-money-light px-2.5 py-1 rounded-md border border-money/20">
             100% Cryptographic Match ✓
@@ -996,7 +996,7 @@ export function ChurnPanel({ seed, n, delay }: SeedProps) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-16 shrink-0 font-mono text-[10px] font-semibold uppercase text-azure">Tijori</span>
+                  <span className="w-16 shrink-0 font-mono text-[10px] font-semibold uppercase text-azure">Sonic</span>
                   <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-line/60">
                     <div
                       className="h-full rounded-full bg-azure transition-all duration-300"
@@ -1020,7 +1020,7 @@ export function ChurnPanel({ seed, n, delay }: SeedProps) {
           </span>
           <span className="flex items-center gap-1.5 font-medium text-azure">
             <span className="inline-block h-2 w-3 rounded-sm bg-azure" />
-            Tijori Smart Net
+            Sonic Smart Net
           </span>
         </div>
         <span className="font-semibold text-money-dim">
@@ -1698,7 +1698,7 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
               <span className="text-faint">Verifying integrity…</span>
             ) : (
               <>
-                Tijori recovers <span className="font-mono font-semibold text-navy">{smart ? pct(smart.efficiency) : "—"}</span> of
+                Sonic recovers <span className="font-mono font-semibold text-navy">{smart ? pct(smart.efficiency) : "—"}</span> of
                 theoretical upper bound — <span className={`font-semibold ${oracleHolds ? "text-money-dim" : "text-rose"}`}>{oracleHolds ? "100% Verified Consistent ✓" : "Bound Violation"}</span>.
               </>
             )}

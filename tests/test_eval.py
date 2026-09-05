@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tijori.eval.harness import run_batch
+from sonic.eval.harness import run_batch
 
 def test_run_batch_reproducible():
     a = run_batch(seed=42, n=200)
@@ -28,7 +28,7 @@ def test_baseline_over_retries():
     assert r.metrics["baseline"].n_attempts > r.metrics["smart"].n_attempts
 
 def test_churn_sweep_smart_always_wins():
-    from tijori.eval.harness import churn_sweep
+    from sonic.eval.harness import churn_sweep
 
     rows = churn_sweep(seed=42, n=300, churns=(0, 250, 500, 1000, 2000))
     assert all(r["smart_wins_net"] for r in rows)
@@ -36,9 +36,9 @@ def test_churn_sweep_smart_always_wins():
     assert attempts == sorted(attempts, reverse=True)
 
 def test_recovery_actions_persisted():
-    from tijori.ledger.db import memory_db
-    from tijori.simulator.seed import seed_ledger
-    from tijori.recover.executor import run_policy
+    from sonic.ledger.db import memory_db
+    from sonic.simulator.seed import seed_ledger
+    from sonic.recover.executor import run_policy
 
     conn = memory_db()
     try:

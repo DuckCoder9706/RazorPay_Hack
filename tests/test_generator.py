@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import random
 
-from tijori.config.constants import Cause
-from tijori.ledger.db import get_conn, init_db
-from tijori.simulator.generator import (
+from sonic.config.constants import Cause
+from sonic.ledger.db import get_conn, init_db
+from sonic.simulator.generator import (
     generate_onetime_failures,
     generate_settlement_substrate,
 )
-from tijori.simulator.seed import seed_ledger
+from sonic.simulator.seed import seed_ledger
 
 def test_onetime_failures_reproducible():
     a = generate_onetime_failures(200, random.Random(42))

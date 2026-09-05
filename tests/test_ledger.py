@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from tijori.ledger.audit import append, replay
-from tijori.ledger.db import get_conn, init_db, table_names
+from sonic.ledger.audit import append, replay
+from sonic.ledger.db import get_conn, init_db, table_names
 
 EXPECTED_TABLES = {
     "orders", "payments", "subscriptions", "settlements", "bank_rows",

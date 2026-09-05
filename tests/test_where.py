@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from tijori.eval.harness import learning_run
-from tijori.ledger.db import memory_db
-from tijori.recover.executor import run_policy
-from tijori.simulator.seed import build_batch, seed_ledger
-from tijori.where.exceptions import reconcile_recoveries, run_reconciliation
+from sonic.eval.harness import learning_run
+from sonic.ledger.db import memory_db
+from sonic.recover.executor import run_policy
+from sonic.simulator.seed import build_batch, seed_ledger
+from sonic.where.exceptions import reconcile_recoveries, run_reconciliation
 
 def test_w_detects_exactly_the_injected_exceptions():
     conn = memory_db()

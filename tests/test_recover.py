@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from tijori.config.constants import Action, Cause, Timing
-from tijori.recover.policy import choose_baseline, choose_smart
+from sonic.config.constants import Action, Cause, Timing
+from sonic.recover.policy import choose_baseline, choose_smart
 
 def test_smart_duns_hard_decline():
     assert choose_smart(Cause.HARD_DECLINE, 100_000, 1, "mid").action is Action.DUN

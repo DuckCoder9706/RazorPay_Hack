@@ -162,7 +162,7 @@ export default function App() {
             </motion.span>
             <div className="flex items-center gap-2.5">
               <h1 className="text-lg font-bold tracking-tight text-navy">
-                Tijori
+                Sonic
               </h1>
               <span className="hidden md:inline text-xs font-medium text-slate-400">
                 |

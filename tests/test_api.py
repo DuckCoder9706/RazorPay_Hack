@@ -4,7 +4,7 @@ import json
 
 from fastapi.testclient import TestClient
 
-from tijori.api.app import app
+from sonic.api.app import app
 
 client = TestClient(app)
 
@@ -135,7 +135,7 @@ def test_batch_stream_carries_sankey_flows():
     assert recovered == smart["n_recovered"]
 
 def test_razorpay_link_falls_back_to_fixture(monkeypatch):
-    import tijori.razorpay_client.client as rc
+    import sonic.razorpay_client.client as rc
 
     monkeypatch.setattr(rc, "create_payment_link", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no keys")))
     r = client.post("/razorpay/link", json={"amount_paise": 50000})
@@ -168,6 +168,6 @@ def test_reconciliation_benchmarks():
     assert body["n"] == _N
     assert "infrastructures" in body
     infras = {i["id"]: i for i in body["infrastructures"]}
-    assert set(infras) == {"tijori", "razorpay_default", "stripe", "adyen", "legacy_erp"}
-    assert infras["tijori"]["reconciliation_rate"] > infras["razorpay_default"]["reconciliation_rate"]
-    assert infras["tijori"]["leakage_basis_points"] == 0
+    assert set(infras) == {"sonic", "razorpay_default", "stripe", "adyen", "legacy_erp"}
+    assert infras["sonic"]["reconciliation_rate"] > infras["razorpay_default"]["reconciliation_rate"]
+    assert infras["sonic"]["leakage_basis_points"] == 0

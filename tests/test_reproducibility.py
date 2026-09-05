@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from tijori.eval.sweep import default_seeds, run_sweep
-from tijori.simulator.generator import generate_onetime_failures
-from tijori.simulator.rng import derive_seed, make_streams
-from tijori.simulator.seed import batch_fingerprint
+from sonic.eval.sweep import default_seeds, run_sweep
+from sonic.simulator.generator import generate_onetime_failures
+from sonic.simulator.rng import derive_seed, make_streams
+from sonic.simulator.seed import batch_fingerprint
 
 GOLDEN_42_100 = "c8f90e3c9b04b2cf7944b8aa83df9e5369ee32c2f5538911c3d0aed79a0276b8"
 
@@ -36,7 +36,7 @@ def test_sweep_is_reproducible():
 def test_sweep_recoverable_fraction_matches_distribution():
     import math
 
-    from tijori.config.constants import REASON_CODE_DISTRIBUTION, TERMINAL_ACTION
+    from sonic.config.constants import REASON_CODE_DISTRIBUTION, TERMINAL_ACTION
     terminal_w = sum(REASON_CODE_DISTRIBUTION[c] for c in TERMINAL_ACTION)
     expected = 1.0 - terminal_w
 

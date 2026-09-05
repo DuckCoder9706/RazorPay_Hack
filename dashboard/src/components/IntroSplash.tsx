@@ -33,7 +33,7 @@ export function IntroSplash({ onEnter }: { onEnter: () => void }) {
       }`}
       style={{ background: "linear-gradient(135deg, #0C2340 0%, #0C83FD 62%, #00A878 100%)" }}
       role="dialog"
-      aria-label="Tijori — entering dashboard"
+      aria-label="Sonic — entering dashboard"
     >
       <div className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/20 blur-3xl" />
@@ -53,7 +53,7 @@ export function IntroSplash({ onEnter }: { onEnter: () => void }) {
         </div>
 
         <h1 className="mt-5 text-4xl font-bold tracking-tight animate-in slide-in-from-bottom-2 fade-in duration-700" style={{ animationDelay: "120ms" }}>
-          Tijori
+          Sonic
         </h1>
         <p className="mt-1.5 text-sm font-medium text-white/80 animate-in fade-in duration-700" style={{ animationDelay: "260ms" }}>
           Autonomous Revenue Recovery for Razorpay

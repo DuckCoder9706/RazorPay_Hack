@@ -4,8 +4,8 @@ import math
 
 import pytest
 
-from tijori.config import constants as C
-from tijori.recover.diagnose import diagnose, is_mapped
+from sonic.config import constants as C
+from sonic.recover.diagnose import diagnose, is_mapped
 
 def test_validate_passes():
     C.validate()

@@ -19,7 +19,7 @@ interface ReconBenchmarkVisualizerProps {
   trend: ReconTrendPoint[];
   seed: number;
   n: number;
-  tijoriSavingsVsDefault: number;
+  sonicSavingsVsDefault: number;
 }
 
 interface RadarDimension {
@@ -57,24 +57,24 @@ const RADAR_DIMENSIONS: RadarDimension[] = [
     key: "netting",
     name: "Many-to-Many Netting Recall",
     shortName: "Netting",
-    description: "Resolution of batched bank-credit lumps into individual merchant settlements. Tijori is measured (100% on the ledger); other rails are a qualitative estimate scaled from their auto-match rate (none resolve NPCI-style circular netting natively).",
+    description: "Resolution of batched bank-credit lumps into individual merchant settlements. Sonic is measured (100% on the ledger); other rails are a qualitative estimate scaled from their auto-match rate (none resolve NPCI-style circular netting natively).",
 
-    getScore: (i) => (i.id === "tijori" ? 1.0 : Math.max(0.15, i.reconciliation_rate - 0.25)),
-    getFormatted: (i) => (i.id === "tijori" ? "100% (measured)" : `~${Math.round(Math.max(0.15, i.reconciliation_rate - 0.25) * 100)}% (est.)`),
+    getScore: (i) => (i.id === "sonic" ? 1.0 : Math.max(0.15, i.reconciliation_rate - 0.25)),
+    getFormatted: (i) => (i.id === "sonic" ? "100% (measured)" : `~${Math.round(Math.max(0.15, i.reconciliation_rate - 0.25) * 100)}% (est.)`),
   },
   {
     key: "determinism",
     name: "Audit Reproducibility",
     shortName: "Determinism",
-    description: "Byte-for-byte reproducibility of the audit trail under replay. Tijori is measured (SHA-256 dual-run identical, /verify); other rails are rated qualitatively by audit architecture (log/SQL vs manual CSV).",
+    description: "Byte-for-byte reproducibility of the audit trail under replay. Sonic is measured (SHA-256 dual-run identical, /verify); other rails are rated qualitatively by audit architecture (log/SQL vs manual CSV).",
 
     getScore: (i) => {
-      if (i.id === "tijori") return 1.0;
+      if (i.id === "sonic") return 1.0;
       if (i.category === "legacy") return 0.35;
       return 0.8;
     },
     getFormatted: (i) => {
-      if (i.id === "tijori") return "SHA-256 (measured)";
+      if (i.id === "sonic") return "SHA-256 (measured)";
       if (i.category === "legacy") return "Manual CSV (est.)";
       return "System logs (est.)";
     },
@@ -105,18 +105,18 @@ export function ReconBenchmarkVisualizer({
   trend,
   seed,
   n,
-  tijoriSavingsVsDefault,
+  sonicSavingsVsDefault,
 }: ReconBenchmarkVisualizerProps) {
 
   const [viewMode, setViewMode] = useState<"radar" | "trend">("radar");
   const [hoveredDimIdx, setHoveredDimIdx] = useState<number | null>(null);
-  const [showTijoriOverlay, setShowTijoriOverlay] = useState<boolean>(true);
+  const [showSonicOverlay, setShowSonicOverlay] = useState<boolean>(true);
   const [trendMetric, setTrendMetric] = useState<"rate" | "leakage">("rate");
 
   const selectedInfra =
     infrastructures.find((i) => i.id === selectedId) || infrastructures[0];
-  const tijoriInfra =
-    infrastructures.find((i) => i.id === "tijori") || infrastructures[0];
+  const sonicInfra =
+    infrastructures.find((i) => i.id === "sonic") || infrastructures[0];
 
   const cx = 230;
   const cy = 190;
@@ -141,13 +141,13 @@ export function ReconBenchmarkVisualizer({
     }).join(" ");
   }, [selectedInfra]);
 
-  const tijoriPolygonPoints = useMemo(() => {
+  const sonicPolygonPoints = useMemo(() => {
     return RADAR_DIMENSIONS.map((dim, idx) => {
-      const score = dim.getScore(tijoriInfra);
+      const score = dim.getScore(sonicInfra);
       const coords = getHexCoords(score, idx);
       return `${coords.x.toFixed(1)},${coords.y.toFixed(1)}`;
     }).join(" ");
-  }, [tijoriInfra]);
+  }, [sonicInfra]);
 
   const activeNodes = useMemo(() => {
     return RADAR_DIMENSIONS.map((dim, idx) => {
@@ -159,14 +159,14 @@ export function ReconBenchmarkVisualizer({
         dim,
         idx,
         formatted: dim.getFormatted(selectedInfra),
-        tijoriFormatted: dim.getFormatted(tijoriInfra),
+        sonicFormatted: dim.getFormatted(sonicInfra),
       };
     });
-  }, [selectedInfra, tijoriInfra]);
+  }, [selectedInfra, sonicInfra]);
 
   const trendPoints = useMemo(() => {
     const leakagePaise = Math.round(totalVolumePaise * (selectedInfra.leakage_basis_points / 10000));
-    if (selectedInfra.id === "tijori" && trend.length) {
+    if (selectedInfra.id === "sonic" && trend.length) {
       return trend.map((t) => ({
         label: `Batch ${t.batch}`,
         rate: t.reconciliation_rate,
@@ -236,20 +236,20 @@ export function ReconBenchmarkVisualizer({
         </span>
         {infrastructures.map((infra) => {
           const isSelected = infra.id === selectedId;
-          const isTijori = infra.id === "tijori";
+          const isSonic = infra.id === "sonic";
           return (
             <button
               key={infra.id}
               onClick={() => onSelectId(infra.id)}
               className={`flex items-center gap-1.5 shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
                 isSelected
-                  ? isTijori
+                  ? isSonic
                     ? "bg-azure text-white shadow-xs"
                     : "bg-navy text-white shadow-xs"
                   : "border border-line/80 bg-white text-slate-600 hover:border-azure/40 hover:text-navy shadow-2xs"
               }`}
             >
-              {isTijori && <Sparkles className="h-3 w-3 text-amber-300" />}
+              {isSonic && <Sparkles className="h-3 w-3 text-amber-300" />}
               <span>{infra.name.split(" ")[0]}</span>
               <span
                 className={`rounded px-1 py-0.2 font-mono text-[9px] font-bold ${
@@ -264,15 +264,15 @@ export function ReconBenchmarkVisualizer({
           );
         })}
 
-        {selectedId !== "tijori" && viewMode === "radar" && (
+        {selectedId !== "sonic" && viewMode === "radar" && (
           <label className="ml-auto flex items-center gap-1.5 text-xs font-medium text-slate-600 cursor-pointer shrink-0">
             <input
               type="checkbox"
-              checked={showTijoriOverlay}
-              onChange={(e) => setShowTijoriOverlay(e.target.checked)}
+              checked={showSonicOverlay}
+              onChange={(e) => setShowSonicOverlay(e.target.checked)}
               className="rounded border-slate-300 text-azure focus:ring-azure h-3.5 w-3.5"
             />
-            <span>Overlay Tijori</span>
+            <span>Overlay Sonic</span>
           </label>
         )}
       </div>
@@ -300,7 +300,7 @@ export function ReconBenchmarkVisualizer({
                     </linearGradient>
 
                     <linearGradient
-                      id="tijoriOverlayGrad"
+                      id="sonicOverlayGrad"
                       x1="0%"
                       y1="0%"
                       x2="100%"
@@ -359,11 +359,11 @@ export function ReconBenchmarkVisualizer({
 
                   <circle cx={cx} cy={cy} r={2.5} fill="#64748B" opacity={0.6} />
 
-                  {selectedId !== "tijori" && showTijoriOverlay && (
+                  {selectedId !== "sonic" && showSonicOverlay && (
                     <g className="transition-opacity duration-300">
                       <polygon
-                        points={tijoriPolygonPoints}
-                        fill="url(#tijoriOverlayGrad)"
+                        points={sonicPolygonPoints}
+                        fill="url(#sonicOverlayGrad)"
                         stroke="#00A878"
                         strokeWidth={1.8}
                         strokeDasharray="4 3"
@@ -374,8 +374,8 @@ export function ReconBenchmarkVisualizer({
 
                   <motion.polygon
                     points={selectedPolygonPoints}
-                    fill={selectedId === "tijori" ? "url(#radarPolygonGrad)" : "rgba(12, 131, 253, 0.35)"}
-                    stroke={selectedId === "tijori" ? "#0C83FD" : "#0C2340"}
+                    fill={selectedId === "sonic" ? "url(#radarPolygonGrad)" : "rgba(12, 131, 253, 0.35)"}
+                    stroke={selectedId === "sonic" ? "#0C83FD" : "#0C2340"}
                     strokeWidth={2.4}
                     initial={false}
                     animate={{ points: selectedPolygonPoints }}
@@ -407,7 +407,7 @@ export function ReconBenchmarkVisualizer({
                           cy={node.y}
                           r={isHovered ? 7.5 : 6}
                           fill="#FFFFFF"
-                          stroke={selectedId === "tijori" ? "#0C83FD" : "#0C2340"}
+                          stroke={selectedId === "sonic" ? "#0C83FD" : "#0C2340"}
                           strokeWidth={2.5}
                           filter="url(#nodeGlow)"
                           className="transition-all duration-150"
@@ -417,7 +417,7 @@ export function ReconBenchmarkVisualizer({
                           cx={node.x}
                           cy={node.y}
                           r={2}
-                          fill={selectedId === "tijori" ? "#0C83FD" : "#0C2340"}
+                          fill={selectedId === "sonic" ? "#0C83FD" : "#0C2340"}
                         />
                       </g>
                     );
@@ -461,10 +461,10 @@ export function ReconBenchmarkVisualizer({
                   <span className="h-2.5 w-2.5 rounded-full bg-azure border border-white shadow-xs" />
                   <span>{selectedInfra.name.split(" ")[0]} Active Footprint</span>
                 </div>
-                {selectedId !== "tijori" && showTijoriOverlay && (
+                {selectedId !== "sonic" && showSonicOverlay && (
                   <div className="flex items-center gap-1.5 font-medium text-money-dim">
                     <span className="h-2.5 w-2.5 rounded-full bg-money border border-dashed border-money-dim shadow-xs" />
-                    <span>Tijori Benchmark (100% Perimeter)</span>
+                    <span>Sonic Benchmark (100% Perimeter)</span>
                   </div>
                 )}
               </div>
@@ -523,7 +523,7 @@ export function ReconBenchmarkVisualizer({
                         <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
-                              selectedId === "tijori" ? "bg-azure" : "bg-slate-600"
+                              selectedId === "sonic" ? "bg-azure" : "bg-slate-600"
                             }`}
                             style={{ width: `${Math.round(node.score * 100)}%` }}
                           />
@@ -546,7 +546,7 @@ export function ReconBenchmarkVisualizer({
                 <p className="text-[11.5px] text-faint leading-normal">
                   {selectedInfra.strengths}
                 </p>
-                {selectedId !== "tijori" && (
+                {selectedId !== "sonic" && (
                   <div className="mt-2 rounded-lg bg-amber/10 border border-amber/20 p-2 text-[11px] text-amber-900 leading-tight">
                     <strong className="font-semibold text-amber-950">Vulnerability: </strong>
                     {selectedInfra.vulnerability}
@@ -617,12 +617,12 @@ export function ReconBenchmarkVisualizer({
 
               <span
                 className={`rounded-full border px-2.5 py-1 font-mono text-[10.5px] font-semibold ${
-                  selectedInfra.id === "tijori"
+                  selectedInfra.id === "sonic"
                     ? "border-money/30 bg-money-light text-money-dim"
                     : "border-line-soft bg-white text-slate-500"
                 }`}
               >
-                {selectedInfra.id === "tijori"
+                {selectedInfra.id === "sonic"
                   ? `Measured · ${trendPoints.length} real sub-batches`
                   : "Steady-state (no public time series)"}
               </span>

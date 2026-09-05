@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from tijori.razorpay_client import client
+from sonic.razorpay_client import client
 
 def test_rejects_non_test_mode_key(monkeypatch):
     monkeypatch.setenv("RAZORPAY_KEY_ID", "rzp_live_shouldnotrun")
