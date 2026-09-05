@@ -74,6 +74,11 @@ export interface SankeyLinkProps {
     link: SankeyLinkType<SankeyNodeDatum, SankeyLinkDatum>,
     index: number
   ) => string | null | undefined;
+  /** Click handler for link selection */
+  onLinkClick?: (
+    link: SankeyLinkType<SankeyNodeDatum, SankeyLinkDatum>,
+    index: number
+  ) => void;
 }
 
 interface AnimatedLinkProps {
@@ -89,6 +94,7 @@ interface AnimatedLinkProps {
   animationDuration: number;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onClick?: () => void;
 }
 
 function AnimatedLink({
@@ -104,6 +110,7 @@ function AnimatedLink({
   animationDuration,
   onMouseEnter,
   onMouseLeave,
+  onClick,
 }: AnimatedLinkProps) {
   const { enterTransition, revealEpoch } = useSankey();
   const pathRef = useRef<SVGPathElement>(null);
@@ -154,6 +161,7 @@ function AnimatedLink({
       d={path}
       fill="none"
       initial={{ opacity: initialOpacity }}
+      onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       ref={pathRef}
@@ -178,6 +186,7 @@ export function SankeyLink({
   getLinkColor,
   patterns,
   getLinkPattern,
+  onLinkClick,
 }: SankeyLinkProps) {
   const {
     links,
@@ -326,6 +335,7 @@ export function SankeyLink({
             isFaded={isFaded}
             isHighlighted={isHighlighted}
             key={`link-${sourceIdx}-${targetIdx}-${link.width ?? link.value ?? ""}`}
+            onClick={() => onLinkClick?.(link, index)}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             path={path}

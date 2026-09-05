@@ -109,6 +109,10 @@ export function SankeyTooltip({
         y={y}
       >
         <TooltipContent rows={rows} title={node.name} />
+        <div className="mt-2 flex items-center justify-between border-t border-slate-200/80 pt-1.5 font-mono text-[10.5px] font-semibold text-azure">
+          <span>Click to filter in Audit Ledger</span>
+          <span>→</span>
+        </div>
       </TooltipBox>
     );
   }
@@ -167,6 +171,10 @@ export function SankeyTooltip({
         y={y}
       >
         <TooltipContent rows={rows} title={`${sourceName} → ${targetName}`} />
+        <div className="mt-2 flex items-center justify-between border-t border-slate-200/80 pt-1.5 font-mono text-[10.5px] font-semibold text-azure">
+          <span>Click to filter transition in Ledger</span>
+          <span>→</span>
+        </div>
       </TooltipBox>
     );
   }

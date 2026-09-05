@@ -81,7 +81,15 @@ export default function App() {
   const [tab, setTab] = useState(init.tab);
   const [runId, setRunId] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [ledgerActor, setLedgerActor] = useState<"all" | "R" | "W" | "sim">("all");
   const health = useApi<HealthResponse>("/health", []);
+
+  const handleNavigateToLedger = (query: string, actor: "all" | "R" | "W" | "sim" = "all") => {
+    setLedgerSearch(query);
+    setLedgerActor(actor);
+    setTab("ledger");
+  };
 
   useEffect(() => {
     const p = new URLSearchParams();
@@ -273,7 +281,13 @@ export default function App() {
             </div>
 
             {/* LIVE SANKEY ROUTING & SETTLEMENT RECONCILIATION FLOW */}
-            <SankeyPanel seed={seed} n={n} runId={runId} delay={20} />
+            <SankeyPanel
+              seed={seed}
+              n={n}
+              runId={runId}
+              delay={20}
+              onNavigateToLedger={handleNavigateToLedger}
+            />
 
             {/* Ingestion Pipeline Interactive Summary Card */}
             <PipelineSummaryCard seed={seed} n={n} onNavigate={() => setTab("pipeline")} />
@@ -316,7 +330,13 @@ export default function App() {
           <TabsContent value="recover" className="mt-0 space-y-5 focus-visible:outline-none">
             <BatchPanel seed={seed} n={n} runId={runId} />
             <RecoveryFlowPanel seed={seed} n={n} delay={40} />
-            <SankeyPanel seed={seed} n={n} runId={runId} delay={80} />
+            <SankeyPanel
+              seed={seed}
+              n={n}
+              runId={runId}
+              delay={80}
+              onNavigateToLedger={handleNavigateToLedger}
+            />
             <ChurnPanel seed={seed} n={n} delay={120} />
           </TabsContent>
 
@@ -339,7 +359,16 @@ export default function App() {
 
           {/* LEDGER TAB */}
           <TabsContent value="ledger" className="mt-0 focus-visible:outline-none">
-            <AuditPanel seed={seed} n={n} />
+            <AuditPanel
+              seed={seed}
+              n={n}
+              initialSearch={ledgerSearch}
+              initialActor={ledgerActor}
+              onClearFilters={() => {
+                setLedgerSearch("");
+                setLedgerActor("all");
+              }}
+            />
           </TabsContent>
         </Tabs>
 

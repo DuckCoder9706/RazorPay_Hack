@@ -45,6 +45,11 @@ export interface SankeyNodeProps {
     node: SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum>,
     index: number
   ) => string;
+  /** Click handler for node selection */
+  onNodeClick?: (
+    node: SankeyNodeType<SankeyNodeDatum, SankeyLinkDatum>,
+    index: number
+  ) => void;
 }
 
 type TextAnchor = "start" | "middle" | "end";
@@ -184,6 +189,7 @@ interface AnimatedNodeProps {
   showLabels: boolean;
   showValueLabels: boolean;
   labelOrientation: SankeyLabelOrientation;
+  onClick?: () => void;
 }
 
 function NodeLabel({
@@ -247,6 +253,7 @@ function AnimatedNode({
   showLabels,
   showValueLabels,
   labelOrientation,
+  onClick,
 }: AnimatedNodeProps) {
   const { enterTransition, revealEpoch } = useSankey();
 
@@ -277,12 +284,16 @@ function AnimatedNode({
 
   return (
     <motion.g
+      onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      whileHover={{ scale: 1.02 }}
+      transition={{ duration: 0.12 }}
       style={{ cursor: "pointer" }}
     >
       <motion.rect
         animate={{ opacity: nodeOpacity, scaleY: 1 }}
+        whileHover={{ stroke: "#0C83FD", strokeWidth: 2 }}
         fill={fill}
         height={height}
         initial={{ opacity: 0, scaleY: 0 }}
@@ -335,6 +346,7 @@ export function SankeyNode({
   showValueLabels = true,
   labelOrientation = "horizontal",
   getNodeColor: getNodeColorProp,
+  onNodeClick,
 }: SankeyNodeProps) {
   const {
     nodes,
@@ -462,6 +474,7 @@ export function SankeyNode({
             key={`node-${node.name}`}
             labelOrientation={labelOrientation}
             name={node.name}
+            onClick={() => onNodeClick?.(node, index)}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             rx={lineCap}
