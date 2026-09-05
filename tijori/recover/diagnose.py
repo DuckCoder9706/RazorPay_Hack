@@ -1,4 +1,4 @@
-"""Diagnosis: Razorpay reason string -> Cause (ARCHITECTURE.md §07).
+"""Diagnosis: Razorpay reason string -> Cause.
 
 A pure deterministic table lookup — this is inside the scored path, so NO LLM.
 Unknown/unmapped reasons fall back to ISSUER_SOFT_DECLINE (retryable, conservative)

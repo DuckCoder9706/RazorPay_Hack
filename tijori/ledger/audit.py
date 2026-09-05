@@ -1,4 +1,4 @@
-"""Append-only audit log (ARCHITECTURE.md §01, §05).
+"""Append-only audit log.
 
 The trail is the product's headline: every scored decision must be reconstructable
 by ₹. This module is the ONLY sanctioned writer to `audit_log`, and it only ever

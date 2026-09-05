@@ -1,4 +1,4 @@
-"""Synthetic-data generators (ARCHITECTURE.md §10, Week 1).
+"""Synthetic-data generators.
 
 Produces the seeded populations, all as pure data (dicts) — persistence lives in
 tijori.simulator.seed. Everything is a pure function of the passed `rng`, so a fixed

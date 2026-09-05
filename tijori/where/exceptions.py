@@ -1,4 +1,4 @@
-"""Exception classifier + loop-closer (ARCHITECTURE.md §07).
+"""Exception classifier + loop-closer.
 
 Persists W's residuals as typed exceptions (fee | timing | missing), and closes the loop
 by marking recovered money as reconciled once it lands — proving every recovered rupee

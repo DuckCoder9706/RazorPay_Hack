@@ -1,4 +1,4 @@
-"""The batch runner (ARCHITECTURE.md §09, §10).
+"""The batch runner.
 
 run_batch(seed, n): seed the ledger, run baseline + smart over the SAME failures with the
 SAME keyed WORLD luck, compute the distributional-oracle ceiling (F2), and return the

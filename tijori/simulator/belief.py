@@ -1,4 +1,4 @@
-"""BELIEF — what R *thinks* is true and plans against (docs/outcome-model.md §4).
+"""BELIEF — what R *thinks* is true and plans against.
 
 Initialised deliberately biased vs WORLD so F1 (recon-as-ground-truth) has something
 to correct. This module owns the mutable, recalibratable copy of the belief table.

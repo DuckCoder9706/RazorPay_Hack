@@ -1,4 +1,4 @@
-"""Scored metrics (ARCHITECTURE.md §09).
+"""Scored metrics.
 
 Gross ₹ recovered (headline, D7), net value (F3), efficiency = policy_₹ / oracle_₹,
 and regret = oracle_₹ - policy_₹. Pure functions over recovery_action rows.

@@ -1,4 +1,4 @@
-"""F2 · Oracle bounds (docs/differentiation.md).
+"""F2 · Oracle bounds.
 
 The oracle is the reachable-maximum ceiling given IDENTICAL luck (same keyed draws).
 Because a policy gets up to MAX_RETRY_ATTEMPTS attempts and outcomes are keyed by

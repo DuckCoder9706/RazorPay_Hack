@@ -1,5 +1,5 @@
 """Executor: run a policy over the failure batch, draw outcomes from WORLD, persist
-recovery_actions + audit (ARCHITECTURE.md §07).
+recovery_actions + audit.
 
 R plans on BELIEF but the realized outcome is drawn from WORLD via a policy-independent
 keyed uniform (simulator.rng.uniform) — so baseline and smart face identical luck.

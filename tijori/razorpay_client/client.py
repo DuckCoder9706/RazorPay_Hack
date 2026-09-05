@@ -1,4 +1,4 @@
-"""The single live test-mode path (ARCHITECTURE.md §02 D3).
+"""The single live test-mode path.
 
 Creates a real Razorpay Payment Link and reads back real objects — the "this is a genuine
 Razorpay object, not a mock" credibility anchor for the demo. This is the ONLY code that

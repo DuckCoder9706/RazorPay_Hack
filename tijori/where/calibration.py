@@ -1,4 +1,4 @@
-"""F1 · Reconciliation as ground truth (the novel headline; docs/differentiation.md).
+"""F1 · Reconciliation as ground truth (the novel headline).
 
 R's reconciled retry outcomes are the LABEL. Per (cause, timing) cell we estimate the
 realized single-attempt success rate = recovered_actions / total_attempts, compare it to

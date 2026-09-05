@@ -1,4 +1,4 @@
-"""Build + persist the seeded populations (ARCHITECTURE.md §05, §10 W1).
+"""Build + persist the seeded populations.
 
 `build_batch` is the pure data step (uses independent RNG substreams — reproducibility
 #1). `seed_ledger` persists it and logs one append-only audit event. `batch_fingerprint`

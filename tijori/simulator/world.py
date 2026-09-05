@@ -1,4 +1,4 @@
-"""WORLD — the *true* generative success process (docs/outcome-model.md §4).
+"""WORLD — the *true* generative success process.
 
 Outcome draws AND the F2 oracle read from here. R must NOT read WORLD (it plans on
 BELIEF); keeping them apart is what makes F1 calibration and F2 regret non-circular.

@@ -5,8 +5,6 @@ Every value here is 📎 CITED, 🧪 MODELED, or 🎛 PREFERENCE (see tier note 
 It never reads the wall clock or the network. It DOES read a few TIJORI_* env vars for
 runtime-adaptable knobs (costs/gates), each with a frozen default; run_policy logs the
 effective values to the audit trail so a run's configuration is never hidden.
-
-See ARCHITECTURE.md §06 (outcome model) and docs/outcome-model.md for provenance.
 """
 
 from __future__ import annotations
@@ -21,7 +19,7 @@ import os
 # from TIJORI_* env vars with a frozen default, so a run can adapt them without
 # editing code — and run_policy logs the effective values to the audit trail, so
 # nothing is silently hardcoded. Provenance tiers used in comments:
-#   📎 CITED     — sourced from Razorpay/NPCI/industry data (see docs/outcome-model.md)
+#   📎 CITED     — sourced from Razorpay/NPCI/industry data
 #   🧪 MODELED   — a reasoned assumption, declared, not measured
 #   🎛 PREFERENCE — a business choice with no single "true" value; swept for sensitivity
 # --------------------------------------------------------------------------- #
@@ -44,7 +42,7 @@ PAISE_PER_RUPEE: int = 100
 
 
 # --------------------------------------------------------------------------- #
-# The frozen cause enum  (docs/outcome-model.md §2)
+# The frozen cause enum
 # 109 documented Razorpay `reason` values collapse into these 8 causes,
 # each defined by a distinct recovery behaviour.
 # --------------------------------------------------------------------------- #
@@ -72,7 +70,7 @@ class Action(str, enum.Enum):
 
 
 # --------------------------------------------------------------------------- #
-# Razorpay reason -> Cause mapping  (docs/outcome-model.md §2)
+# Razorpay reason -> Cause mapping
 # Source reason strings are 📎 CITED (Razorpay error-reasons enum);
 # the grouping into causes is 🧪 MODELED. Representative subset of the 109.
 # --------------------------------------------------------------------------- #
@@ -138,7 +136,7 @@ CAUSE_TO_SAMPLE_REASON: dict[Cause, str] = {
 
 
 # --------------------------------------------------------------------------- #
-# Reason-code distribution  (docs/outcome-model.md §3) — HYBRID
+# Reason-code distribution — HYBRID
 # Anchors 📎 CITED (Ethoca card declines, NPCI UPI TD/BD); blend 🧪 MODELED.
 # Weights MUST sum to 1.0 (asserted in validate()).
 # --------------------------------------------------------------------------- #
@@ -157,12 +155,12 @@ REASON_CODE_DISTRIBUTION: dict[Cause, float] = {
 # --------------------------------------------------------------------------- #
 # WORLD table — the *true* generative success probabilities  🧪 MODELED
 # (cause, timing) -> P(retry succeeds). Drives outcome draws AND the oracle bound.
-# docs/outcome-model.md §4. Anchored so the retryable population lands ~50%->60%.
+# Anchored so the retryable population lands ~50%->60%.
 # --------------------------------------------------------------------------- #
 # These are SINGLE-ATTEMPT probabilities. Over a 3-attempt budget the cumulative recovery
 # is 1-(1-p)^3, calibrated so a cause-blind fixed-SHORT baseline lands in the cited
-# 40-60%-of-recoverable band and best-timing smart in 65-85% (see docs/outcome-model.md
-# §Sources-of-Truth: Recurly/Solidgate/GR4VY/Slicker 2026). Argmax timing per cause
+# 40-60%-of-recoverable band and best-timing smart in 65-85%
+# (Recurly/Solidgate/GR4VY/Slicker 2026). Argmax timing per cause
 # encodes the documented mechanism (payday for NSF, fast for transient/user/auth).
 WORLD_TABLE: dict[Cause, dict[Timing, float]] = {
     Cause.INSUFFICIENT_FUNDS:   {Timing.FAST: 0.08, Timing.SHORT: 0.15, Timing.ALIGNED: 0.35},  # payday >> next-day
@@ -177,7 +175,7 @@ WORLD_TABLE: dict[Cause, dict[Timing, float]] = {
 
 # BELIEF table — R's INITIAL (deliberately biased) view  🧪 MODELED
 # Seeded = WORLD except injected wrong priors, so F1 (recon-as-ground-truth) has
-# something visible to correct across batches. docs/outcome-model.md §4.
+# something visible to correct across batches.
 BELIEF_TABLE: dict[Cause, dict[Timing, float]] = {
     Cause.INSUFFICIENT_FUNDS:   {Timing.FAST: 0.08, Timing.SHORT: 0.15, Timing.ALIGNED: 0.25},  # under-rates payday MAGNITUDE (0.25<0.35); argmax still ALIGNED
     Cause.ISSUER_SOFT_DECLINE:  {Timing.FAST: 0.28, Timing.SHORT: 0.22, Timing.ALIGNED: 0.18},  # over-trusts FAST → argmax FLIPS to FAST (world says SHORT); F1 must fix
@@ -226,7 +224,7 @@ BASELINE_RETRY_DAYS: tuple[int, ...] = (1, 2, 3)
 
 
 # --------------------------------------------------------------------------- #
-# Cost / churn objective  (F3, docs/differentiation.md)
+# Cost / churn objective  (F3)
 # R optimizes NET VALUE = E[recovered] - C_RETRY*attempts - C_CHURN*annoyance*value
 #
 # HONESTY NOTE: a FAILED retry attempt incurs ~no Razorpay fee (MDR is charged only on
@@ -245,7 +243,7 @@ CUSTOMER_VALUE_MULTIPLIER: dict[str, float] = {"low": 0.5, "mid": 1.0, "high": 2
 
 
 # --------------------------------------------------------------------------- #
-# Policy gates (deterministic; inside the scored path)  ARCHITECTURE.md §07
+# Policy gates (deterministic; inside the scored path)
 # --------------------------------------------------------------------------- #
 MAX_RETRY_ATTEMPTS: int = _cfg_int("TIJORI_MAX_ATTEMPTS", 3)  # 📎 CITED: Razorpay retries 3x (T+1/T+2/T+3)
 SPEND_CAP_PAISE: int = _cfg_int("TIJORI_SPEND_CAP_PAISE", 0)  # 🧪 0 = unused for one-time; reserved for mandates

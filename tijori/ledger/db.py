@@ -1,4 +1,4 @@
-"""SQLite connection + schema initialisation for the one ledger (ARCHITECTURE.md §05)."""
+"""SQLite connection + schema initialisation for the one ledger."""
 
 from __future__ import annotations
 

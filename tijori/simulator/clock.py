@@ -1,4 +1,4 @@
-"""Simulated clock (ARCHITECTURE.md §08, determinism rule #3).
+"""Simulated clock (determinism rule #3).
 
 NEVER call datetime.now() anywhere in the scored path. Time advances only through
 this clock, so a run is a pure function of (seed, inputs).

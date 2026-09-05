@@ -1,4 +1,4 @@
-"""3-way matcher: settlement <-> bank <-> orders (ARCHITECTURE.md §07, W).
+"""3-way matcher: settlement <-> bank <-> orders.
 
 Exact + tolerance matching plus ONE many-to-many netting case (settlements sharing a
 batch_id reconciled against a single lump-sum bank credit whose ref == that batch_id).

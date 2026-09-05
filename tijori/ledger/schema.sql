@@ -1,4 +1,4 @@
--- Tijori — the one ledger (ARCHITECTURE.md §05)
+-- Tijori — the one ledger
 -- All amounts are integer paise. Timestamps are ISO strings from the SIMULATED clock.
 -- R and W share these tables; that shared ledger is the closed loop.
 

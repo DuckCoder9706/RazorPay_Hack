@@ -1,4 +1,4 @@
-"""T1 acceptance tests for the frozen constants (docs/outcome-model.md)."""
+"""T1 acceptance tests for the frozen constants."""
 
 from __future__ import annotations
 
