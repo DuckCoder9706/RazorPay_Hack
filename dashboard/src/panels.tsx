@@ -407,9 +407,9 @@ const CAUSE_LABEL: Record<string, string> = {
 const CAUSE_ORDER = Object.keys(CAUSE_LABEL);
 const MID_ORDER = ["fast", "short", "aligned", "dun", "stop"];
 const TIMING_LABEL: Record<string, string> = {
-  fast: "Fast Retry (T+1h)",
-  short: "Short Delay (T+6h)",
-  aligned: "Payday Aligned (T+1d)",
+  fast: "Fast Retry",
+  short: "Short Delay",
+  aligned: "Payday Aligned",
   dun: "Smart Dunning",
   stop: "Hard Stop",
 };
@@ -494,10 +494,10 @@ export function SankeyPanel({ seed, n, runId = 0, delay }: SeedProps & { runId?:
       <div className="px-3 py-4">
         <SankeyChart
           data={data}
-          aspectRatio="1.9 / 1"
-          nodePadding={24}
+          aspectRatio="2 / 1"
+          nodePadding={20}
           revealSignature={`${seed}-${n}-${runId}`}
-          margin={{ top: 24, right: 260, bottom: 24, left: 240 }}
+          margin={{ top: 24, right: 180, bottom: 24, left: 150 }}
         >
           <SankeyLink />
           <SankeyNode getNodeColor={nodeColor} showValueLabels />

@@ -71,6 +71,7 @@ function getNodeLabelLayouts({
   width,
   height,
   showValueLabels,
+  isOutcome = false,
 }: {
   labelOrientation: SankeyLabelOrientation;
   isLeftSide: boolean;
@@ -79,6 +80,7 @@ function getNodeLabelLayouts({
   width: number;
   height: number;
   showValueLabels: boolean;
+  isOutcome?: boolean;
 }): { name: NodeLabelLayout; value: NodeLabelLayout | null } {
   const centerY = y + height / 2;
   const initialX = isLeftSide ? x + 8 : x + width - 8;
@@ -86,6 +88,31 @@ function getNodeLabelLayouts({
   if (labelOrientation === "horizontal") {
     const labelX = isLeftSide ? x - LABEL_OFFSET : x + width + LABEL_OFFSET;
     const textAnchor: TextAnchor = isLeftSide ? "end" : "start";
+
+    if (isOutcome && showValueLabels) {
+      return {
+        name: {
+          x: labelX,
+          y: centerY - 9,
+          textAnchor,
+          dy: "0.35em",
+          textLocalX: 0,
+          rotate: 0,
+          initialX,
+          initialY: centerY - 9,
+        },
+        value: {
+          x: labelX,
+          y: centerY + 10,
+          textAnchor,
+          dy: "0.35em",
+          textLocalX: 0,
+          rotate: 0,
+          initialX,
+          initialY: centerY + 10,
+        },
+      };
+    }
 
     return {
       name: {
@@ -236,6 +263,7 @@ function AnimatedNode({
   const nodeOpacity = isFaded ? fadedOpacity : 1;
   const nameOpacity = isFaded ? fadedOpacity : 1;
   const valueOpacity = isFaded ? fadedOpacity * 0.8 : 0.85;
+  const isOutcome = name.toLowerCase().includes("recovered") || name.toLowerCase().includes("unrecovered");
   const labelLayouts = getNodeLabelLayouts({
     labelOrientation,
     isLeftSide,
@@ -244,6 +272,7 @@ function AnimatedNode({
     width,
     height,
     showValueLabels,
+    isOutcome,
   });
 
   return (
@@ -267,29 +296,32 @@ function AnimatedNode({
         y={y}
       />
       {showLabels ? (
-        <NodeLabel
-          className="fill-navy font-semibold text-xs"
-          key={`name-${index}-${revealEpoch}`}
-          layout={labelLayouts.name}
-          opacity={nameOpacity}
-          transition={nameEnter}
-        >
-          <tspan className="fill-navy font-semibold text-xs">{name}</tspan>
-          {showValueLabels ? (
-            <tspan
+        <>
+          <NodeLabel
+            className="fill-navy font-semibold text-[13px]"
+            key={`name-${index}-${revealEpoch}`}
+            layout={labelLayouts.name}
+            opacity={nameOpacity}
+            transition={nameEnter}
+          >
+            {name}
+          </NodeLabel>
+          {labelLayouts.value ? (
+            <NodeLabel
               className={
                 name.toLowerCase().includes("recovered") && !name.toLowerCase().includes("unrecovered")
-                  ? "fill-money-dim font-mono text-[11px] font-bold"
-                  : name.toLowerCase().includes("unrecovered")
-                  ? "fill-rose font-mono text-[11px] font-bold"
-                  : "fill-slate-700 font-mono text-[11px] font-bold"
+                  ? "fill-[#00A878] font-mono text-[11.5px] font-bold"
+                  : "fill-[#E11D48] font-mono text-[11.5px] font-bold"
               }
-              dx={6}
+              key={`val-${index}-${revealEpoch}`}
+              layout={labelLayouts.value}
+              opacity={valueOpacity}
+              transition={valueEnter}
             >
-              · {intFmt(value)} payments
-            </tspan>
+              {intFmt(value)} payments
+            </NodeLabel>
           ) : null}
-        </NodeLabel>
+        </>
       ) : null}
     </motion.g>
   );
@@ -389,7 +421,7 @@ export function SankeyNode({
 
         const isConnected = isNodeConnected(index);
         const isFaded = isAnyHovered && !isConnected;
-        const isLeftSide = nodeX < innerWidth / 2;
+        const isLeftSide = node.category === "source";
 
         let displayValue = 0;
         for (const l of links) {
