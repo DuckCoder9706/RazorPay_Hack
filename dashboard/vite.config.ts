@@ -19,6 +19,8 @@ export default defineConfig({
       "/outcome-model": api,
       "/razorpay": api,
       "/verify": api,
+      "/reconciliation": api,
+      "/pipeline": api,
     },
   },
 });

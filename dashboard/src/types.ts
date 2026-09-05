@@ -145,6 +145,9 @@ export interface VerifyResponse {
   hash_b: string;
   identical: boolean;
   algo: string;
+  decisions: number;
+  micros_per_decision: number;
+  decisions_per_sec: number;
 }
 
 export interface RazorpayLink {
@@ -240,15 +243,37 @@ export interface ReconInfrastructure {
   latency_hours: number;
   leakage_basis_points: number; // bps of total volume
   manual_touch_pct: number;
+  first_pass_match_rate?: number; // Tijori only: clean match before exception diagnosis
+  basis: "measured" | "cited" | "industry_estimate";
+  source_url: string;
+  source_note: string;
   strengths: string;
   vulnerability: string;
   features: string[];
+}
+
+export interface ReconTrendPoint {
+  batch: number;
+  seed: number;
+  reconciliation_rate: number;
+  first_pass_match_rate: number;
+  total_exceptions: number;
+  reconciled: number;
+  netting_reconciled: number;
 }
 
 export interface ReconBenchmarkResponse {
   seed: number;
   n: number;
   total_volume_paise: number;
+  summary: {
+    detected: Partial<Record<string, number>>;
+    total_exceptions: number;
+    reconciled: number;
+    netting_reconciled: number;
+  };
+  trend: ReconTrendPoint[];
+  trend_note: string;
   infrastructures: ReconInfrastructure[];
 }
 

@@ -4,14 +4,14 @@
   "amount": 50000,
   "amount_paid": 0,
   "cancelled_at": 0,
-  "created_at": 1788501737,
+  "created_at": 1788607771,
   "currency": "INR",
   "customer": {},
   "description": "Tijori recovery \u2014 test-mode Payment Link",
   "expire_by": 0,
   "expired_at": 0,
   "first_min_partial_amount": 0,
-  "id": "plink_TXqzGUgxRBKYEQ",
+  "id": "plink_TYL63MeBf7cfTC",
   "notes": {
     "path": "hero-live-object",
     "source": "tijori"
@@ -26,9 +26,9 @@
   "reference_id": "",
   "reminder_enable": false,
   "reminders": {},
-  "short_url": "https://rzp.io/rzp/BCVGK7pg",
+  "short_url": "https://rzp.io/rzp/3fKZucpc",
   "status": "created",
-  "updated_at": 1788501737,
+  "updated_at": 1788607771,
   "upi_link": false,
   "user_id": "",
   "whatsapp_link": false
