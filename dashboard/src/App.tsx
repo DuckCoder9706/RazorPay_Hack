@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Check, GraduationCap, IndianRupee, Link2, ScanSearch, ScrollText, ShieldCheck, TrendingUp } from "lucide-react";
+import { Check, GraduationCap, HelpCircle, IndianRupee, Link2, ScanSearch, ScrollText, ShieldCheck, TrendingUp } from "lucide-react";
 import { useApi } from "./lib";
 import type { HealthResponse } from "./types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   BatchPanel,
   RecoveryFlowPanel,
@@ -26,6 +27,19 @@ const LOOP = [
   { k: "learn", who: "F1" },
 ];
 const N_OPTIONS = [100, 200, 500, 1000, 2000];
+
+const GLOSSARY = [
+  { term: "R", def: "Recover — the actuator: diagnoses cause, picks the optimal retry timing under a net-value objective, acts." },
+  { term: "W", def: "Where's my money — the sensor: 3-way reconciles settlement ↔ bank ↔ orders, emits typed exceptions, and teaches R." },
+  { term: "F1", def: "Reconciliation as ground truth — realized outcomes recalibrate R's BELIEF; the mis-set arm flips back to optimal." },
+  { term: "F2", def: "Regret vs a distributional oracle — efficiency = policy ₹ / reachable-maximum ₹." },
+  { term: "F3", def: "Cost/churn-aware net value — smart may stop earlier than a success-maximiser; robust across a churn sweep." },
+  { term: "oracle", def: "Clairvoyant-timing ceiling under the true WORLD probabilities — the reachable maximum ₹." },
+  { term: "baseline", def: "Razorpay's own cited default: fixed T+1 / T+2 / T+3 retries, cause-blind." },
+  { term: "cause", def: "8 causes collapsed from Razorpay's 109 documented error reasons (e.g. insufficient_funds, issuer_soft_decline)." },
+  { term: "timing", def: "fast (minutes–hours) · short (~T+1) · aligned (payday / limit reset)." },
+  { term: "seed", def: "One integer threads all randomness; the same seed → byte-identical scored output." },
+];
 
 const TABS = [
   { v: "overview", label: "Overview" },
@@ -143,6 +157,28 @@ export default function App() {
             >
               {copied ? <Check className="h-3.5 w-3.5 text-money" /> : <Link2 className="h-3.5 w-3.5" />}
             </button>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  title="Glossary"
+                  className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-line bg-surface text-faint transition-colors hover:text-dim"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="max-h-[70vh] w-80 overflow-auto border border-line bg-raised text-xs shadow-panel">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-faint">glossary</p>
+                <dl className="space-y-2">
+                  {GLOSSARY.map((g) => (
+                    <div key={g.term} className="grid grid-cols-[70px_1fr] gap-2">
+                      <dt className="font-mono font-medium text-money">{g.term}</dt>
+                      <dd className="leading-relaxed text-dim">{g.def}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </PopoverContent>
+            </Popover>
 
             <span
               className={`ml-0.5 h-2 w-2 rounded-full ${health.data ? "bg-money shadow-[0_0_8px] shadow-money/60" : "bg-rose"}`}
