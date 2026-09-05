@@ -49,9 +49,9 @@ const GLOSSARY = [
 const TABS = [
   { v: "overview", label: "Overview", icon: LayoutDashboard },
   { v: "live", label: "Live Sandbox", icon: Zap, highlight: true },
-  { v: "recover", label: "Recover · R", icon: IndianRupee },
-  { v: "reconcile", label: "Reconcile · W", icon: ScanSearch },
-  { v: "learn", label: "Learn · F1", icon: GraduationCap },
+  { v: "recover", label: "Recovery Engine", icon: IndianRupee },
+  { v: "reconcile", label: "3-Way Recon", icon: ScanSearch },
+  { v: "learn", label: "Adaptive Learning", icon: GraduationCap },
   { v: "verify", label: "Verification", icon: ShieldCheck },
   { v: "ledger", label: "Audit Ledger", icon: ScrollText },
 ];
@@ -257,16 +257,16 @@ export default function App() {
                 <InsightCard seed={seed} n={n} delay={40} />
               </div>
               <div className="lg:col-span-7 grid gap-3 sm:grid-cols-2">
-                <DrawerTile icon={ScanSearch} title="Reconcile · W" desc="3-way settlement match & exceptions" tint="text-azure">
+                <DrawerTile icon={ScanSearch} title="3-Way Reconciliation" desc="Settlement match & exception audit" tint="text-azure">
                   <ExceptionsPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={GraduationCap} title="Learn · F1" desc="Belief recalibration via EMA" tint="text-money">
+                <DrawerTile icon={GraduationCap} title="Adaptive Learning" desc="Belief recalibration via real outcomes" tint="text-money">
                   <LearnPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={TrendingUp} title="Churn · F3" desc="Net-value sensitivity sweep" tint="text-amber">
+                <DrawerTile icon={TrendingUp} title="Cost & Churn Analysis" desc="Net-value sensitivity sweep" tint="text-azure">
                   <ChurnPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={ShieldCheck} title="Verification" desc="SHA-256 byte-identical proofs" tint="text-money">
+                <DrawerTile icon={ShieldCheck} title="Verification & Guarantees" desc="SHA-256 byte-identical proofs" tint="text-money">
                   <VerifyPanel seed={seed} n={n} />
                 </DrawerTile>
               </div>

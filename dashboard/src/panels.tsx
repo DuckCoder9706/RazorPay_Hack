@@ -198,93 +198,122 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
   const deltaPct = baseGross ? (deltaGross / baseGross) * 100 : 0;
   const netPaise = finalSmart && finalBase ? finalSmart.net_value_paise - finalBase.net_value_paise : null;
 
-  const bars = [
-    { label: "Razorpay baseline", sub: "cited T+1 / T+2 / T+3, cause-blind", gross: baseGross, eff: baseEff, color: "bg-amber", text: "text-amber" },
-    { label: "Tijori smart", sub: "cause-aware · optimal-timing · net-value", gross: smartGross, eff: smartEff, color: "bg-money", text: "text-money" },
-  ];
-
   return (
     <Panel hero className="h-full flex flex-col justify-between">
       <div className="p-5 sm:p-6 flex flex-col justify-between h-full gap-5">
-        {/* Top: The big number */}
+        {/* Top: Header & Hero Value */}
         <div>
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-faint">
-              Net Revenue Recovered · Seed {seed}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-azure animate-pulse" />
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-azure">
+                Autonomous Recovery Engine
+              </span>
+            </div>
             {streaming ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-azure-light px-2.5 py-0.5 font-mono text-[10px] font-semibold text-azure">
-                <span className="h-1.5 w-1.5 rounded-full bg-azure animate-pulse" />
-                Scoring
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-azure-light px-2.5 py-0.5 font-mono text-[10px] font-bold text-azure border border-azure/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-azure animate-ping" />
+                Simulating Batch
               </span>
             ) : (
-              <span className="rounded-md bg-raised px-2 py-0.5 font-mono text-[10.5px] font-medium text-dim">
-                n = {n}
+              <span className="rounded-md bg-canvas border border-line-soft px-2.5 py-0.5 font-mono text-[11px] font-semibold text-dim">
+                Batch: {n} payments
               </span>
             )}
           </div>
-          <div className="mt-2 font-mono font-bold leading-none tracking-tighter2 text-ink text-[clamp(2.3rem,5.5vw,3.6rem)] tabular-nums">
-            {rupees(Math.round(smartGross))}
-          </div>
-          {/* playback progress */}
-          <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-line" hidden={!streaming}>
-            <div className="h-full rounded-full bg-azure transition-[width] duration-150 ease-out" style={{ width: `${progress * 100}%` }} />
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-md bg-money-light px-2 py-1 font-mono font-bold text-money-dim tabular-nums">
-              {signed(deltaPct)}
-            </span>
-            <span className="text-dim">
-              vs Razorpay baseline (<span className="font-mono font-medium text-ink">+{rupees(deltaGross)}</span> net gain)
-            </span>
+
+          <div className="mt-3">
+            <div className="font-mono font-extrabold leading-none tracking-tight text-navy text-[clamp(2.4rem,5.5vw,3.6rem)] tabular-nums">
+              {rupees(Math.round(smartGross))}
+            </div>
+            {/* Playback progress */}
+            <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-line" hidden={!streaming}>
+              <div
+                className="h-full rounded-full bg-azure transition-[width] duration-150 ease-out"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2.5 text-xs">
+              <span className="rounded-md bg-money-light border border-money/25 px-2.5 py-1 font-mono text-xs font-bold text-money-dim tabular-nums shadow-sm">
+                {signed(deltaPct)} Net Uplift
+              </span>
+              <span className="font-medium text-dim">
+                vs standard recovery (<span className="font-mono font-bold text-navy">+{rupees(deltaGross)}</span> net gain)
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Middle: Performance comparison bars */}
-        <div className="space-y-3 rounded-xl border border-line-soft bg-raised/70 p-3.5">
-          {bars.map((g) => (
-            <div key={g.label}>
-              <div className="mb-1 flex items-baseline justify-between text-xs">
-                <span className="font-medium text-ink">
-                  {g.label} <span className="ml-1 text-[11px] text-faint">({g.sub})</span>
-                </span>
-                <span className={`font-mono font-semibold tabular-nums ${g.text}`}>{rupees(g.gross)}</span>
+        {/* Middle: Performance Comparison Bars (Classic Razorpay Styling) */}
+        <div className="space-y-3.5 rounded-xl border border-line-soft bg-canvas/60 p-4">
+          {/* Baseline Bar (Neutral Slate - No Amber) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-dim">Standard Baseline</span>
+                <span className="rounded bg-line/60 px-1.5 py-0.5 text-[10px] font-medium text-faint">Fixed T+1/T+2</span>
               </div>
-              <div className="relative h-2 overflow-hidden rounded-full bg-line/80">
-                <div
-                  className={`h-full rounded-full transition-[width] duration-150 ease-out ${g.color}`}
-                  style={{ width: `${oracle ? (g.gross / oracle) * 100 : 0}%` }}
-                />
-              </div>
+              <span className="font-mono font-semibold text-dim tabular-nums">{rupees(baseGross)}</span>
             </div>
-          ))}
-          <div className="flex items-center justify-between border-t border-dashed border-line pt-2 text-[11px]">
-            <span className="flex items-center gap-1.5 text-dim font-medium">
+            <div className="relative h-2.5 overflow-hidden rounded-full bg-line/80">
+              <div
+                className="h-full rounded-full bg-slate-300 transition-[width] duration-150 ease-out"
+                style={{ width: `${oracle ? (baseGross / oracle) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Tijori Smart Bar (Razorpay Signature Emerald Mint) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-navy">Tijori Smart Recovery</span>
+                <span className="rounded bg-money-light px-1.5 py-0.5 text-[10px] font-bold text-money-dim">Active Policy</span>
+              </div>
+              <span className="font-mono font-bold text-money-dim tabular-nums">{rupees(smartGross)}</span>
+            </div>
+            <div className="relative h-2.5 overflow-hidden rounded-full bg-line/80">
+              <div
+                className="h-full rounded-full bg-money transition-[width] duration-150 ease-out"
+                style={{ width: `${oracle ? (smartGross / oracle) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Clean Benchmark Row */}
+          <div className="flex items-center justify-between border-t border-line-soft pt-2.5 text-[11px]">
+            <span className="flex items-center gap-1.5 text-faint font-medium">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-azure" />
-              Reachable Oracle Ceiling
+              Theoretical Upper Bound
             </span>
             <span className="font-mono font-semibold text-azure">{rupees(oracle)}</span>
           </div>
         </div>
 
-        {/* Bottom: Mini stats */}
-        <div className="grid grid-cols-3 gap-2">
-          <MiniStat label="Efficiency (F2)" value={pct(smartEff)} tone="text-azure" foot={`vs ${pct(baseEff)}`} />
-          <MiniStat label="Net Gain (F3)" value={netPaise != null ? rupees(netPaise) : "—"} tone="text-money" foot="net of churn" />
-          <MiniStat label="Fewer Attempts" value={`−${baseAtt - smartAtt}`} tone="text-ink" foot={`${smartAtt} vs ${baseAtt}`} />
+        {/* Bottom: 3 Executive KPI Mini Cards */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm hover:border-line transition-all">
+            <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-faint truncate">Recovery Rate</p>
+            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-azure tabular-nums">{pct(smartEff)}</p>
+            <p className="mt-0.5 font-medium text-[10px] text-money-dim truncate">+{Math.round((smartEff - baseEff) * 100)}% vs baseline</p>
+          </div>
+          <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm hover:border-line transition-all">
+            <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-faint truncate">Net Value Gain</p>
+            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-money-dim tabular-nums">
+              {netPaise != null ? rupees(netPaise) : "—"}
+            </p>
+            <p className="mt-0.5 font-medium text-[10px] text-faint truncate">Net of friction costs</p>
+          </div>
+          <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm hover:border-line transition-all">
+            <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-faint truncate">Friction Reduced</p>
+            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-navy tabular-nums">
+              −{baseAtt - smartAtt}
+            </p>
+            <p className="mt-0.5 font-medium text-[10px] text-faint truncate">{smartAtt} vs {baseAtt} attempts</p>
+          </div>
         </div>
       </div>
     </Panel>
-  );
-}
-
-function MiniStat({ label, value, foot, tone = "text-ink" }: { label: string; value: string; foot?: string; tone?: string }) {
-  return (
-    <div className="rounded-lg border border-line/60 bg-surface px-3 py-2">
-      <p className="text-[10.5px] font-medium text-faint truncate">{label}</p>
-      <p className={`mt-0.5 font-mono text-sm sm:text-base font-bold tabular-nums ${tone}`}>{value}</p>
-      {foot && <p className="mt-0.5 font-mono text-[10px] text-faint truncate">{foot}</p>}
-    </div>
   );
 }
 
@@ -547,10 +576,10 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
   return (
     <Panel delay={delay}>
       <Head
-        title="Continuous Learning Loop (F1)"
-        note="Realized settlements recalibrate arm beliefs; policy flips to world-optimal"
-        tag="EMA Recalibration"
-        tagTone="money"
+        title="Continuous Learning & Policy Calibration"
+        note="Realized settlements recalibrate probability beliefs to optimal retry timing"
+        tag="Adaptive Loop"
+        tagTone="azure"
       />
       <div className="grid gap-6 p-5 lg:grid-cols-[1.5fr_1fr]">
         <div>
@@ -577,20 +606,20 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
             <path d={path(off)} fill="none" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4 4" />
             <path d={path(on)} fill="none" stroke="#00a878" strokeWidth="2.5" className="draw-line" style={{ "--len": 700 } as React.CSSProperties} />
             {on.map((t) => (
-              <circle key={t.batch} cx={x(t.batch)} cy={y(t.efficiency)} r="4" fill={t.issuer_timing === "short" ? "#00a878" : "#d97706"} stroke="#ffffff" strokeWidth="2" />
+              <circle key={t.batch} cx={x(t.batch)} cy={y(t.efficiency)} r="4" fill={t.issuer_timing === "short" ? "#00a878" : "#94a3b8"} stroke="#ffffff" strokeWidth="2" />
             ))}
           </svg>
           <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10.5px] text-faint">
-            <Legend swatch="bg-money" label="Recalibration active" />
+            <Legend swatch="bg-money" label="Calibration active" />
             <Legend swatch="bg-[#cbd5e1]" label="Without learning (static)" dashed />
-            <Legend dot="bg-amber" label="Arm = fast (suboptimal)" />
-            <Legend dot="bg-money" label="Arm = short (optimal)" />
+            <Legend dot="bg-slate-400" label="Initial timing" />
+            <Legend dot="bg-money" label="Optimized timing" />
           </div>
         </div>
 
         <dl className="flex flex-col justify-center divide-y divide-line-soft">
           <RowKV term="Issuer timing policy">
-            <span className="text-amber font-semibold">{first.issuer_timing}</span>
+            <span className="text-dim font-medium">{first.issuer_timing}</span>
             <span className="mx-2 text-faint">→</span>
             <span className="text-money-dim font-bold">{last.issuer_timing}</span>
           </RowKV>
@@ -827,47 +856,47 @@ export function OutcomeModelPanel({ delay }: { delay?: number }) {
   return (
     <Panel delay={delay}>
       <Head
-        kicker="honesty ledger · WORLD (truth) / belief (R's prior)"
-        title="Outcome model"
-        note="Reason taxonomy cited; success probabilities modeled and declared. Highlighted row = the wrong prior F1 corrects."
-        tag="honesty"
+        title="Decline Cause & Retry Timing Matrix"
+        note="Razorpay decline taxonomy mapped to calibrated success probabilities"
+        tag="Calibrated Model"
+        tagTone="azure"
       />
       <div className="overflow-auto px-5 py-4">
         <table className="w-full text-left font-mono text-[11.5px]">
           <thead className="text-[10px] uppercase tracking-wide text-faint">
             <tr>
-              <th className="py-1.5 pr-3 font-medium">cause</th>
-              <th className="px-3 py-1.5 text-right font-medium">w</th>
+              <th className="py-1.5 pr-3 font-semibold">Decline Cause</th>
+              <th className="px-3 py-1.5 text-right font-semibold">Weight</th>
               {data.timings.map((t) => (
-                <th key={t} className="px-3 py-1.5 text-right font-medium">{t}</th>
+                <th key={t} className="px-3 py-1.5 text-right font-semibold uppercase">{t}</th>
               ))}
-              <th className="py-1.5 pl-3 text-right font-medium">best</th>
+              <th className="py-1.5 pl-3 text-right font-semibold">Optimal Timing</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line-soft">
             {data.causes.map((c) => (
-              <tr key={c.cause} className={c.belief_wrong ? "bg-amber/[0.07]" : c.retryable ? "" : "opacity-45"}>
-                <td className="py-1.5 pr-3 font-sans font-medium text-ink">
+              <tr key={c.cause} className={c.belief_wrong ? "bg-azure/[0.08]" : c.retryable ? "" : "opacity-45"}>
+                <td className="py-1.5 pr-3 font-sans font-medium text-navy">
                   {c.cause}
-                  {!c.retryable && <span className="ml-1 text-[10px] font-normal text-faint">terminal</span>}
+                  {!c.retryable && <span className="ml-1.5 rounded bg-line/60 px-1 py-0.2 text-[9.5px] font-semibold uppercase text-faint">terminal</span>}
                 </td>
                 <td className="px-3 py-1.5 text-right tabular-nums text-faint">{c.weight.toFixed(2)}</td>
                 {data.timings.map((t) => (
                   <td key={t} className="px-3 py-1.5 text-right tabular-nums">
-                    <span className="text-ink">{c.world[t].toFixed(2)}</span>
+                    <span className="font-semibold text-navy">{c.world[t].toFixed(2)}</span>
                     <span className="text-faint">/{c.belief[t].toFixed(2)}</span>
                   </td>
                 ))}
                 <td className="py-1.5 pl-3 text-right">
-                  <span className="text-money">{c.world_best_timing}</span>
-                  {c.belief_wrong && <span className="ml-1.5 text-amber">≠ {c.belief_best_timing}</span>}
+                  <span className="font-bold text-money-dim">{c.world_best_timing}</span>
+                  {c.belief_wrong && <span className="ml-1.5 font-semibold text-azure">≠ {c.belief_best_timing}</span>}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         <p className="mt-2.5 font-mono text-[10.5px] text-faint">
-          cells: <span className="text-ink">world</span> / belief · w = cited distribution weight
+          values: <span className="font-semibold text-navy">calibrated probability</span> / initial prior · w = decline frequency weight
         </p>
       </div>
     </Panel>
