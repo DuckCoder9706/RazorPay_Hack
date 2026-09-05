@@ -8,6 +8,7 @@ import {
   IndianRupee,
   LayoutDashboard,
   Link2,
+  Network,
   ScanSearch,
   ScrollText,
   ShieldCheck,
@@ -31,6 +32,8 @@ import {
   AuditPanel,
   RazorpayPanel,
   VerifyPanel,
+  PipelinePanel,
+  PipelineSummaryCard,
 } from "./panels";
 
 const N_OPTIONS = [100, 200, 500, 1000, 2000];
@@ -49,6 +52,7 @@ const GLOSSARY = [
 const TABS = [
   { v: "overview", label: "Overview", icon: LayoutDashboard },
   { v: "live", label: "Live Sandbox", icon: Zap, highlight: true },
+  { v: "pipeline", label: "Data Ingestion", icon: Network },
   { v: "recover", label: "Recovery Engine", icon: IndianRupee },
   { v: "reconcile", label: "3-Way Recon", icon: ScanSearch },
   { v: "learn", label: "Adaptive Learning", icon: GraduationCap },
@@ -251,6 +255,9 @@ export default function App() {
               </div>
             </div>
 
+            {/* Ingestion Pipeline Interactive Summary Card */}
+            <PipelineSummaryCard seed={seed} n={n} onNavigate={() => setTab("pipeline")} />
+
             {/* Lower Analytics Stage */}
             <div className="grid gap-5 lg:grid-cols-12">
               <div className="lg:col-span-5 flex">
@@ -278,6 +285,11 @@ export default function App() {
             <div className="max-w-2xl mx-auto">
               <RazorpayPanel heroMode />
             </div>
+          </TabsContent>
+
+          {/* DEDICATED DATA INGESTION & PIPELINE TAB */}
+          <TabsContent value="pipeline" className="mt-0 space-y-5 focus-visible:outline-none">
+            <PipelinePanel seed={seed} n={n} />
           </TabsContent>
 
           {/* RECOVER TAB */}
