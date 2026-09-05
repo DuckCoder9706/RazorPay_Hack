@@ -1,9 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import type { PolicyMetrics } from "./types";
 
-const prefersReducedMotion = () =>
+export const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+export const springClean = {
+  type: "spring" as const,
+  stiffness: 280,
+  damping: 28,
+};
+
+export const easeFintech = [0.16, 1, 0.3, 1] as const;
+
+export const fadeInUp = {
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 },
+  transition: { duration: 0.36, ease: easeFintech },
+};
+
+export const staggerContainer = (stagger = 0.06) => ({
+  initial: {},
+  animate: {
+    transition: {
+      staggerChildren: stagger,
+    },
+  },
+});
 
 // ---- formatting -------------------------------------------------------------
 // Paise are integers on the wire; the API also ships *_rupees convenience fields.
