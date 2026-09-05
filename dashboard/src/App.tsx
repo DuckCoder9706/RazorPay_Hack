@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  ArrowRight,
   Check,
   GraduationCap,
   HelpCircle,
@@ -15,6 +16,7 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
+import { motion, AnimatePresence, useScroll, useSpring } from "motion/react";
 import { useApi } from "./lib";
 import { IntroSplash } from "./components/IntroSplash";
 import type { HealthResponse } from "./types";
@@ -87,6 +89,16 @@ export default function App() {
   const [entered, setEntered] = useState(false);
   const health = useApi<HealthResponse>("/health", []);
 
+  const { scrollYProgress, scrollY } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 350, damping: 32, restDelta: 0.001 });
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    return scrollY.on("change", (latest) => {
+      setIsScrolled(latest > 12);
+    });
+  }, [scrollY]);
+
   const handleNavigateToLedger = (query: string, actor: "all" | "R" | "W" | "sim" = "all") => {
     setLedgerSearch(query);
     setLedgerActor(actor);
@@ -118,14 +130,32 @@ export default function App() {
   return (
     <div className="min-h-screen bg-canvas text-ink">
       {!entered && <IntroSplash onEnter={() => setEntered(true)} />}
-      {/* Primary Clean Enterprise Header */}
-      <header className="sticky top-0 z-30 border-b border-line/80 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5">
+
+      {/* Top Scroll-driven Progress Indicator */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 z-50 h-[2.5px] origin-left bg-gradient-to-r from-azure via-emerald-500 to-azure pointer-events-none"
+        style={{ scaleX }}
+      />
+
+      {/* Primary Clean Enterprise Header with Dynamic Scroll Elevation */}
+      <header
+        className={`sticky top-0 z-30 transition-all duration-250 ${
+          isScrolled
+            ? "border-b border-line/90 bg-white/90 shadow-sm backdrop-blur-xl py-2"
+            : "border-b border-line/75 bg-white/95 backdrop-blur-md py-2.5"
+        }`}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5">
           {/* Brand Identity & Live API Status */}
           <div className="flex items-center gap-3 shrink-0">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-azure text-white font-mono text-base font-bold shadow-xs">
+            <motion.span
+              whileHover={{ rotate: 10, scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              transition={{ type: "spring", stiffness: 400, damping: 18 }}
+              className="grid h-9 w-9 place-items-center rounded-xl bg-azure text-white font-mono text-base font-bold shadow-xs cursor-pointer select-none"
+            >
               ₹
-            </span>
+            </motion.span>
             <div className="flex items-center gap-2.5">
               <h1 className="text-lg font-bold tracking-tight text-navy">
                 Tijori
@@ -141,7 +171,7 @@ export default function App() {
             <div className="flex items-center gap-1.5 rounded-full border border-line bg-slate-50/90 px-2.5 py-0.5 text-xs">
               <span
                 className={`h-2 w-2 rounded-full ${
-                  health.data ? "bg-money animate-pulse shadow-[0_0_8px] shadow-money/60" : "bg-rose"
+                  health.data ? "bg-money animate-pulse-subtle shadow-[0_0_8px] shadow-money/60" : "bg-rose"
                 }`}
               />
               <span className="font-mono text-[11px] font-medium text-slate-600">
@@ -194,23 +224,26 @@ export default function App() {
 
               <div className="mx-1 h-4 w-px bg-slate-200" />
 
-              {/* Run */}
-              <button
+              {/* Run Button with Micro-tap Physics */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={apply}
-                className="rounded-lg bg-navy hover:bg-navy-light px-3.5 py-1 text-xs font-semibold text-white shadow-xs transition-all"
+                className="rounded-lg bg-navy hover:bg-navy-light px-3.5 py-1 text-xs font-semibold text-white shadow-xs transition-colors"
               >
                 Run
-              </button>
+              </motion.button>
             </div>
 
             {/* Copy Permalink */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.92 }}
               onClick={copyLink}
               title="Copy shareable link to this exact view"
               className="grid h-8 w-8 place-items-center rounded-lg border border-line bg-white text-slate-500 shadow-xs transition-colors hover:text-navy hover:bg-slate-50"
             >
               {copied ? <Check className="h-3.5 w-3.5 text-money" /> : <Link2 className="h-3.5 w-3.5" />}
-            </button>
+            </motion.button>
 
             {/* Glossary Popover */}
             <Popover>
@@ -243,26 +276,39 @@ export default function App() {
       {/* Main Container */}
       <main className="mx-auto max-w-7xl px-5 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          {/* Condensed, fully-visible tab bar — wraps instead of scrolling so every
-              tab stays on screen during a live demo (no hidden off-screen tabs). */}
+          {/* Condensed tab bar with animated sliding active pill */}
           <div className="mb-6 w-full">
-            <TabsList className="flex h-auto w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-line/80 bg-white/95 p-1.5 shadow-sm backdrop-blur-md">
+            <TabsList className="relative flex h-auto w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-line/80 bg-white/95 p-1.5 shadow-sm backdrop-blur-md">
               {TABS.map((t) => {
                 const Icon = t.icon;
+                const isActive = tab === t.v;
                 return (
                   <TabsTrigger
                     key={t.v}
                     value={t.v}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide whitespace-nowrap transition-all data-[state=active]:bg-azure data-[state=active]:text-white data-[state=active]:shadow-md ${
-                      t.highlight
-                        ? "text-azure bg-azure-light/70 hover:bg-azure-light"
+                    className={`relative flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide whitespace-nowrap transition-colors z-10 ${
+                      isActive
+                        ? "text-white"
+                        : t.highlight
+                        ? "text-azure bg-azure-light/60 hover:bg-azure-light"
                         : "text-slate-600 hover:text-navy hover:bg-slate-50"
                     }`}
                   >
+                    {isActive && (
+                      <motion.span
+                        layoutId="activeTabPill"
+                        className="absolute inset-0 rounded-xl bg-azure shadow-md -z-10"
+                        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                      />
+                    )}
                     <Icon className="h-3.5 w-3.5 shrink-0" />
                     <span>{t.label}</span>
                     {t.highlight && (
-                      <span className="rounded bg-azure px-1.5 py-0.5 font-mono text-[9px] font-bold text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                      <span
+                        className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-bold ${
+                          isActive ? "bg-white/20 text-white" : "bg-azure text-white"
+                        }`}
+                      >
                         LIVE
                       </span>
                     )}
@@ -274,98 +320,159 @@ export default function App() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="mt-0 space-y-6 focus-visible:outline-none">
-            {/* Top Stage: Recovery Performance (Left 7) + Live Sandbox Testing (Right 5) */}
-            <div className="grid gap-5 lg:grid-cols-12 items-stretch">
-              <div className="lg:col-span-7 flex flex-col">
-                <BatchPanel seed={seed} n={n} runId={runId} />
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6"
+            >
+              {/* Top Stage: Recovery Performance (Left 7) + Live Sandbox Testing (Right 5) */}
+              <div className="grid gap-5 lg:grid-cols-12 items-stretch">
+                <div className="lg:col-span-7 flex flex-col">
+                  <BatchPanel seed={seed} n={n} runId={runId} />
+                </div>
+                <div className="lg:col-span-5 flex flex-col">
+                  <RazorpayPanel heroMode />
+                </div>
               </div>
-              <div className="lg:col-span-5 flex flex-col">
-                <RazorpayPanel heroMode />
-              </div>
-            </div>
 
-            {/* LIVE SANKEY ROUTING & SETTLEMENT RECONCILIATION FLOW */}
-            <SankeyPanel
-              seed={seed}
-              n={n}
-              runId={runId}
-              delay={20}
-              onNavigateToLedger={handleNavigateToLedger}
-            />
+              {/* LIVE SANKEY ROUTING & SETTLEMENT RECONCILIATION FLOW */}
+              <SankeyPanel
+                seed={seed}
+                n={n}
+                runId={runId}
+                delay={20}
+                onNavigateToLedger={handleNavigateToLedger}
+              />
 
-            {/* Ingestion Pipeline Interactive Summary Card */}
-            <PipelineSummaryCard seed={seed} n={n} onNavigate={() => setTab("pipeline")} />
+              {/* Ingestion Pipeline Interactive Summary Card */}
+              <PipelineSummaryCard seed={seed} n={n} onNavigate={() => setTab("pipeline")} />
 
-            {/* Lower Analytics Stage */}
-            <div className="grid gap-5 lg:grid-cols-12">
-              <div className="lg:col-span-5 flex">
-                <InsightCard seed={seed} n={n} delay={40} />
+              {/* Lower Analytics Stage */}
+              <div className="grid gap-5 lg:grid-cols-12">
+                <div className="lg:col-span-5 flex">
+                  <InsightCard seed={seed} n={n} delay={40} />
+                </div>
+                {/* Staggered Drawer Tiles Container */}
+                <motion.div
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, amount: 0.1 }}
+                  variants={{
+                    hidden: {},
+                    visible: { transition: { staggerChildren: 0.08 } },
+                  }}
+                  className="lg:col-span-7 grid gap-3 sm:grid-cols-2"
+                >
+                  <DrawerTile icon={ScanSearch} title="3-Way Reconciliation" desc="Settlement audit & exception isolation" tint="text-azure">
+                    <ExceptionsPanel seed={seed} n={n} />
+                  </DrawerTile>
+                  <DrawerTile icon={GraduationCap} title="Adaptive Learning" desc="Autonomous belief calibration from settlement telemetry" tint="text-money">
+                    <LearnPanel seed={seed} n={n} />
+                  </DrawerTile>
+                  <DrawerTile icon={TrendingUp} title="Cost & Churn Analysis" desc="Net value optimization across friction tiers" tint="text-azure">
+                    <ChurnPanel seed={seed} n={n} />
+                  </DrawerTile>
+                  <DrawerTile icon={ShieldCheck} title="Verification & Guarantees" desc="SHA-256 byte-identical audit proofs" tint="text-money">
+                    <VerifyPanel seed={seed} n={n} />
+                  </DrawerTile>
+                </motion.div>
               </div>
-              <div className="lg:col-span-7 grid gap-3 sm:grid-cols-2">
-                <DrawerTile icon={ScanSearch} title="3-Way Reconciliation" desc="Settlement audit & exception isolation" tint="text-azure">
-                  <ExceptionsPanel seed={seed} n={n} />
-                </DrawerTile>
-                <DrawerTile icon={GraduationCap} title="Adaptive Learning" desc="Autonomous belief calibration from settlement telemetry" tint="text-money">
-                  <LearnPanel seed={seed} n={n} />
-                </DrawerTile>
-                <DrawerTile icon={TrendingUp} title="Cost & Churn Analysis" desc="Net value optimization across friction tiers" tint="text-azure">
-                  <ChurnPanel seed={seed} n={n} />
-                </DrawerTile>
-                <DrawerTile icon={ShieldCheck} title="Verification & Guarantees" desc="SHA-256 byte-identical audit proofs" tint="text-money">
-                  <VerifyPanel seed={seed} n={n} />
-                </DrawerTile>
-              </div>
-            </div>
+            </motion.div>
           </TabsContent>
 
           {/* DEDICATED LIVE SANDBOX TAB */}
           <TabsContent value="live" className="mt-0 focus-visible:outline-none">
-            <div className="max-w-2xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              className="max-w-2xl mx-auto"
+            >
               <RazorpayPanel heroMode />
-            </div>
+            </motion.div>
           </TabsContent>
 
           {/* DEDICATED DATA INGESTION & PIPELINE TAB */}
-          <TabsContent value="pipeline" className="mt-0 space-y-5 focus-visible:outline-none">
-            <PipelinePanel seed={seed} n={n} />
+          <TabsContent value="pipeline" className="mt-0 focus-visible:outline-none">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-5"
+            >
+              <PipelinePanel seed={seed} n={n} />
+            </motion.div>
           </TabsContent>
 
           {/* RECOVER TAB */}
-          <TabsContent value="recover" className="mt-0 space-y-5 focus-visible:outline-none">
-            <BatchPanel seed={seed} n={n} runId={runId} />
-            <RecoveryFlowPanel seed={seed} n={n} delay={40} />
-            <ChurnPanel seed={seed} n={n} delay={120} />
+          <TabsContent value="recover" className="mt-0 focus-visible:outline-none">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-5"
+            >
+              <BatchPanel seed={seed} n={n} runId={runId} />
+              <RecoveryFlowPanel seed={seed} n={n} delay={40} />
+              <ChurnPanel seed={seed} n={n} delay={120} />
+            </motion.div>
           </TabsContent>
 
           {/* RECONCILE TAB */}
-          <TabsContent value="reconcile" className="mt-0 space-y-5 focus-visible:outline-none">
-            <ExceptionsPanel seed={seed} n={n} />
-            <ReconBenchmarkPanel seed={seed} n={n} delay={40} />
-            <OutcomeModelPanel delay={60} />
+          <TabsContent value="reconcile" className="mt-0 focus-visible:outline-none">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-5"
+            >
+              <ExceptionsPanel seed={seed} n={n} />
+              <ReconBenchmarkPanel seed={seed} n={n} delay={40} />
+              <OutcomeModelPanel delay={60} />
+            </motion.div>
           </TabsContent>
 
           {/* LEARN TAB */}
           <TabsContent value="learn" className="mt-0 focus-visible:outline-none">
-            <LearnPanel seed={seed} n={n} />
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <LearnPanel seed={seed} n={n} />
+            </motion.div>
           </TabsContent>
 
           {/* VERIFY TAB */}
           <TabsContent value="verify" className="mt-0 focus-visible:outline-none">
-            <VerifyPanel seed={seed} n={n} />
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <VerifyPanel seed={seed} n={n} />
+            </motion.div>
           </TabsContent>
 
           {/* LEDGER TAB */}
           <TabsContent value="ledger" className="mt-0 focus-visible:outline-none">
-            <AuditPanel
-              seed={seed}
-              n={n}
-              initialSearch={ledgerSearch}
-              initialActor={ledgerActor}
-              onClearFilters={() => {
-                setLedgerSearch("");
-                setLedgerActor("all");
-              }}
-            />
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <AuditPanel
+                seed={seed}
+                n={n}
+                initialSearch={ledgerSearch}
+                initialActor={ledgerActor}
+                onClearFilters={() => {
+                  setLedgerSearch("");
+                  setLedgerActor("all");
+                }}
+              />
+            </motion.div>
           </TabsContent>
         </Tabs>
       </main>
@@ -389,13 +496,24 @@ function DrawerTile({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button className="group flex w-full items-start gap-3 rounded-2xl border border-line bg-white/90 p-4 text-left shadow-sm transition-all hover:border-azure/30 hover:shadow-md hover:bg-raised/80">
-          <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tint}`} strokeWidth={2} />
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold text-navy">{title}</span>
-            <span className="mt-0.5 block text-xs leading-snug text-faint">{desc}</span>
-          </span>
-        </button>
+        <motion.button
+          variants={{
+            hidden: { opacity: 0, y: 14 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+          }}
+          whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          whileTap={{ scale: 0.985 }}
+          className="group flex w-full items-start justify-between gap-3 rounded-2xl border border-line bg-white/90 p-4 text-left shadow-sm transition-all hover:border-azure/30 hover:shadow-md hover:bg-raised/80"
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tint}`} strokeWidth={2} />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-navy">{title}</span>
+              <span className="mt-0.5 block text-xs leading-snug text-faint">{desc}</span>
+            </span>
+          </div>
+          <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-400 opacity-0 transition-all -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-azure" />
+        </motion.button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full overflow-y-auto border-line bg-canvas p-5 sm:max-w-xl">
         {children}

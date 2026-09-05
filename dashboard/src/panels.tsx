@@ -23,12 +23,14 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import NumberFlow from "@number-flow/react";
 import { Gauge } from "@/components/charts/gauge";
 import { FunnelChart } from "@/components/charts/funnel-chart";
 import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip, type SankeyData } from "@/components/charts/sankey";
 import { ReconBenchmarkVisualizer } from "@/components/charts/recon-radar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { rupees, pct, signed, useApi, useBatchStream, useReveal, type StreamFlows } from "./lib";
+import { rupees, pct, signed, useApi, useBatchStream, useReveal, prefersReducedMotion, type StreamFlows } from "./lib";
 import type {
   BatchResponse,
   ChurnResponse,
@@ -103,17 +105,23 @@ export function Panel({
   delay?: number;
   hero?: boolean;
 }) {
-  const { ref, shown } = useReveal<HTMLElement>();
+  const reduced = prefersReducedMotion();
   return (
-    <section
-      ref={ref}
-      className={`reveal ${shown ? "reveal-in" : ""} rounded-2xl border border-line bg-white/95 backdrop-blur-md ${
-        hero ? "shadow-panel ring-1 ring-azure/10" : "shadow-card"
+    <motion.section
+      initial={reduced ? { opacity: 1 } : { opacity: 0, y: 16 }}
+      whileInView={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.08, margin: "0px 0px -35px 0px" }}
+      transition={{
+        duration: 0.5,
+        delay: delay ? delay / 1000 : 0,
+        ease: [0.16, 1, 0.3, 1],
+      }}
+      className={`scroll-entry-effect rounded-2xl border border-line bg-white/95 backdrop-blur-md transition-all duration-250 ${
+        hero ? "shadow-panel ring-1 ring-azure/10" : "shadow-card hover:shadow-panel/50 hover:border-line/90"
       } ${className}`}
-      style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
     >
       {children}
-    </section>
+    </motion.section>
   );
 }
 
@@ -255,8 +263,11 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
           </div>
 
           <div className="mt-3">
-            <div className="font-mono font-extrabold leading-none tracking-tight text-navy text-[clamp(2.4rem,5.5vw,3.6rem)] tabular-nums">
-              {rupees(Math.round(smartGross))}
+            <div className="font-mono font-extrabold leading-none tracking-tight text-navy text-[clamp(2.4rem,5.5vw,3.6rem)] tabular-nums flex items-baseline">
+              <NumberFlow
+                value={Math.round(smartGross / 100)}
+                format={{ style: "currency", currency: "INR", maximumFractionDigits: 0 }}
+              />
             </div>
             {/* Playback progress */}
             <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-line" hidden={!streaming}>
@@ -266,7 +277,7 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
               />
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2.5 text-xs">
-              <span className="rounded-md bg-money-light border border-money/25 px-2.5 py-1 font-mono text-xs font-bold text-money-dim tabular-nums shadow-sm">
+              <span className="rounded-md bg-money-light border border-money/25 px-2.5 py-1 font-mono text-xs font-bold text-money-dim tabular-nums shadow-xs">
                 {signed(deltaPct)} Net Uplift
               </span>
               <span className="font-medium text-dim">
@@ -324,21 +335,33 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
 
         {/* Bottom: 3 Executive KPI Mini Cards */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm hover:border-line transition-all">
+          <div className="card-hover-lift rounded-xl border border-line-soft bg-white p-3 shadow-xs hover:border-line transition-all">
             <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-faint truncate">Recovery Rate</p>
-            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-azure tabular-nums">{pct(smartEff)}</p>
+            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-azure tabular-nums flex items-baseline">
+              <NumberFlow
+                value={smartEff}
+                format={{ style: "percent", maximumFractionDigits: 1 }}
+              />
+            </p>
             <p className="mt-0.5 font-medium text-[10px] text-money-dim truncate">+{Math.round((smartEff - baseEff) * 100)}% vs baseline</p>
           </div>
-          <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm hover:border-line transition-all">
+          <div className="card-hover-lift rounded-xl border border-line-soft bg-white p-3 shadow-xs hover:border-line transition-all">
             <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-faint truncate">Net Value Gain</p>
-            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-money-dim tabular-nums">
-              {netPaise != null ? rupees(netPaise) : "—"}
+            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-money-dim tabular-nums flex items-baseline">
+              {netPaise != null ? (
+                <NumberFlow
+                  value={Math.round(netPaise / 100)}
+                  format={{ style: "currency", currency: "INR", maximumFractionDigits: 0 }}
+                />
+              ) : (
+                "—"
+              )}
             </p>
           </div>
-          <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm hover:border-line transition-all">
+          <div className="card-hover-lift rounded-xl border border-line-soft bg-white p-3 shadow-xs hover:border-line transition-all">
             <p className="text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wide text-faint truncate">Friction Reduced</p>
-            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-navy tabular-nums">
-              −{baseAtt - smartAtt}
+            <p className="mt-1 font-mono text-base sm:text-lg font-bold text-navy tabular-nums flex items-baseline">
+              −<NumberFlow value={baseAtt - smartAtt} />
             </p>
           </div>
         </div>
@@ -353,22 +376,28 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
 export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
   const batch = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
   const learn = useApi<LearnResponse>(`/learn?seed=${seed}&n=${n}&batches=5`, [seed, n]);
-  const { ref, shown } = useReveal<HTMLDivElement>();
+  const reduced = prefersReducedMotion();
 
   const smart = batch.data?.policies.find((p) => p.policy === "smart");
   const eff = smart ? Math.round(smart.efficiency * 100) : null;
   const flipIdx = learn.data ? learn.data.on.findIndex((t) => t.issuer_timing === "short") : null;
 
   return (
-    <div
-      ref={ref}
-      className={`reveal ${shown ? "reveal-in" : ""} relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white shadow-panel`}
+    <motion.div
+      initial={reduced ? { opacity: 1 } : { opacity: 0, y: 16 }}
+      whileInView={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.1, margin: "0px 0px -30px 0px" }}
+      transition={{
+        duration: 0.5,
+        delay: delay ? delay / 1000 : 0,
+        ease: [0.16, 1, 0.3, 1],
+      }}
+      className="scroll-entry-effect relative flex min-h-[220px] w-full flex-col justify-between overflow-hidden rounded-2xl p-6 text-white shadow-panel transition-all duration-300 hover:shadow-2xl"
       style={{
-        transitionDelay: shown ? `${delay}ms` : "0ms",
         background: "linear-gradient(135deg, #0C2340 0%, #0C83FD 65%, #00A878 100%)",
       }}
     >
-      <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/20 blur-3xl animate-pulse-subtle" />
       <div className="pointer-events-none absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-black/15 blur-3xl" />
       <div className="relative flex items-center gap-1.5">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/30 backdrop-blur-sm">
@@ -376,8 +405,14 @@ export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
         </span>
       </div>
       <div className="relative">
-        <div className="font-mono text-[clamp(2.4rem,7vw,3.6rem)] font-bold leading-none tracking-tighter2 text-white">
-          {eff != null ? `${eff}%` : "—"}
+        <div className="font-mono text-[clamp(2.4rem,7vw,3.6rem)] font-bold leading-none tracking-tighter2 text-white flex items-baseline">
+          {eff != null ? (
+            <>
+              <NumberFlow value={eff} />%
+            </>
+          ) : (
+            "—"
+          )}
         </div>
         <p className="mt-2 text-sm font-semibold text-white/95">Gross Recoverable Captured</p>
         <p className="mt-2.5 text-xs leading-relaxed text-white/85">
@@ -392,7 +427,7 @@ export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
           )}
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -1269,21 +1304,29 @@ export function AuditPanel({
           </span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm">
+          <div className="card-hover-lift rounded-xl border border-line-soft bg-white p-3 shadow-xs hover:border-line transition-all">
             <div className="text-[10px] uppercase font-semibold text-faint">Total Audited</div>
-            <div className="font-mono text-lg font-bold text-navy">{data.total}</div>
+            <div className="font-mono text-lg font-bold text-navy flex items-baseline">
+              <NumberFlow value={data.total} />
+            </div>
           </div>
-          <div className="rounded-xl border border-azure/20 bg-azure-light/40 p-3 shadow-sm">
+          <div className="card-hover-lift rounded-xl border border-azure/20 bg-azure-light/40 p-3 shadow-xs hover:border-azure/40 transition-all">
             <div className="text-[10px] uppercase font-semibold text-azure">Recovery Policy (R)</div>
-            <div className="font-mono text-lg font-bold text-azure">{rCount}</div>
+            <div className="font-mono text-lg font-bold text-azure flex items-baseline">
+              <NumberFlow value={rCount} />
+            </div>
           </div>
-          <div className="rounded-xl border border-money/20 bg-money-light/40 p-3 shadow-sm">
+          <div className="card-hover-lift rounded-xl border border-money/20 bg-money-light/40 p-3 shadow-xs hover:border-money/40 transition-all">
             <div className="text-[10px] uppercase font-semibold text-money-dim">Recon Sensor (W)</div>
-            <div className="font-mono text-lg font-bold text-money-dim">{wCount}</div>
+            <div className="font-mono text-lg font-bold text-money-dim flex items-baseline">
+              <NumberFlow value={wCount} />
+            </div>
           </div>
-          <div className="rounded-xl border border-line-soft bg-white p-3 shadow-sm">
+          <div className="card-hover-lift rounded-xl border border-line-soft bg-white p-3 shadow-xs hover:border-line transition-all">
             <div className="text-[10px] uppercase font-semibold text-faint">Pipeline Engine</div>
-            <div className="font-mono text-lg font-bold text-dim">{simCount}</div>
+            <div className="font-mono text-lg font-bold text-dim flex items-baseline">
+              <NumberFlow value={simCount} />
+            </div>
           </div>
         </div>
       </div>
@@ -1487,24 +1530,28 @@ export function RazorpayPanel({
                     { label: "₹1,000", paise: 100000 },
                     { label: "₹2,500", paise: 250000 },
                   ].map((p) => (
-                    <button
+                    <motion.button
                       key={p.paise}
                       type="button"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         setSelectedPreset(p.paise);
                         setAmountPaise(p.paise);
                       }}
-                      className={`rounded-lg border py-2 text-xs font-mono font-semibold transition-all ${
+                      className={`rounded-lg border py-2 text-xs font-mono font-semibold transition-colors ${
                         selectedPreset === p.paise
-                          ? "border-azure bg-azure-light text-azure shadow-sm"
+                          ? "border-azure bg-azure-light text-azure shadow-xs"
                           : "border-line bg-surface text-dim hover:border-line-soft hover:bg-raised"
                       }`}
                     >
                       {p.label}
-                    </button>
+                    </motion.button>
                   ))}
-                  <button
+                  <motion.button
                     type="button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => {
                       setSelectedPreset("custom");
                       const num = parseFloat(customRupees);
@@ -1512,14 +1559,14 @@ export function RazorpayPanel({
                         setAmountPaise(Math.round(num * 100));
                       }
                     }}
-                    className={`rounded-lg border py-2 text-xs font-medium transition-all ${
+                    className={`rounded-lg border py-2 text-xs font-medium transition-colors ${
                       selectedPreset === "custom"
-                        ? "border-azure bg-azure-light text-azure shadow-sm"
+                        ? "border-azure bg-azure-light text-azure shadow-xs"
                         : "border-line bg-surface text-dim hover:border-line-soft hover:bg-raised"
                     }`}
                   >
                     Custom
-                  </button>
+                  </motion.button>
                 </div>
 
                 {selectedPreset === "custom" && (
@@ -1552,17 +1599,19 @@ export function RazorpayPanel({
             </div>
 
             <div className="pt-2">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => create()}
                 disabled={busy || !isCustomValid}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-azure hover:bg-azure-hover py-3 font-semibold text-xs text-white shadow-sm transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-azure hover:bg-azure-hover py-3 font-semibold text-xs text-white shadow-xs transition-colors disabled:opacity-50"
               >
                 {busy
                   ? "Creating Link…"
                   : !isCustomValid
                   ? "Enter Valid Amount"
                   : `Create Payment Link (${rupees(amountPaise)})`}
-              </button>
+              </motion.button>
               {err && (
                 <p className="mt-2 text-center text-xs text-rose">
                   {err === "no_keys_no_fixture"
@@ -1573,9 +1622,14 @@ export function RazorpayPanel({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col justify-between h-full gap-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col justify-between h-full gap-4"
+          >
             <div className="grid gap-4 sm:grid-cols-[auto_1fr] sm:items-center">
-              <div className="mx-auto sm:mx-0 w-max rounded-xl border border-line bg-white p-2.5 shadow-sm">
+              <div className="mx-auto sm:mx-0 w-max rounded-xl border border-line bg-white p-2.5 shadow-xs">
                 {link.short_url && (
                   <QRCodeSVG
                     value={link.short_url}
@@ -1639,7 +1693,7 @@ export function RazorpayPanel({
             >
               ← Generate another link
             </button>
-          </div>
+          </motion.div>
         )}
       </div>
     </Panel>
@@ -1754,16 +1808,23 @@ export function PipelineSummaryCard({
   onNavigate: () => void;
 }) {
   const { data } = useApi<PipelineResponse>(`/pipeline?seed=${seed}&n=${n}`, [seed, n]);
+  const reduced = prefersReducedMotion();
 
   return (
-    <div
+    <motion.div
+      initial={reduced ? { opacity: 1 } : { opacity: 0, y: 16 }}
+      whileInView={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.1, margin: "0px 0px -30px 0px" }}
+      transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+      whileTap={{ scale: 0.99 }}
       onClick={onNavigate}
-      className="group cursor-pointer rounded-2xl border border-azure/20 bg-gradient-to-r from-surface via-azure-light/25 to-surface p-4 sm:p-5 shadow-sm transition-all hover:border-azure hover:shadow-panel"
+      className="group cursor-pointer rounded-2xl border border-azure/25 bg-gradient-to-r from-surface via-azure-light/25 to-surface p-4 sm:p-5 shadow-sm transition-colors hover:border-azure hover:shadow-panel"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-azure text-white shadow-sm">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-azure text-white shadow-xs">
               <Network className="h-3.5 w-3.5" />
             </span>
             <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-azure">
@@ -1777,19 +1838,19 @@ export function PipelineSummaryCard({
             Ingestion active: {n} customer orders, gateway decline telemetry, and settlement bank rows
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-dim">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-xs">
               <Users className="h-3 w-3 text-azure" />
               <strong>{n} Orders</strong> (15% High, 35% Mid, 50% Std)
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-xs">
               <CreditCard className="h-3 w-3 text-rose" />
               <strong>{n} Declines</strong> (109 Razorpay taxonomy)
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-xs">
               <Building2 className="h-3 w-3 text-money-dim" />
               <strong>{data?.summary.n_bank_rows ?? n} Bank Rows</strong> (Settlement credits)
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 border border-line-soft font-mono text-[11px] shadow-xs">
               <AlertCircle className="h-3 w-3 text-amber" />
               <strong>
                 {data ? Object.values(data.summary.injected_exceptions).reduce((a, b) => a + b, 0) : "—"} Audited Discrepancies
@@ -1801,14 +1862,14 @@ export function PipelineSummaryCard({
         <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded-xl bg-azure px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-all group-hover:bg-azure-hover group-hover:shadow"
+            className="flex items-center gap-1.5 rounded-xl bg-azure px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-all group-hover:bg-azure-hover group-hover:shadow-sm"
           >
             Inspect Data Streams
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
