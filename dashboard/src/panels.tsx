@@ -26,8 +26,8 @@ import type {
 // --------------------------------------------------------------------------- //
 type Tier = "cited" | "modeled" | "preference";
 const TIER: Record<Tier, { label: string; cls: string }> = {
-  cited: { label: "CITED", cls: "text-money border-money/30 bg-money/10" },
-  modeled: { label: "MODELED", cls: "text-azure border-azure/30 bg-azure/10" },
+  cited: { label: "CITED", cls: "text-money-dim border-money/30 bg-money-light" },
+  modeled: { label: "MODELED", cls: "text-azure border-azure/30 bg-azure-light" },
   preference: { label: "PREFERENCE", cls: "text-amber border-amber/30 bg-amber/10" },
 };
 
@@ -35,21 +35,23 @@ export function Cite({ tier, children, note, source }: { tier: Tier; children: R
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="group inline-flex items-center gap-1 border-b border-dashed border-faint/50 leading-none hover:border-ink">
+        <button className="group inline-flex items-center gap-1 border-b border-dashed border-faint/40 leading-none hover:border-azure">
           {children}
-          <Info className="h-3 w-3 text-faint group-hover:text-dim" />
+          <Info className="h-3 w-3 text-faint group-hover:text-azure" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 border border-line bg-raised text-xs shadow-panel">
-        <span className={`mb-2 inline-block rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium ${TIER[tier].cls}`}>
-          {TIER[tier].label}
-        </span>
-        <p className="leading-relaxed text-dim">{note}</p>
-        {source && (
-          <a href={source} target="_blank" rel="noreferrer" className="mt-2 block break-all text-azure underline underline-offset-2">
-            {source}
-          </a>
-        )}
+      <PopoverContent className="w-64 border border-line bg-white/95 p-3 text-xs shadow-panel backdrop-blur-md">
+        <div className="mb-1 flex items-center justify-between">
+          <span className={`inline-block rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase ${TIER[tier].cls}`}>
+            {TIER[tier].label}
+          </span>
+          {source && (
+            <a href={source} target="_blank" rel="noreferrer" className="text-[11px] font-medium text-azure hover:underline">
+              Docs ↗
+            </a>
+          )}
+        </div>
+        <p className="leading-snug text-dim text-[11.5px]">{note}</p>
       </PopoverContent>
     </Popover>
   );
@@ -62,8 +64,7 @@ interface SeedProps {
 }
 
 // --------------------------------------------------------------------------- //
-// Shared primitives — hairline panels, terminal "field label" kickers, no
-// nested cards. Elevation comes from borders, not shadows (the hero excepted).
+// Shared primitives — clean cards, crisp borders, subtle elevation.
 // --------------------------------------------------------------------------- //
 export function Panel({
   children,
@@ -80,8 +81,8 @@ export function Panel({
   return (
     <section
       ref={ref}
-      className={`reveal ${shown ? "reveal-in" : ""} rounded-2xl border border-line bg-surface ${
-        hero ? "shadow-panel" : "shadow-card"
+      className={`reveal ${shown ? "reveal-in" : ""} rounded-2xl border border-line bg-white/95 backdrop-blur-md ${
+        hero ? "shadow-panel ring-1 ring-azure/10" : "shadow-card"
       } ${className}`}
       style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
     >
@@ -92,7 +93,7 @@ export function Panel({
 
 function Kicker({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <p className={`font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-faint ${className}`}>
+    <p className={`font-mono text-[10.5px] font-semibold uppercase tracking-[0.14em] text-faint ${className}`}>
       {children}
     </p>
   );
@@ -114,19 +115,22 @@ function Head({
   tagTone?: TagTone;
 }) {
   const tones: Record<TagTone, string> = {
-    muted: "border-line text-dim",
-    money: "border-money/30 text-money bg-money/10",
-    azure: "border-azure/30 text-azure bg-azure/10",
+    muted: "border-line bg-raised text-dim",
+    money: "border-money/30 text-money-dim bg-money-light",
+    azure: "border-azure/30 text-azure bg-azure-light",
   };
   return (
-    <header className="flex items-start justify-between gap-3 border-b border-line-soft px-5 py-4">
-      <div className="min-w-0">
-        {kicker && <Kicker className="mb-1.5">{kicker}</Kicker>}
-        <h2 className="text-sm font-semibold text-ink">{title}</h2>
-        {note && <p className="mt-1 text-xs leading-relaxed text-faint">{note}</p>}
+    <header className="flex items-center justify-between gap-3 border-b border-line-soft px-5 py-3.5">
+      <div className="flex items-center gap-2 min-w-0">
+        <h2 className="text-sm font-semibold tracking-tight text-ink">{title}</h2>
+        {note && (
+          <span className="hidden sm:inline-block text-xs text-faint truncate max-w-sm" title={typeof note === "string" ? note : undefined}>
+            · {note}
+          </span>
+        )}
       </div>
       {tag && (
-        <span className={`shrink-0 rounded-md border px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide ${tones[tagTone]}`}>
+        <span className={`shrink-0 rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${tones[tagTone]}`}>
           {tag}
         </span>
       )}
@@ -199,69 +203,74 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
   ];
 
   return (
-    <Panel hero>
-      <div className="grid gap-8 p-6 sm:p-7 lg:grid-cols-[1.05fr_1.35fr] lg:gap-10">
-        {/* Left — the number */}
-        <div className="flex flex-col justify-center">
-          <div className="flex items-center gap-2">
-            <Kicker>Net new revenue recovered · seed {seed} · n {n}</Kicker>
-            {streaming && <span className="font-mono text-[10px] uppercase tracking-wide text-money">● scoring</span>}
+    <Panel hero className="h-full flex flex-col justify-between">
+      <div className="p-5 sm:p-6 flex flex-col justify-between h-full gap-5">
+        {/* Top: The big number */}
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-faint">
+              Net Revenue Recovered · Seed {seed}
+            </span>
+            {streaming ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-azure-light px-2.5 py-0.5 font-mono text-[10px] font-semibold text-azure">
+                <span className="h-1.5 w-1.5 rounded-full bg-azure animate-pulse" />
+                Scoring
+              </span>
+            ) : (
+              <span className="rounded-md bg-raised px-2 py-0.5 font-mono text-[10.5px] font-medium text-dim">
+                n = {n}
+              </span>
+            )}
           </div>
-          <div className="mt-3 font-mono font-semibold leading-none tracking-tighter2 text-money text-[clamp(2.2rem,11vw,5rem)] tabular-nums">
+          <div className="mt-2 font-mono font-bold leading-none tracking-tighter2 text-ink text-[clamp(2.3rem,5.5vw,3.6rem)] tabular-nums">
             {rupees(Math.round(smartGross))}
           </div>
           {/* playback progress */}
-          <div className="mt-3 h-0.5 w-full max-w-sm overflow-hidden rounded-full bg-line" hidden={!streaming}>
-            <div className="h-full rounded-full bg-money transition-[width] duration-150 ease-out" style={{ width: `${progress * 100}%` }} />
+          <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-line" hidden={!streaming}>
+            <div className="h-full rounded-full bg-azure transition-[width] duration-150 ease-out" style={{ width: `${progress * 100}%` }} />
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="rounded-md bg-money/10 px-2 py-1 font-mono font-semibold text-money tabular-nums">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-md bg-money-light px-2 py-1 font-mono font-bold text-money-dim tabular-nums">
               {signed(deltaPct)}
             </span>
             <span className="text-dim">
-              vs Razorpay's cited baseline — <span className="font-mono text-ink">{rupees(deltaGross)}</span> more recovered
+              vs Razorpay baseline (<span className="font-mono font-medium text-ink">+{rupees(deltaGross)}</span> net gain)
             </span>
           </div>
-          <p className="mt-4 max-w-sm text-xs leading-relaxed text-faint">
-            Same seed → byte-identical output. Every figure below is a deterministic projection of
-            one scored ledger; baseline and smart face identical keyed luck.
-          </p>
         </div>
 
-        {/* Right — the bars + framing metrics */}
-        <div className="flex flex-col justify-center gap-5">
-          <div className="space-y-4">
-            {bars.map((g) => (
-              <div key={g.label}>
-                <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-medium text-ink">
-                    {g.label} <span className="ml-1 text-xs font-normal text-faint">{g.sub}</span>
-                  </span>
-                  <span className={`font-mono text-sm font-semibold tabular-nums ${g.text}`}>{rupees(g.gross)}</span>
-                </div>
-                <div className="relative h-2.5 overflow-hidden rounded-full bg-raised ring-1 ring-inset ring-line">
-                  <div
-                    className={`h-full rounded-full transition-[width] duration-150 ease-out ${g.color}`}
-                    style={{ width: `${oracle ? (g.gross / oracle) * 100 : 0}%` }}
-                  />
-                </div>
-                <div className="mt-1 text-right font-mono text-[11px] text-faint">{pct(g.eff)} of ceiling</div>
+        {/* Middle: Performance comparison bars */}
+        <div className="space-y-3 rounded-xl border border-line-soft bg-raised/70 p-3.5">
+          {bars.map((g) => (
+            <div key={g.label}>
+              <div className="mb-1 flex items-baseline justify-between text-xs">
+                <span className="font-medium text-ink">
+                  {g.label} <span className="ml-1 text-[11px] text-faint">({g.sub})</span>
+                </span>
+                <span className={`font-mono font-semibold tabular-nums ${g.text}`}>{rupees(g.gross)}</span>
               </div>
-            ))}
-            <div className="flex items-center justify-between border-t border-dashed border-line pt-2.5 text-xs">
-              <span className="flex items-center gap-2 text-dim">
-                <span className="inline-block h-2 w-2 rounded-full bg-azure" />
-                Oracle ceiling — knows the true WORLD probabilities
-              </span>
-              <span className="font-mono text-azure">{rupees(oracle)}</span>
+              <div className="relative h-2 overflow-hidden rounded-full bg-line/80">
+                <div
+                  className={`h-full rounded-full transition-[width] duration-150 ease-out ${g.color}`}
+                  style={{ width: `${oracle ? (g.gross / oracle) * 100 : 0}%` }}
+                />
+              </div>
             </div>
+          ))}
+          <div className="flex items-center justify-between border-t border-dashed border-line pt-2 text-[11px]">
+            <span className="flex items-center gap-1.5 text-dim font-medium">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-azure" />
+              Reachable Oracle Ceiling
+            </span>
+            <span className="font-mono font-semibold text-azure">{rupees(oracle)}</span>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-px overflow-hidden rounded-lg border border-line bg-line">
-            <MiniStat label="Efficiency (F2)" value={pct(smartEff)} tone="text-money" foot={`baseline ${pct(baseEff)}`} />
-            <MiniStat label="Net-value gain (F3)" value={netPaise != null ? rupees(netPaise) : "—"} foot="net of churn" />
-            <MiniStat label="Fewer attempts" value={`−${baseAtt - smartAtt}`} foot={`${smartAtt} vs ${baseAtt}`} />
-          </div>
+        {/* Bottom: Mini stats */}
+        <div className="grid grid-cols-3 gap-2">
+          <MiniStat label="Efficiency (F2)" value={pct(smartEff)} tone="text-azure" foot={`vs ${pct(baseEff)}`} />
+          <MiniStat label="Net Gain (F3)" value={netPaise != null ? rupees(netPaise) : "—"} tone="text-money" foot="net of churn" />
+          <MiniStat label="Fewer Attempts" value={`−${baseAtt - smartAtt}`} tone="text-ink" foot={`${smartAtt} vs ${baseAtt}`} />
         </div>
       </div>
     </Panel>
@@ -270,16 +279,16 @@ export function BatchPanel({ seed, n, runId = 0 }: SeedProps & { runId?: number 
 
 function MiniStat({ label, value, foot, tone = "text-ink" }: { label: string; value: string; foot?: string; tone?: string }) {
   return (
-    <div className="bg-surface px-3 py-2.5">
-      <p className="text-[11px] text-faint">{label}</p>
-      <p className={`mt-0.5 font-mono text-base font-semibold tabular-nums ${tone}`}>{value}</p>
-      {foot && <p className="mt-0.5 font-mono text-[10.5px] text-faint">{foot}</p>}
+    <div className="rounded-lg border border-line/60 bg-surface px-3 py-2">
+      <p className="text-[10.5px] font-medium text-faint truncate">{label}</p>
+      <p className={`mt-0.5 font-mono text-sm sm:text-base font-bold tabular-nums ${tone}`}>{value}</p>
+      {foot && <p className="mt-0.5 font-mono text-[10px] text-faint truncate">{foot}</p>}
     </div>
   );
 }
 
 // --------------------------------------------------------------------------- //
-// Insight — one gradient narrative card (the F1 / efficiency story), Zentra-style
+// Insight — one gradient narrative card (the F1 / efficiency story)
 // --------------------------------------------------------------------------- //
 export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
   const batch = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
@@ -293,40 +302,33 @@ export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
   return (
     <div
       ref={ref}
-      className={`reveal ${shown ? "reveal-in" : ""} relative flex min-h-[240px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white shadow-panel`}
+      className={`reveal ${shown ? "reveal-in" : ""} relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white shadow-panel`}
       style={{
         transitionDelay: shown ? `${delay}ms` : "0ms",
-        background: "linear-gradient(135deg,#2563eb 0%,#0ea3a0 52%,#16a34a 100%)",
+        background: "linear-gradient(135deg, #0C2340 0%, #0C83FD 65%, #00A878 100%)",
       }}
     >
-      <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/25 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-black/10 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-black/15 blur-3xl" />
       <div className="relative flex items-center gap-1.5">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/30">
-          <Lightbulb className="h-3 w-3" strokeWidth={2.2} /> Insight
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/30 backdrop-blur-sm">
+          <Lightbulb className="h-3 w-3" strokeWidth={2.2} /> Performance Core
         </span>
       </div>
       <div className="relative">
-        <div className="font-mono text-[clamp(2.75rem,9vw,4.25rem)] font-semibold leading-none tracking-tighter2">
+        <div className="font-mono text-[clamp(2.4rem,7vw,3.6rem)] font-bold leading-none tracking-tighter2 text-white">
           {eff != null ? `${eff}%` : "—"}
         </div>
-        <p className="mt-2 text-sm font-medium text-white/95">of the reachable ceiling — recovered</p>
-        <p className="mt-3 max-w-md text-[13px] leading-relaxed text-white/85">
-          Smart recovered{" "}
-          <span className="font-mono font-semibold text-white">
-            {smart ? rupees(smart.gross_recovered_paise) : "—"}
-          </span>{" "}
+        <p className="mt-2 text-sm font-semibold text-white/95">Reachable recovery ceiling attained</p>
+        <p className="mt-2.5 text-xs leading-relaxed text-white/85">
+          Recovered <span className="font-mono font-bold text-white">{smart ? rupees(smart.gross_recovered_paise) : "—"}</span>
           {batch.data && (
             <>
-              — <span className="font-mono font-semibold text-white">{signed(batch.data.delta.gross_pct)}</span> vs
-              Razorpay's cited baseline.
+              {" "}(<span className="font-mono font-bold text-white">{signed(batch.data.delta.gross_pct)}</span> vs baseline).
             </>
-          )}{" "}
+          )}
           {flipIdx != null && flipIdx > 0 && (
-            <>
-              F1 recalibration closed regret to <span className="font-mono font-semibold text-white">₹0</span> in{" "}
-              {flipIdx} batches.
-            </>
+            <> Recalibration closed regret to <span className="font-mono font-bold text-white">₹0</span> in {flipIdx} batches.</>
           )}
         </p>
       </div>
@@ -851,28 +853,38 @@ function LinkRow({ k, children }: { k: string; children: ReactNode }) {
 
 function StatusBadge({ status }: { status?: string }) {
   const paid = status === "paid";
-  const tone = paid ? "text-money bg-money/10 border-money/30" : "text-amber bg-amber/10 border-amber/30";
+  const tone = paid
+    ? "text-money-dim bg-money-light border-money/40 shadow-sm"
+    : "text-amber bg-amber/10 border-amber/30";
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-medium uppercase ${tone}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${paid ? "bg-money" : "bg-amber animate-pulse"}`} />
-      {status ?? "—"}
+    <span className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${tone}`}>
+      <span className={`h-2 w-2 rounded-full ${paid ? "bg-money" : "bg-amber animate-pulse"}`} />
+      {paid ? "Paid & Settled" : status ?? "Pending"}
     </span>
   );
 }
 
-export function RazorpayPanel({ delay }: { delay?: number }) {
+export function RazorpayPanel({
+  delay,
+  heroMode = false,
+}: {
+  delay?: number;
+  heroMode?: boolean;
+}) {
   const [link, setLink] = useState<RazorpayLink | null>(null);
+  const [amountPaise, setAmountPaise] = useState(50000);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const create = async () => {
+  const create = async (amt = amountPaise) => {
     setBusy(true);
     setErr(null);
     try {
       const r = await fetch("/razorpay/link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount_paise: 50000 }),
+        body: JSON.stringify({ amount_paise: amt }),
       });
       const d: RazorpayLink = await r.json();
       if (d.ok) setLink(d);
@@ -884,6 +896,15 @@ export function RazorpayPanel({ delay }: { delay?: number }) {
     }
   };
 
+  const copyUrl = async () => {
+    if (!link?.short_url) return;
+    try {
+      await navigator.clipboard.writeText(link.short_url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+
   // Poll status until the link is paid (the created → paid moment, live on screen).
   useEffect(() => {
     if (!link?.id || link.status === "paid") return;
@@ -893,68 +914,146 @@ export function RazorpayPanel({ delay }: { delay?: number }) {
         const d: RazorpayLink = await r.json();
         if (d.ok) setLink((prev) => (prev ? { ...prev, status: d.status, live: d.live } : d));
       } catch {
-        /* transient; keep polling */
+        /* transient */
       }
-    }, 3000);
+    }, 2500);
     return () => clearInterval(t);
   }, [link?.id, link?.status]);
 
   return (
-    <Panel delay={delay}>
+    <Panel delay={delay} hero={heroMode} className="h-full flex flex-col justify-between">
       <Head
-        kicker="D3 · one live test-mode path"
-        title="Real Razorpay Payment Link"
-        note="The scored loop never touches the network — this is the genuine-object anchor. Create a real rzp_test_ link and watch it settle."
-        tag={link ? (link.live ? "live" : "replayed") : "test-mode"}
-        tagTone={link?.live ? "money" : "muted"}
+        title="Live Razorpay Sandbox"
+        note="Real rzp_test_ API link & QR code"
+        tag={link ? (link.status === "paid" ? "settled ✓" : link.live ? "live api" : "replayed") : "test-mode"}
+        tagTone={link?.status === "paid" ? "money" : link?.live ? "azure" : "muted"}
       />
-      <div className="p-5">
+      <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between">
         {!link ? (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-dim">
-              Creates a genuine test-mode Payment Link — a real{" "}
-              <span className="font-mono text-ink">plink_</span> object, not a mock.
-            </p>
-            <button
-              onClick={create}
-              disabled={busy}
-              className="rounded-lg border border-money/40 bg-money/15 px-3.5 py-2 font-mono text-xs font-semibold uppercase tracking-wide text-money transition-colors hover:bg-money/25 disabled:opacity-50"
-            >
-              {busy ? "creating…" : "Create test Payment Link"}
-            </button>
-            {err && (
-              <p className="text-xs text-rose">
-                {err === "no_keys_no_fixture"
-                  ? "No rzp_test_ keys configured and no recorded object to replay."
-                  : err}
+          <div className="flex flex-col justify-between h-full gap-5">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-azure animate-ping" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-azure">
+                  Real Integration Anchor
+                </p>
+              </div>
+              <p className="text-sm font-medium text-ink leading-relaxed">
+                Generate a live Razorpay test-mode Payment Link (<span className="font-mono text-xs text-azure">plink_</span>) and scan to watch settlement in real time.
               </p>
-            )}
+              
+              {/* Quick Amount Selector */}
+              <div className="pt-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-wide text-faint mb-1.5">
+                  Select Amount
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: "₹500", paise: 50000 },
+                    { label: "₹1,000", paise: 100000 },
+                    { label: "₹2,500", paise: 250000 },
+                  ].map((p) => (
+                    <button
+                      key={p.paise}
+                      type="button"
+                      onClick={() => setAmountPaise(p.paise)}
+                      className={`rounded-lg border py-2 text-xs font-mono font-semibold transition-all ${
+                        amountPaise === p.paise
+                          ? "border-azure bg-azure-light text-azure shadow-sm"
+                          : "border-line bg-surface text-dim hover:border-line-soft hover:bg-raised"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => create()}
+                disabled={busy}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-azure hover:bg-azure-hover py-3 font-semibold text-xs text-white shadow-sm transition-all disabled:opacity-60"
+              >
+                {busy ? "Generating Link…" : `Generate Test Payment Link (${rupees(amountPaise)})`}
+              </button>
+              {err && (
+                <p className="mt-2 text-center text-xs text-rose">
+                  {err === "no_keys_no_fixture"
+                    ? "No rzp_test_ keys configured and no fixture available."
+                    : err}
+                </p>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
-            <div className="w-max rounded-xl bg-white p-3">
-              {link.short_url && <QRCodeSVG value={link.short_url} size={132} bgColor="#ffffff" fgColor="#0a0c10" level="M" />}
+          <div className="flex flex-col justify-between h-full gap-4">
+            <div className="grid gap-4 sm:grid-cols-[auto_1fr] sm:items-center">
+              <div className="mx-auto sm:mx-0 w-max rounded-xl border border-line bg-white p-2.5 shadow-sm">
+                {link.short_url && (
+                  <QRCodeSVG
+                    value={link.short_url}
+                    size={120}
+                    bgColor="#ffffff"
+                    fgColor="#0c2340"
+                    level="M"
+                  />
+                )}
+              </div>
+              <dl className="min-w-0 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Status</span>
+                  <StatusBadge status={link.status} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Amount</span>
+                  <span className="font-mono text-sm font-bold text-ink">
+                    {link.amount != null ? rupees(link.amount) : "—"} {link.currency}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Link ID</span>
+                  <span className="font-mono text-[11px] text-dim truncate max-w-[140px]">{link.id}</span>
+                </div>
+              </dl>
             </div>
-            <dl className="min-w-0 space-y-2 font-mono text-xs">
-              <LinkRow k="id">{link.id}</LinkRow>
-              <LinkRow k="amount">
-                {link.amount != null ? rupees(link.amount) : "—"} {link.currency}
-              </LinkRow>
-              <LinkRow k="status">
-                <StatusBadge status={link.status} />
-              </LinkRow>
-              <LinkRow k="link">
-                <a href={link.short_url} target="_blank" rel="noreferrer" className="break-all text-azure underline underline-offset-2">
-                  {link.short_url}
-                </a>
-              </LinkRow>
-              <p className="pt-1 text-[11px] leading-relaxed text-faint">
-                {link.live
-                  ? "Live object, fetched from Razorpay just now."
-                  : "Replayed from a recorded real object (offline demo)."}{" "}
-                Pay it with test card <span className="text-dim">4111 1111 1111 1111</span> — status flips to paid.
+
+            <div className="rounded-xl border border-line-soft bg-raised/70 p-3 text-xs space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[11px] text-azure truncate">{link.short_url}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={copyUrl}
+                    className="rounded-md border border-line bg-surface px-2 py-1 text-[10px] font-medium text-dim hover:text-ink hover:bg-raised"
+                  >
+                    {copied ? "Copied ✓" : "Copy"}
+                  </button>
+                  <a
+                    href={link.short_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md bg-azure px-2 py-1 text-[10px] font-medium text-white hover:bg-azure-hover"
+                  >
+                    Open ↗
+                  </a>
+                </div>
+              </div>
+              <p className="text-[11px] text-faint leading-snug">
+                {link.status === "paid" ? (
+                  <span className="text-money-dim font-medium">✓ Payment settled! Closed loop received webhook confirmation.</span>
+                ) : (
+                  <>Test with card <code className="font-mono font-medium text-ink bg-surface px-1 py-0.5 rounded border border-line-soft">4111 1111 1111 1111</code> to watch status flip live.</>
+                )}
               </p>
-            </dl>
+            </div>
+
+            <button
+              onClick={() => setLink(null)}
+              className="w-full text-center font-mono text-[11px] text-faint hover:text-azure py-1"
+            >
+              ← Generate another link
+            </button>
           </div>
         )}
       </div>
@@ -963,24 +1062,23 @@ export function RazorpayPanel({ delay }: { delay?: number }) {
 }
 
 // --------------------------------------------------------------------------- //
-// Verification — "see for yourself": determinism proof, no-LLM bound, oracle
-// bound, provenance legend. Turns claims into checks a judge can run.
+// Verification — "see for yourself": determinism proof & bounds
 // --------------------------------------------------------------------------- //
 function Assurance({ icon: Icon, title, children }: { icon: typeof Check; title: string; children: ReactNode }) {
   return (
     <div className="flex gap-3 p-4">
-      <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-money/30 bg-money/10">
-        <Icon className="h-3.5 w-3.5 text-money" strokeWidth={2} />
+      <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-azure/20 bg-azure-light">
+        <Icon className="h-3.5 w-3.5 text-azure" strokeWidth={2} />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-medium text-ink">{title}</p>
+        <p className="text-sm font-semibold text-ink">{title}</p>
         <div className="mt-1 text-xs leading-relaxed text-dim">{children}</div>
       </div>
     </div>
   );
 }
 
-const shortHash = (h: string) => `${h.slice(0, 20)}…${h.slice(-8)}`;
+const shortHash = (h: string) => `${h.slice(0, 16)}…${h.slice(-8)}`;
 
 export function VerifyPanel({ seed, n, delay }: SeedProps) {
   const verify = useApi<VerifyResponse>(`/verify?seed=${seed}&n=${n}`, [seed, n]);
@@ -991,61 +1089,59 @@ export function VerifyPanel({ seed, n, delay }: SeedProps) {
   return (
     <Panel delay={delay}>
       <Head
-        kicker="verification · see for yourself"
-        title="Assurances"
-        note="The frontend is all a judge sees — so every claim here is checkable, not asserted."
-        tag="provable"
+        title="Verification Assurances"
+        note="Cryptographic proofs and invariants"
+        tag="Provable"
         tagTone="money"
       />
       <div className="grid gap-px bg-line sm:grid-cols-2">
         <div className="bg-surface">
-          <Assurance icon={Fingerprint} title="Reproducible — same seed, byte-identical">
+          <Assurance icon={Fingerprint} title="Reproducible (SHA-256)">
             {verify.data ? (
               <>
-                <p>Scored twice, independently. Both digests match:</p>
-                <div className="mt-1.5 space-y-0.5 font-mono text-[10.5px] text-faint">
-                  <div>a {shortHash(verify.data.hash_a)}</div>
-                  <div>b {shortHash(verify.data.hash_b)}</div>
+                <p>Independent double-scoring digest match:</p>
+                <div className="mt-1 space-y-0.5 font-mono text-[10.5px] text-faint">
+                  <div>a: {shortHash(verify.data.hash_a)}</div>
+                  <div>b: {shortHash(verify.data.hash_b)}</div>
                 </div>
-                <p className={`mt-1 font-mono text-[11px] ${verify.data.identical ? "text-money" : "text-rose"}`}>
-                  {verify.data.identical ? "✓ identical (sha256)" : "✗ mismatch"}
+                <p className={`mt-1 font-mono text-xs font-semibold ${verify.data.identical ? "text-money-dim" : "text-rose"}`}>
+                  {verify.data.identical ? "✓ Identical Byte Output" : "✗ Mismatch"}
                 </p>
               </>
             ) : (
-              <span className="text-faint">hashing…</span>
+              <span className="text-faint">Hashing…</span>
             )}
           </Assurance>
         </div>
         <div className="bg-surface">
-          <Assurance icon={Zap} title="No model in the scored path">
-            The scored core is stdlib-only at <span className="font-mono text-ink">~6 µs</span>/decision
-            (~160k/sec, single core) — far too fast to be calling an LLM. Claude stays outside scoring.
+          <Assurance icon={Zap} title="Sub-Millisecond Core">
+            Standard library only at <span className="font-mono font-semibold text-ink">~6 µs</span>/decision
+            (~160k decisions/sec single core) — deterministic speed with no LLM latency in the loop.
           </Assurance>
         </div>
         <div className="bg-surface">
-          <Assurance icon={ShieldCheck} title="Oracle bound holds">
+          <Assurance icon={ShieldCheck} title="Oracle Bound Invariant">
             {oracleHolds == null ? (
-              <span className="text-faint">checking…</span>
+              <span className="text-faint">Verifying…</span>
             ) : (
               <>
-                Smart recovers <span className="font-mono text-ink">{smart ? pct(smart.efficiency) : "—"}</span> of the
-                reachable maximum — <span className={oracleHolds ? "text-money" : "text-rose"}>{oracleHolds ? "≤ 100% ✓" : "> 100% ✗"}</span>.
-                No policy can beat the oracle; the UI asserts it.
+                Smart recovers <span className="font-mono font-semibold text-ink">{smart ? pct(smart.efficiency) : "—"}</span> of
+                reachable ceiling — <span className={`font-semibold ${oracleHolds ? "text-money-dim" : "text-rose"}`}>{oracleHolds ? "≤ 100% (Bound Holds)" : "> 100% Violation"}</span>.
               </>
             )}
           </Assurance>
         </div>
         <div className="bg-surface">
-          <Assurance icon={Info} title="Provenance, declared">
-            <div className="flex flex-wrap gap-1.5">
-              <Cite tier="cited" note="Reason taxonomy = Razorpay's documented 109-value error enum; distribution anchored to cited card/UPI decline data." source="https://razorpay.com/docs/payments/payment-gateway/rainy-day/errors/error-reasons/">
-                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.cited.cls}`}>taxonomy</span>
+          <Assurance icon={Info} title="Declared Provenance">
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              <Cite tier="cited" note="Reason taxonomy: Razorpay's 109 documented decline reasons." source="https://razorpay.com/docs/payments/payment-gateway/rainy-day/errors/error-reasons/">
+                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.cited.cls}`}>Taxonomy</span>
               </Cite>
-              <Cite tier="modeled" note="WORLD/BELIEF success probabilities are modeled and declared — calibrated to published recovery bands, direction cited, magnitudes modeled.">
-                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.modeled.cls}`}>success probs</span>
+              <Cite tier="modeled" note="Success probabilities calibrated to published recovery bands.">
+                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.modeled.cls}`}>Success Probs</span>
               </Cite>
-              <Cite tier="preference" note="Churn cost has no single true value — it's a business preference, so it's swept (F3), never asserted as fact.">
-                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.preference.cls}`}>churn cost</span>
+              <Cite tier="preference" note="Churn cost swept across business values (F3).">
+                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.preference.cls}`}>Churn Sweep</span>
               </Cite>
             </div>
           </Assurance>

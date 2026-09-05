@@ -7,25 +7,27 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        sans: ['"Plus Jakarta Sans"', "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       colors: {
-        // --- Light "product" palette (authoritative; each token has one job) ------
-        // Soft off-white canvas, white cards, readable signals (each ≥4.4:1 on white
-        // so it works as text AND as a fill). Deeper than neon = calm/premium.
-        canvas: "#edeef1", // page ground (soft gray)
-        surface: "#ffffff", // cards
-        raised: "#f5f6f8", // insets / hovers
-        line: "#e4e7ec", // hairline borders
-        "line-soft": "#eef0f3",
-        ink: "#1a1d23", // primary text
-        dim: "#565e6b", // secondary text (~7:1)
-        faint: "#737b88", // meta text (~4.6:1)
-        money: "#167c3c",
-        "money-dim": "#0f6a30",
-        azure: "#2563eb",
-        amber: "#c2740c",
+        // --- Classic Razorpay Palette (Clean, High-contrast, Enterprise Fintech) ---
+        canvas: "#f4f7fc", // Crisp tech pearl ground
+        surface: "#ffffff", // Pure white card surfaces
+        raised: "#f8fafc", // Insets / table headers / hover grounds
+        line: "#e2e8f0", // Clean hairline borders
+        "line-soft": "#edf2f7",
+        ink: "#0c2340", // Razorpay Navy — primary high-contrast text
+        dim: "#475569", // Slate secondary text
+        faint: "#64748b", // Slate meta text
+        navy: "#0c2340", // Brand Navy
+        azure: "#0c83fd", // Razorpay Electric Blue
+        "azure-hover": "#0265c8",
+        "azure-light": "#ebf5ff",
+        money: "#00a878", // Razorpay accessible mint
+        "money-dim": "#008765",
+        "money-light": "#e6faf5",
+        amber: "#d97706",
         rose: "#e11d48",
         violet: "#7c3aed",
         sky: "#0284c7",
@@ -49,9 +51,9 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        // Soft, Zentra-style elevation on white.
-        card: "0 1px 2px rgba(16,24,40,0.04), 0 6px 16px -8px rgba(16,24,40,0.10)",
-        panel: "0 1px 3px rgba(16,24,40,0.06), 0 12px 32px -12px rgba(16,24,40,0.16)",
+        card: "0 1px 3px rgba(12,35,64,0.04), 0 4px 12px -2px rgba(12,35,64,0.06)",
+        panel: "0 2px 4px rgba(12,35,64,0.04), 0 12px 28px -4px rgba(12,35,64,0.08)",
+        glow: "0 0 20px -3px rgba(12,131,253,0.18)",
       },
       letterSpacing: { tighter2: "-0.04em" },
       keyframes: {

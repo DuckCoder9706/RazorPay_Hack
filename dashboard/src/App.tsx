@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Check, GraduationCap, HelpCircle, IndianRupee, Link2, ScanSearch, ScrollText, ShieldCheck, TrendingUp } from "lucide-react";
+import {
+  Check,
+  GraduationCap,
+  HelpCircle,
+  IndianRupee,
+  LayoutDashboard,
+  Link2,
+  ScanSearch,
+  ScrollText,
+  ShieldCheck,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
 import { useApi } from "./lib";
 import type { HealthResponse } from "./types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,39 +33,29 @@ import {
   VerifyPanel,
 } from "./panels";
 
-const LOOP = [
-  { k: "detect", who: "W" },
-  { k: "act", who: "R" },
-  { k: "audit", who: "·" },
-  { k: "reconcile", who: "W" },
-  { k: "learn", who: "F1" },
-];
 const N_OPTIONS = [100, 200, 500, 1000, 2000];
 
 const GLOSSARY = [
-  { term: "R", def: "Recover — the actuator: diagnoses cause, picks the optimal retry timing under a net-value objective, acts." },
-  { term: "W", def: "Where's my money — the sensor: 3-way reconciles settlement ↔ bank ↔ orders, emits typed exceptions, and teaches R." },
-  { term: "F1", def: "Reconciliation as ground truth — realized outcomes recalibrate R's BELIEF; the mis-set arm flips back to optimal." },
-  { term: "F2", def: "Regret vs a distributional oracle — efficiency = policy ₹ / reachable-maximum ₹." },
-  { term: "F3", def: "Cost/churn-aware net value — smart may stop earlier than a success-maximiser; robust across a churn sweep." },
-  { term: "oracle", def: "Clairvoyant-timing ceiling under the true WORLD probabilities — the reachable maximum ₹." },
-  { term: "baseline", def: "Razorpay's own cited default: fixed T+1 / T+2 / T+3 retries, cause-blind." },
-  { term: "cause", def: "8 causes collapsed from Razorpay's 109 documented error reasons (e.g. insufficient_funds, issuer_soft_decline)." },
-  { term: "timing", def: "fast (minutes–hours) · short (~T+1) · aligned (payday / limit reset)." },
-  { term: "seed", def: "One integer threads all randomness; the same seed → byte-identical scored output." },
+  { term: "R (Recover)", def: "Actuator: diagnoses causes and optimizes retry timing for max recovery." },
+  { term: "W (Reconcile)", def: "Sensor: 3-way reconciles settlement, bank, and orders to emit exceptions." },
+  { term: "F1 (Learn)", def: "Closed loop: realized outcomes recalibrate probability beliefs." },
+  { term: "F2 (Efficiency)", def: "Recovered revenue ratio vs the reachable oracle ceiling." },
+  { term: "F3 (Net Value)", def: "Objective function net of operational and customer churn costs." },
+  { term: "Oracle", def: "Clairvoyant upper bound of recoverable revenue under true probabilities." },
+  { term: "Baseline", def: "Razorpay's cited default fixed T+1 / T+2 / T+3 retry pattern." },
+  { term: "Deterministic", def: "Identical seed produces 100% byte-identical scored ledger outcomes." },
 ];
 
 const TABS = [
-  { v: "overview", label: "Overview" },
-  { v: "recover", label: "Recover · R" },
-  { v: "reconcile", label: "Reconcile · W" },
-  { v: "learn", label: "Learn · F1" },
-  { v: "live", label: "Live · ₹" },
-  { v: "verify", label: "Verify" },
-  { v: "ledger", label: "Ledger" },
+  { v: "overview", label: "Overview", icon: LayoutDashboard },
+  { v: "live", label: "Live Sandbox", icon: Zap, highlight: true },
+  { v: "recover", label: "Recover · R", icon: IndianRupee },
+  { v: "reconcile", label: "Reconcile · W", icon: ScanSearch },
+  { v: "learn", label: "Learn · F1", icon: GraduationCap },
+  { v: "verify", label: "Verification", icon: ShieldCheck },
+  { v: "ledger", label: "Audit Ledger", icon: ScrollText },
 ];
 
-// A shareable, reproducible view lives entirely in the URL (?seed=&n=&tab=).
 function readUrl() {
   const p = new URLSearchParams(window.location.search);
   const seed = parseInt(p.get("seed") ?? "", 10);
@@ -76,7 +78,6 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const health = useApi<HealthResponse>("/health", []);
 
-  // Keep the URL in sync so the exact view is a permalink.
   useEffect(() => {
     const p = new URLSearchParams();
     p.set("seed", String(seed));
@@ -88,7 +89,7 @@ export default function App() {
   const apply = () => {
     const s = parseInt(draftSeed, 10);
     if (!Number.isNaN(s)) setSeed(s);
-    setRunId((r) => r + 1); // replay the streamed playback even if the seed is unchanged
+    setRunId((r) => r + 1);
   };
 
   const copyLink = async () => {
@@ -96,48 +97,55 @@ export default function App() {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable */
-    }
+    } catch {}
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-canvas text-ink">
+      {/* Primary Clean Enterprise Header */}
+      <header className="sticky top-0 z-30 border-b border-line/80 bg-white/90 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Brand & Badge */}
           <div className="flex items-center gap-3">
-            <span className="grid h-8 w-8 place-items-center rounded-lg border border-money/40 bg-money/10 font-mono text-sm font-bold text-money">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-azure/10 text-azure font-mono text-base font-bold border border-azure/20 shadow-sm">
               ₹
             </span>
-            <div>
-              <h1 className="text-[15px] font-semibold leading-tight tracking-tight text-ink">
-                Tijori <span className="font-normal text-faint">Recovery Terminal</span>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-bold tracking-tight text-navy">
+                Tijori
               </h1>
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">Track 3 · Revenue Recovery</p>
+              <span className="hidden sm:inline-flex items-center rounded-full bg-azure-light px-2.5 py-0.5 text-[11px] font-semibold text-azure border border-azure/20">
+                Autonomous Revenue Recovery
+              </span>
             </div>
           </div>
 
+          {/* Controls & Tools */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5">
-              <label htmlFor="seed" className="font-mono text-[10.5px] uppercase tracking-wide text-faint">seed</label>
+            {/* Seed Input */}
+            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1.5 shadow-sm">
+              <label htmlFor="seed" className="font-mono text-[10px] font-semibold uppercase tracking-wider text-faint">
+                seed
+              </label>
               <input
                 id="seed"
                 value={draftSeed}
                 onChange={(e) => setDraftSeed(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && apply()}
                 inputMode="numeric"
-                className="w-12 bg-transparent text-center font-mono text-sm tabular-nums text-ink outline-none"
+                className="w-12 bg-transparent text-center font-mono text-xs font-semibold tabular-nums text-navy outline-none"
               />
             </div>
 
-            <div className="flex overflow-hidden rounded-lg border border-line bg-surface">
+            {/* Batch Size Selector */}
+            <div className="flex overflow-hidden rounded-lg border border-line bg-white shadow-sm">
               {N_OPTIONS.map((v) => (
                 <button
                   key={v}
                   onClick={() => setN(v)}
                   aria-pressed={n === v}
                   className={`px-2.5 py-1.5 font-mono text-xs tabular-nums transition-colors ${
-                    n === v ? "bg-money/15 text-money" : "text-faint hover:text-dim"
+                    n === v ? "bg-azure text-white font-semibold" : "text-faint hover:text-ink hover:bg-raised"
                   }`}
                 >
                   {v}
@@ -145,140 +153,171 @@ export default function App() {
               ))}
             </div>
 
+            {/* Run Button */}
             <button
               onClick={apply}
-              className="rounded-lg border border-money/40 bg-money/15 px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wide text-money transition-colors hover:bg-money/25"
+              className="rounded-lg bg-azure hover:bg-azure-hover px-3.5 py-1.5 font-semibold text-xs text-white shadow-sm transition-all"
             >
-              run
+              Run
             </button>
 
+            {/* Copy Permalink */}
             <button
               onClick={copyLink}
-              title="Copy a permalink to this exact view"
-              className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-line bg-surface text-faint transition-colors hover:text-dim"
+              title="Copy shareable link to this exact view"
+              className="grid h-8 w-8 place-items-center rounded-lg border border-line bg-white text-faint shadow-sm transition-colors hover:text-ink hover:bg-raised"
             >
               {copied ? <Check className="h-3.5 w-3.5 text-money" /> : <Link2 className="h-3.5 w-3.5" />}
             </button>
 
+            {/* Glossary Popover */}
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  title="Glossary"
-                  className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-line bg-surface text-faint transition-colors hover:text-dim"
+                  title="Architecture Glossary"
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-line bg-white text-faint shadow-sm transition-colors hover:text-ink hover:bg-raised"
                 >
                   <HelpCircle className="h-3.5 w-3.5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="max-h-[70vh] w-80 overflow-auto border border-line bg-raised text-xs shadow-panel">
-                <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-faint">glossary</p>
+              <PopoverContent align="end" className="w-80 border border-line bg-white/95 p-4 text-xs shadow-panel backdrop-blur-md">
+                <p className="mb-2.5 font-mono text-[10px] font-bold uppercase tracking-wider text-faint">
+                  System Terms & Invariants
+                </p>
                 <dl className="space-y-2">
                   {GLOSSARY.map((g) => (
-                    <div key={g.term} className="grid grid-cols-[70px_1fr] gap-2">
-                      <dt className="font-mono font-medium text-money">{g.term}</dt>
-                      <dd className="leading-relaxed text-dim">{g.def}</dd>
+                    <div key={g.term} className="text-xs">
+                      <dt className="font-semibold text-azure">{g.term}</dt>
+                      <dd className="text-dim text-[11.5px] leading-snug">{g.def}</dd>
                     </div>
                   ))}
                 </dl>
               </PopoverContent>
             </Popover>
 
-            <span
-              className={`ml-0.5 h-2 w-2 rounded-full ${health.data ? "bg-money shadow-[0_0_8px] shadow-money/60" : "bg-rose"}`}
-              title={health.data ? `API ${health.data.version}` : "API offline"}
-            />
-          </div>
-        </div>
-
-        <div className="mx-auto hidden max-w-6xl items-center gap-1 px-5 pb-2.5 sm:flex">
-          {LOOP.map((step, i) => (
-            <div key={step.k} className="flex items-center gap-1">
-              <span className="flex items-center gap-1.5 font-mono text-[10.5px] text-dim">
-                <span className="text-faint">{step.who}</span>
-                {step.k}
+            {/* Live API Status */}
+            <div className="flex items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1 text-xs shadow-sm">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  health.data ? "bg-money animate-pulse shadow-[0_0_8px] shadow-money/60" : "bg-rose"
+                }`}
+              />
+              <span className="font-mono text-[11px] font-medium text-dim">
+                {health.data ? "Live API" : "Offline"}
               </span>
-              {i < LOOP.length - 1 && <span className="mx-1.5 text-line">→</span>}
             </div>
-          ))}
-          <span className="ml-2 text-line">↻</span>
-          <span className="font-mono text-[10.5px] text-faint">recovered ₹ re-reconciles &amp; recalibrates</span>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-5 py-6">
+      {/* Main Container */}
+      <main className="mx-auto max-w-7xl px-5 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="mb-4 h-auto flex-wrap gap-1 rounded-xl border border-line bg-surface p-1">
-            {TABS.map((t) => (
-              <TabsTrigger
-                key={t.v}
-                value={t.v}
-                className="rounded-lg px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-faint data-[state=active]:bg-money/15 data-[state=active]:text-money data-[state=active]:shadow-none"
-              >
-                {t.label}
-              </TabsTrigger>
-            ))}
+          {/* Elevated Glassmorphic Floating Tab Bar */}
+          <TabsList className="mb-6 flex w-full flex-wrap items-center gap-1.5 rounded-2xl border border-line/80 bg-white/90 p-1.5 shadow-sm backdrop-blur-md">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <TabsTrigger
+                  key={t.v}
+                  value={t.v}
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold tracking-wide transition-all data-[state=active]:bg-azure data-[state=active]:text-white data-[state=active]:shadow-md ${
+                    t.highlight
+                      ? "text-azure bg-azure-light/60 hover:bg-azure-light"
+                      : "text-dim hover:text-ink hover:bg-raised"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {t.label}
+                  {t.highlight && (
+                    <span className="rounded bg-azure px-1.5 py-0.2 font-mono text-[9px] font-bold text-white data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                      LIVE
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
-          <TabsContent value="overview" className="mt-0 space-y-4 focus-visible:outline-none">
-            <BatchPanel seed={seed} n={n} runId={runId} />
-            <div className="grid gap-4 lg:grid-cols-2">
-              <InsightCard seed={seed} n={n} delay={60} />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <DrawerTile icon={ScanSearch} title="Reconcile · W" desc="3-way exceptions + netting" tint="text-sky">
+          {/* OVERVIEW TAB (Option A: The Split Stage) */}
+          <TabsContent value="overview" className="mt-0 space-y-5 focus-visible:outline-none">
+            {/* Top Stage: Recovery Performance (Left 7) + Live Sandbox Testing (Right 5) */}
+            <div className="grid gap-5 lg:grid-cols-12 items-stretch">
+              <div className="lg:col-span-7 flex flex-col">
+                <BatchPanel seed={seed} n={n} runId={runId} />
+              </div>
+              <div className="lg:col-span-5 flex flex-col">
+                <RazorpayPanel heroMode />
+              </div>
+            </div>
+
+            {/* Lower Analytics Stage */}
+            <div className="grid gap-5 lg:grid-cols-12">
+              <div className="lg:col-span-5 flex">
+                <InsightCard seed={seed} n={n} delay={40} />
+              </div>
+              <div className="lg:col-span-7 grid gap-3 sm:grid-cols-2">
+                <DrawerTile icon={ScanSearch} title="Reconcile · W" desc="3-way settlement match & exceptions" tint="text-azure">
                   <ExceptionsPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={GraduationCap} title="Learn · F1" desc="belief recalibrates, regret → 0" tint="text-money">
+                <DrawerTile icon={GraduationCap} title="Learn · F1" desc="Belief recalibration via EMA" tint="text-money">
                   <LearnPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={TrendingUp} title="Churn · F3" desc="net-value ranking is robust" tint="text-amber">
+                <DrawerTile icon={TrendingUp} title="Churn · F3" desc="Net-value sensitivity sweep" tint="text-amber">
                   <ChurnPanel seed={seed} n={n} />
                 </DrawerTile>
-                <DrawerTile icon={IndianRupee} title="Live · Razorpay" desc="real test-mode link" tint="text-money">
-                  <RazorpayPanel />
-                </DrawerTile>
-                <DrawerTile icon={ShieldCheck} title="Verify" desc="reproducible · bounded" tint="text-money">
+                <DrawerTile icon={ShieldCheck} title="Verification" desc="SHA-256 byte-identical proofs" tint="text-money">
                   <VerifyPanel seed={seed} n={n} />
-                </DrawerTile>
-                <DrawerTile icon={ScrollText} title="Ledger" desc="append-only audit" tint="text-dim">
-                  <AuditPanel seed={seed} n={n} />
                 </DrawerTile>
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="recover" className="mt-0 space-y-4 focus-visible:outline-none">
+          {/* DEDICATED LIVE SANDBOX TAB */}
+          <TabsContent value="live" className="mt-0 focus-visible:outline-none">
+            <div className="max-w-2xl mx-auto">
+              <RazorpayPanel heroMode />
+            </div>
+          </TabsContent>
+
+          {/* RECOVER TAB */}
+          <TabsContent value="recover" className="mt-0 space-y-5 focus-visible:outline-none">
             <BatchPanel seed={seed} n={n} runId={runId} />
-            <RecoveryFlowPanel seed={seed} n={n} delay={60} />
-            <SankeyPanel seed={seed} n={n} runId={runId} delay={90} />
+            <RecoveryFlowPanel seed={seed} n={n} delay={40} />
+            <SankeyPanel seed={seed} n={n} runId={runId} delay={80} />
             <ChurnPanel seed={seed} n={n} delay={120} />
           </TabsContent>
 
-          <TabsContent value="reconcile" className="mt-0 space-y-4 focus-visible:outline-none">
+          {/* RECONCILE TAB */}
+          <TabsContent value="reconcile" className="mt-0 space-y-5 focus-visible:outline-none">
             <ExceptionsPanel seed={seed} n={n} />
-            <OutcomeModelPanel delay={60} />
+            <OutcomeModelPanel delay={40} />
           </TabsContent>
 
+          {/* LEARN TAB */}
           <TabsContent value="learn" className="mt-0 focus-visible:outline-none">
             <LearnPanel seed={seed} n={n} />
           </TabsContent>
 
-          <TabsContent value="live" className="mt-0 focus-visible:outline-none">
-            <RazorpayPanel />
-          </TabsContent>
-
+          {/* VERIFY TAB */}
           <TabsContent value="verify" className="mt-0 focus-visible:outline-none">
             <VerifyPanel seed={seed} n={n} />
           </TabsContent>
 
+          {/* LEDGER TAB */}
           <TabsContent value="ledger" className="mt-0 focus-visible:outline-none">
             <AuditPanel seed={seed} n={n} />
           </TabsContent>
         </Tabs>
 
-        <footer className="mt-6 border-t border-line-soft pt-5 text-center font-mono text-[10.5px] leading-relaxed text-faint">
-          Same seed → byte-identical scored output · honest simulation, never claimed production
-          <br className="sm:hidden" />
-          <span className="hidden sm:inline"> · </span>
-          reason taxonomy cited · WORLD/BELIEF success probabilities modeled and declared
+        {/* Clean Enterprise Footer */}
+        <footer className="mt-12 border-t border-line/80 pt-6 pb-4 text-center text-xs text-faint">
+          <p className="font-semibold text-navy">
+            Tijori · Closed-Loop Autonomous Revenue Recovery for Razorpay
+          </p>
+          <p className="mt-1 text-[11px] text-faint">
+            Standard library scoring engine with live rzp_test_ API payment integration
+          </p>
         </footer>
       </main>
     </div>
@@ -301,15 +340,15 @@ function DrawerTile({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button className="group flex w-full items-start gap-3 rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-line-soft hover:bg-raised/60">
-          <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tint}`} strokeWidth={1.8} />
+        <button className="group flex w-full items-start gap-3 rounded-2xl border border-line bg-white/90 p-4 text-left shadow-sm transition-all hover:border-azure/30 hover:shadow-md hover:bg-raised/80">
+          <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tint}`} strokeWidth={2} />
           <span className="min-w-0">
-            <span className="block text-sm font-medium text-ink">{title}</span>
+            <span className="block text-sm font-semibold text-navy">{title}</span>
             <span className="mt-0.5 block text-xs leading-snug text-faint">{desc}</span>
           </span>
         </button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full overflow-y-auto border-line bg-canvas p-4 sm:max-w-xl">
+      <SheetContent side="right" className="w-full overflow-y-auto border-line bg-canvas p-5 sm:max-w-xl">
         {children}
       </SheetContent>
     </Sheet>

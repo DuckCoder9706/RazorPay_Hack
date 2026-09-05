@@ -6,25 +6,25 @@
   /* shadcn/ui semantic tokens, mapped onto the terminal palette (HSL).
      The app is dark-first, so these live on :root (color-scheme: dark). */
   :root {
-    --background: 220 14% 94%; /* canvas   #edeef1 */
-    --foreground: 222 14% 12%; /* ink      #1a1d23 */
+    --background: 218 50% 97%; /* canvas   #f4f7fc */
+    --foreground: 214 68% 15%; /* ink      #0c2340 */
     --card: 0 0% 100%; /* surface  #ffffff */
-    --card-foreground: 222 14% 12%;
+    --card-foreground: 214 68% 15%;
     --popover: 0 0% 100%; /* white */
-    --popover-foreground: 222 14% 12%;
-    --primary: 142 70% 29%; /* money    #167c3c */
+    --popover-foreground: 214 68% 15%;
+    --primary: 210 98% 52%; /* azure    #0c83fd */
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 97%; /* raised   #f5f6f8 */
-    --secondary-foreground: 222 14% 12%;
-    --muted: 220 20% 97%;
-    --muted-foreground: 218 11% 38%; /* dim   #565e6b */
-    --accent: 220 17% 94%;
-    --accent-foreground: 222 14% 12%;
+    --secondary: 210 40% 98%; /* raised   #f8fafc */
+    --secondary-foreground: 214 68% 15%;
+    --muted: 210 40% 98%;
+    --muted-foreground: 215 19% 35%; /* dim   #475569 */
+    --accent: 210 100% 96%; /* azure-light #ebf5ff */
+    --accent-foreground: 210 98% 52%;
     --destructive: 347 77% 50%; /* rose  #e11d48 */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 16% 91%; /* line   #e4e7ec */
-    --input: 220 16% 91%;
-    --ring: 221 83% 53%; /* azure  #2563eb */
+    --border: 214 32% 91%; /* line   #e2e8f0 */
+    --input: 214 32% 91%;
+    --ring: 210 98% 52%; /* azure  #0c83fd */
     --radius: 0.625rem;
     color-scheme: light;
     --chart-1: oklch(0.32 0 none);
@@ -66,7 +66,12 @@
   }
 
   body {
-    background-color: theme("colors.canvas");
+    background-color: #f4f7fc;
+    background-image: 
+      radial-gradient(at 12% 10%, rgba(12, 131, 253, 0.04) 0px, transparent 40%),
+      radial-gradient(at 88% 18%, rgba(0, 168, 120, 0.04) 0px, transparent 45%),
+      radial-gradient(at 50% 85%, rgba(12, 35, 64, 0.03) 0px, transparent 50%);
+    background-attachment: fixed;
     color: theme("colors.ink");
     font-family: theme("fontFamily.sans");
   }
