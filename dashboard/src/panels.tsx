@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Check, Fingerprint, Info, ShieldCheck, Zap } from "lucide-react";
+import { Check, Fingerprint, Info, Lightbulb, ShieldCheck, Zap } from "lucide-react";
 import { Gauge } from "@/components/charts/gauge";
 import { FunnelChart } from "@/components/charts/funnel-chart";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { rupees, pct, signed, useApi, useBatchStream } from "./lib";
+import { rupees, pct, signed, useApi, useBatchStream, useReveal } from "./lib";
 import type {
   BatchResponse,
   ChurnResponse,
@@ -75,12 +75,14 @@ export function Panel({
   delay?: number;
   hero?: boolean;
 }) {
+  const { ref, shown } = useReveal<HTMLElement>();
   return (
     <section
-      className={`animate-fade-up rounded-xl border border-line bg-surface ${
-        hero ? "shadow-panel" : ""
+      ref={ref}
+      className={`reveal ${shown ? "reveal-in" : ""} rounded-2xl border border-line bg-surface ${
+        hero ? "shadow-panel" : "shadow-card"
       } ${className}`}
-      style={{ animationDelay: `${delay}ms` }}
+      style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
     >
       {children}
     </section>
@@ -276,6 +278,62 @@ function MiniStat({ label, value, foot, tone = "text-ink" }: { label: string; va
 }
 
 // --------------------------------------------------------------------------- //
+// Insight — one gradient narrative card (the F1 / efficiency story), Zentra-style
+// --------------------------------------------------------------------------- //
+export function InsightCard({ seed, n, delay = 0 }: SeedProps) {
+  const batch = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
+  const learn = useApi<LearnResponse>(`/learn?seed=${seed}&n=${n}&batches=5`, [seed, n]);
+  const { ref, shown } = useReveal<HTMLDivElement>();
+
+  const smart = batch.data?.policies.find((p) => p.policy === "smart");
+  const eff = smart ? Math.round(smart.efficiency * 100) : null;
+  const flipIdx = learn.data ? learn.data.on.findIndex((t) => t.issuer_timing === "short") : null;
+
+  return (
+    <div
+      ref={ref}
+      className={`reveal ${shown ? "reveal-in" : ""} relative flex min-h-[240px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white shadow-panel`}
+      style={{
+        transitionDelay: shown ? `${delay}ms` : "0ms",
+        background: "linear-gradient(135deg,#2563eb 0%,#0ea3a0 52%,#16a34a 100%)",
+      }}
+    >
+      <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/25 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-black/10 blur-3xl" />
+      <div className="relative flex items-center gap-1.5">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/30">
+          <Lightbulb className="h-3 w-3" strokeWidth={2.2} /> Insight
+        </span>
+      </div>
+      <div className="relative">
+        <div className="font-mono text-[clamp(2.75rem,9vw,4.25rem)] font-semibold leading-none tracking-tighter2">
+          {eff != null ? `${eff}%` : "—"}
+        </div>
+        <p className="mt-2 text-sm font-medium text-white/95">of the reachable ceiling — recovered</p>
+        <p className="mt-3 max-w-md text-[13px] leading-relaxed text-white/85">
+          Smart recovered{" "}
+          <span className="font-mono font-semibold text-white">
+            {smart ? rupees(smart.gross_recovered_paise) : "—"}
+          </span>{" "}
+          {batch.data && (
+            <>
+              — <span className="font-mono font-semibold text-white">{signed(batch.data.delta.gross_pct)}</span> vs
+              Razorpay's cited baseline.
+            </>
+          )}{" "}
+          {flipIdx != null && flipIdx > 0 && (
+            <>
+              F1 recalibration closed regret to <span className="font-mono font-semibold text-white">₹0</span> in{" "}
+              {flipIdx} batches.
+            </>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
 // R · recovery flow — bklit Funnel (₹ cascade) + Gauge (efficiency dial)
 // --------------------------------------------------------------------------- //
 export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
@@ -293,10 +351,10 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
   >;
   const smart = by.smart, base = by.baseline;
   const stages = [
-    { label: "At risk", value: data.at_risk_paise, displayValue: rupees(data.at_risk_paise), color: "#3a4252" },
-    { label: "Recoverable", value: data.oracle_paise, displayValue: rupees(data.oracle_paise), color: "#6ea8fe" },
-    { label: "Recovered", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#34d399" },
-    { label: "Reconciled", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#10b981" },
+    { label: "At risk", value: data.at_risk_paise, displayValue: rupees(data.at_risk_paise), color: "#94a3b8" },
+    { label: "Recoverable", value: data.oracle_paise, displayValue: rupees(data.oracle_paise), color: "#3b82f6" },
+    { label: "Recovered", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#16a34a" },
+    { label: "Reconciled", value: smart.gross_recovered_paise, displayValue: rupees(smart.gross_recovered_paise), color: "#15803d" },
   ];
 
   return (
@@ -327,7 +385,7 @@ export function RecoveryFlowPanel({ seed, n, delay }: SeedProps) {
               defaultLabel="of ceiling"
               height={150}
               useGradient
-              activeGradient={["#34d399", "#10b981"]}
+              activeGradient={["#16a34a", "#15803d"]}
             />
           </div>
           <p className="mt-1 text-center font-mono text-[11px] text-faint">
@@ -376,32 +434,32 @@ export function LearnPanel({ seed, n, delay }: SeedProps) {
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Calibration efficiency across batches">
             <defs>
               <linearGradient id="fillOn" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#34d399" stopOpacity="0.22" />
-                <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+                <stop offset="0%" stopColor="#16a34a" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#16a34a" stopOpacity="0" />
               </linearGradient>
             </defs>
             {[0, 0.5, 1].map((g) => (
               <g key={g}>
-                <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="#232833" strokeWidth="1" />
-                <text x={padL - 8} y={y(g) + 3} fontSize="10" fill="#7d8798" textAnchor="end" className="font-mono">{pct(g, 0)}</text>
+                <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="#e4e7ec" strokeWidth="1" />
+                <text x={padL - 8} y={y(g) + 3} fontSize="10" fill="#737b88" textAnchor="end" className="font-mono">{pct(g, 0)}</text>
               </g>
             ))}
             {on.map((t) => (
-              <text key={t.batch} x={x(t.batch)} y={H - 8} fontSize="10" fill="#7d8798" textAnchor="middle" className="font-mono">B{t.batch}</text>
+              <text key={t.batch} x={x(t.batch)} y={H - 8} fontSize="10" fill="#737b88" textAnchor="middle" className="font-mono">B{t.batch}</text>
             ))}
             {flipIdx > 0 && (
-              <line x1={x(on[flipIdx].batch)} x2={x(on[flipIdx].batch)} y1={padT} y2={y(0)} stroke="#34d399" strokeWidth="1" strokeDasharray="2 4" opacity="0.5" />
+              <line x1={x(on[flipIdx].batch)} x2={x(on[flipIdx].batch)} y1={padT} y2={y(0)} stroke="#16a34a" strokeWidth="1" strokeDasharray="2 4" opacity="0.5" />
             )}
             <path d={area} fill="url(#fillOn)" />
-            <path d={path(off)} fill="none" stroke="#4a5262" strokeWidth="2" strokeDasharray="4 4" />
-            <path d={path(on)} fill="none" stroke="#34d399" strokeWidth="2.5" className="draw-line" style={{ "--len": 700 } as React.CSSProperties} />
+            <path d={path(off)} fill="none" stroke="#cbd0d8" strokeWidth="2" strokeDasharray="4 4" />
+            <path d={path(on)} fill="none" stroke="#16a34a" strokeWidth="2.5" className="draw-line" style={{ "--len": 700 } as React.CSSProperties} />
             {on.map((t) => (
-              <circle key={t.batch} cx={x(t.batch)} cy={y(t.efficiency)} r="4" fill={t.issuer_timing === "short" ? "#34d399" : "#f5b544"} stroke="#12151c" strokeWidth="2" />
+              <circle key={t.batch} cx={x(t.batch)} cy={y(t.efficiency)} r="4" fill={t.issuer_timing === "short" ? "#16a34a" : "#c2740c"} stroke="#ffffff" strokeWidth="2" />
             ))}
           </svg>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10.5px] text-faint">
             <Legend swatch="bg-money" label="recalibration on" />
-            <Legend swatch="bg-[#4a5262]" label="off — never learns" dashed />
+            <Legend swatch="bg-[#cbd0d8]" label="off — never learns" dashed />
             <Legend dot="bg-amber" label="arm = fast (wrong)" />
             <Legend dot="bg-money" label="arm = short (world-optimal)" />
           </div>
@@ -440,7 +498,7 @@ function Legend({ swatch, dot, label, dashed }: { swatch?: string; dot?: string;
       {swatch && (
         <i
           className={`inline-block h-[3px] w-4 ${swatch} ${dashed ? "opacity-70" : ""}`}
-          style={dashed ? { borderTop: "2px dashed #4a5262", background: "transparent", height: 0, width: 16 } : {}}
+          style={dashed ? { borderTop: "2px dashed #cbd0d8", background: "transparent", height: 0, width: 16 } : {}}
         />
       )}
       {dot && <i className={`inline-block h-2 w-2 rounded-full ${dot}`} />}

@@ -6,27 +6,27 @@
   /* shadcn/ui semantic tokens, mapped onto the terminal palette (HSL).
      The app is dark-first, so these live on :root (color-scheme: dark). */
   :root {
-    --background: 220 24% 5%; /* canvas   #0a0c10 */
-    --foreground: 220 27% 92%; /* ink      #e7eaf0 */
-    --card: 219 22% 9%; /* surface  #12151c */
-    --card-foreground: 220 27% 92%;
-    --popover: 222 22% 12%; /* raised   #171b24 */
-    --popover-foreground: 220 27% 92%;
-    --primary: 158 64% 52%; /* money    #34d399 */
-    --primary-foreground: 220 24% 6%;
-    --secondary: 222 22% 12%;
-    --secondary-foreground: 220 27% 92%;
-    --muted: 222 22% 12%;
-    --muted-foreground: 219 14% 65%; /* dim  #9aa3b2 */
-    --accent: 222 20% 16%;
-    --accent-foreground: 220 27% 92%;
-    --destructive: 351 95% 71%; /* rose  #fb7185 */
-    --destructive-foreground: 220 27% 92%;
-    --border: 221 19% 17%; /* line   #232833 */
-    --input: 221 19% 17%;
-    --ring: 217 98% 71%; /* azure  #6ea8fe */
+    --background: 220 14% 94%; /* canvas   #edeef1 */
+    --foreground: 222 14% 12%; /* ink      #1a1d23 */
+    --card: 0 0% 100%; /* surface  #ffffff */
+    --card-foreground: 222 14% 12%;
+    --popover: 0 0% 100%; /* white */
+    --popover-foreground: 222 14% 12%;
+    --primary: 142 70% 29%; /* money    #167c3c */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 97%; /* raised   #f5f6f8 */
+    --secondary-foreground: 222 14% 12%;
+    --muted: 220 20% 97%;
+    --muted-foreground: 218 11% 38%; /* dim   #565e6b */
+    --accent: 220 17% 94%;
+    --accent-foreground: 222 14% 12%;
+    --destructive: 347 77% 50%; /* rose  #e11d48 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 16% 91%; /* line   #e4e7ec */
+    --input: 220 16% 91%;
+    --ring: 221 83% 53%; /* azure  #2563eb */
     --radius: 0.625rem;
-    color-scheme: dark;
+    color-scheme: light;
     --chart-1: oklch(0.32 0 none);
     --chart-2: oklch(0.41 0 none);
     --chart-3: oklch(0.54 0 none);
@@ -80,8 +80,8 @@
 
   /* Browser-surface polish — themed, not defaulted. */
   ::selection {
-    background: rgba(52, 211, 153, 0.28);
-    color: #fff;
+    background: rgba(22, 124, 60, 0.16);
+    color: theme("colors.ink");
   }
   ::placeholder {
     color: theme("colors.faint");
@@ -95,23 +95,23 @@
     border-radius: 4px;
   }
 
-  /* Thin dark scrollbars, in-keeping with the terminal. */
+  /* Thin light scrollbars. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #2c3340 transparent;
+    scrollbar-color: #cbd0d8 transparent;
   }
   *::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
   *::-webkit-scrollbar-thumb {
-    background: #2c3340;
+    background: #cbd0d8;
     border: 2px solid transparent;
     border-radius: 8px;
     background-clip: content-box;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: #3a4252;
+    background: #b3bac6;
     background-clip: content-box;
   }
   .dark {
@@ -162,6 +162,18 @@
       transform: scaleX(1);
     }
   }
+
+  /* Scroll-reveal: panels fade/rise as they enter the viewport. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+  .reveal-in {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -176,6 +188,10 @@
     stroke-dashoffset: 0 !important;
   }
   .grow-x {
+    transform: none !important;
+  }
+  .reveal {
+    opacity: 1 !important;
     transform: none !important;
   }
 }
