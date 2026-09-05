@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { GraduationCap, IndianRupee, ScanSearch, ScrollText, TrendingUp } from "lucide-react";
+import { Check, GraduationCap, IndianRupee, Link2, ScanSearch, ScrollText, ShieldCheck, TrendingUp } from "lucide-react";
 import { useApi } from "./lib";
 import type { HealthResponse } from "./types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,7 @@ import {
   OutcomeModelPanel,
   AuditPanel,
   RazorpayPanel,
+  VerifyPanel,
 } from "./panels";
 
 const LOOP = [
@@ -32,21 +33,56 @@ const TABS = [
   { v: "reconcile", label: "Reconcile · W" },
   { v: "learn", label: "Learn · F1" },
   { v: "live", label: "Live · ₹" },
+  { v: "verify", label: "Verify" },
   { v: "ledger", label: "Ledger" },
 ];
 
+// A shareable, reproducible view lives entirely in the URL (?seed=&n=&tab=).
+function readUrl() {
+  const p = new URLSearchParams(window.location.search);
+  const seed = parseInt(p.get("seed") ?? "", 10);
+  const n = parseInt(p.get("n") ?? "", 10);
+  const tab = p.get("tab") ?? "overview";
+  return {
+    seed: Number.isNaN(seed) ? 42 : seed,
+    n: N_OPTIONS.includes(n) ? n : 500,
+    tab: TABS.some((t) => t.v === tab) ? tab : "overview",
+  };
+}
+
 export default function App() {
-  const [seed, setSeed] = useState(42);
-  const [n, setN] = useState(500);
-  const [draftSeed, setDraftSeed] = useState("42");
-  const [tab, setTab] = useState("overview");
+  const init = readUrl();
+  const [seed, setSeed] = useState(init.seed);
+  const [n, setN] = useState(init.n);
+  const [draftSeed, setDraftSeed] = useState(String(init.seed));
+  const [tab, setTab] = useState(init.tab);
   const [runId, setRunId] = useState(0);
+  const [copied, setCopied] = useState(false);
   const health = useApi<HealthResponse>("/health", []);
+
+  // Keep the URL in sync so the exact view is a permalink.
+  useEffect(() => {
+    const p = new URLSearchParams();
+    p.set("seed", String(seed));
+    p.set("n", String(n));
+    p.set("tab", tab);
+    window.history.replaceState(null, "", `?${p.toString()}`);
+  }, [seed, n, tab]);
 
   const apply = () => {
     const s = parseInt(draftSeed, 10);
     if (!Number.isNaN(s)) setSeed(s);
     setRunId((r) => r + 1); // replay the streamed playback even if the seed is unchanged
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
   };
 
   return (
@@ -100,6 +136,14 @@ export default function App() {
               run
             </button>
 
+            <button
+              onClick={copyLink}
+              title="Copy a permalink to this exact view"
+              className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-line bg-surface text-faint transition-colors hover:text-dim"
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-money" /> : <Link2 className="h-3.5 w-3.5" />}
+            </button>
+
             <span
               className={`ml-0.5 h-2 w-2 rounded-full ${health.data ? "bg-money shadow-[0_0_8px] shadow-money/60" : "bg-rose"}`}
               title={health.data ? `API ${health.data.version}` : "API offline"}
@@ -151,6 +195,9 @@ export default function App() {
               <DrawerTile icon={IndianRupee} title="Live · Razorpay" desc="real test-mode Payment Link" tint="text-money">
                 <RazorpayPanel />
               </DrawerTile>
+              <DrawerTile icon={ShieldCheck} title="Verify" desc="reproducible · no-LLM · bounded" tint="text-money">
+                <VerifyPanel seed={seed} n={n} />
+              </DrawerTile>
               <DrawerTile icon={ScrollText} title="Ledger" desc="append-only audit trail" tint="text-dim">
                 <AuditPanel seed={seed} n={n} />
               </DrawerTile>
@@ -174,6 +221,10 @@ export default function App() {
 
           <TabsContent value="live" className="mt-0 focus-visible:outline-none">
             <RazorpayPanel />
+          </TabsContent>
+
+          <TabsContent value="verify" className="mt-0 focus-visible:outline-none">
+            <VerifyPanel seed={seed} n={n} />
           </TabsContent>
 
           <TabsContent value="ledger" className="mt-0 focus-visible:outline-none">

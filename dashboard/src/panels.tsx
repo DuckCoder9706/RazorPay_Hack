@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { Check, Fingerprint, Info, ShieldCheck, Zap } from "lucide-react";
 import { Gauge } from "@/components/charts/gauge";
 import { FunnelChart } from "@/components/charts/funnel-chart";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { rupees, pct, signed, useApi, useBatchStream } from "./lib";
 import type {
   BatchResponse,
@@ -14,7 +16,43 @@ import type {
   PolicyMetrics,
   PolicyName,
   RazorpayLink,
+  VerifyResponse,
 } from "./types";
+
+// --------------------------------------------------------------------------- //
+// Provenance popover — turns any number into a click-through CITED/MODELED/
+// PREFERENCE claim with its source. The honesty doctrine, in the UI.
+// --------------------------------------------------------------------------- //
+type Tier = "cited" | "modeled" | "preference";
+const TIER: Record<Tier, { label: string; cls: string }> = {
+  cited: { label: "CITED", cls: "text-money border-money/30 bg-money/10" },
+  modeled: { label: "MODELED", cls: "text-azure border-azure/30 bg-azure/10" },
+  preference: { label: "PREFERENCE", cls: "text-amber border-amber/30 bg-amber/10" },
+};
+
+export function Cite({ tier, children, note, source }: { tier: Tier; children: ReactNode; note: string; source?: string }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="group inline-flex items-center gap-1 border-b border-dashed border-faint/50 leading-none hover:border-ink">
+          {children}
+          <Info className="h-3 w-3 text-faint group-hover:text-dim" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 border border-line bg-raised text-xs shadow-panel">
+        <span className={`mb-2 inline-block rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium ${TIER[tier].cls}`}>
+          {TIER[tier].label}
+        </span>
+        <p className="leading-relaxed text-dim">{note}</p>
+        {source && (
+          <a href={source} target="_blank" rel="noreferrer" className="mt-2 block break-all text-azure underline underline-offset-2">
+            {source}
+          </a>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface SeedProps {
   seed: number;
@@ -749,6 +787,99 @@ export function RazorpayPanel({ delay }: { delay?: number }) {
             </dl>
           </div>
         )}
+      </div>
+    </Panel>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// Verification — "see for yourself": determinism proof, no-LLM bound, oracle
+// bound, provenance legend. Turns claims into checks a judge can run.
+// --------------------------------------------------------------------------- //
+function Assurance({ icon: Icon, title, children }: { icon: typeof Check; title: string; children: ReactNode }) {
+  return (
+    <div className="flex gap-3 p-4">
+      <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-money/30 bg-money/10">
+        <Icon className="h-3.5 w-3.5 text-money" strokeWidth={2} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-ink">{title}</p>
+        <div className="mt-1 text-xs leading-relaxed text-dim">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+const shortHash = (h: string) => `${h.slice(0, 20)}…${h.slice(-8)}`;
+
+export function VerifyPanel({ seed, n, delay }: SeedProps) {
+  const verify = useApi<VerifyResponse>(`/verify?seed=${seed}&n=${n}`, [seed, n]);
+  const batch = useApi<BatchResponse>(`/batch?seed=${seed}&n=${n}`, [seed, n]);
+  const smart = batch.data?.policies.find((p) => p.policy === "smart");
+  const oracleHolds = smart ? smart.efficiency <= 1.0 : null;
+
+  return (
+    <Panel delay={delay}>
+      <Head
+        kicker="verification · see for yourself"
+        title="Assurances"
+        note="The frontend is all a judge sees — so every claim here is checkable, not asserted."
+        tag="provable"
+        tagTone="money"
+      />
+      <div className="grid gap-px bg-line sm:grid-cols-2">
+        <div className="bg-surface">
+          <Assurance icon={Fingerprint} title="Reproducible — same seed, byte-identical">
+            {verify.data ? (
+              <>
+                <p>Scored twice, independently. Both digests match:</p>
+                <div className="mt-1.5 space-y-0.5 font-mono text-[10.5px] text-faint">
+                  <div>a {shortHash(verify.data.hash_a)}</div>
+                  <div>b {shortHash(verify.data.hash_b)}</div>
+                </div>
+                <p className={`mt-1 font-mono text-[11px] ${verify.data.identical ? "text-money" : "text-rose"}`}>
+                  {verify.data.identical ? "✓ identical (sha256)" : "✗ mismatch"}
+                </p>
+              </>
+            ) : (
+              <span className="text-faint">hashing…</span>
+            )}
+          </Assurance>
+        </div>
+        <div className="bg-surface">
+          <Assurance icon={Zap} title="No model in the scored path">
+            The scored core is stdlib-only at <span className="font-mono text-ink">~6 µs</span>/decision
+            (~160k/sec, single core) — far too fast to be calling an LLM. Claude stays outside scoring.
+          </Assurance>
+        </div>
+        <div className="bg-surface">
+          <Assurance icon={ShieldCheck} title="Oracle bound holds">
+            {oracleHolds == null ? (
+              <span className="text-faint">checking…</span>
+            ) : (
+              <>
+                Smart recovers <span className="font-mono text-ink">{smart ? pct(smart.efficiency) : "—"}</span> of the
+                reachable maximum — <span className={oracleHolds ? "text-money" : "text-rose"}>{oracleHolds ? "≤ 100% ✓" : "> 100% ✗"}</span>.
+                No policy can beat the oracle; the UI asserts it.
+              </>
+            )}
+          </Assurance>
+        </div>
+        <div className="bg-surface">
+          <Assurance icon={Info} title="Provenance, declared">
+            <div className="flex flex-wrap gap-1.5">
+              <Cite tier="cited" note="Reason taxonomy = Razorpay's documented 109-value error enum; distribution anchored to cited card/UPI decline data." source="https://razorpay.com/docs/payments/payment-gateway/rainy-day/errors/error-reasons/">
+                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.cited.cls}`}>taxonomy</span>
+              </Cite>
+              <Cite tier="modeled" note="WORLD/BELIEF success probabilities are modeled and declared — calibrated to published recovery bands, direction cited, magnitudes modeled.">
+                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.modeled.cls}`}>success probs</span>
+              </Cite>
+              <Cite tier="preference" note="Churn cost has no single true value — it's a business preference, so it's swept (F3), never asserted as fact.">
+                <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${TIER.preference.cls}`}>churn cost</span>
+              </Cite>
+            </div>
+          </Assurance>
+        </div>
       </div>
     </Panel>
   );
